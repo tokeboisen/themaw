@@ -8,3 +8,4 @@ export * from './creation.ts';
 export * from './accounts.ts';
 export * from './dungeon.ts';
 export * from './rim.ts';
+export * from './gear.ts';

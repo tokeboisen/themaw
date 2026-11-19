@@ -4,6 +4,7 @@ import { bindingsFor, queueFor } from '@maw/contracts';
 import { connectBus } from '@maw/platform';
 import { buildApp } from './app.ts';
 import { createPool, migrate, waitForDatabase } from './db.ts';
+import { startConsumers } from './events.ts';
 import { startRelay } from './outbox.ts';
 
 const env = {
@@ -25,11 +26,12 @@ bus.onClose(() => {
   process.exit(1);
 });
 // Køerne for api'ets bounded contexts oprettes med det samme, så events venter, også før deres lyttere er bygget
-// (f.eks. "Character created" til Gear og Market, der kommer i fase 2).
+// (Characters' statistik lytter først fra fase 3).
 for (const context of ['Characters', 'Gear', 'Market', 'Patronage']) {
   const bindings = bindingsFor(context);
   if (bindings.length) await bus.declare(queueFor(context), bindings);
 }
+await startConsumers(pool, bus);
 const stopRelay = startRelay(pool, bus, log);
 
 const app = buildApp(pool, bus, true);

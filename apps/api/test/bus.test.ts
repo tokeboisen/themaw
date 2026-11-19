@@ -25,6 +25,9 @@ test('an event goes from the outbox over RabbitMQ to a listener, and only counts
       arrived();
     }));
 
+    // De andre tests' events i maw_test leveres direkte (deliverAll) og må aldrig nå spillets bus: relayOnce sender
+    // alt ventende, og spillets lyttere ville ellers oprette inventar, tegnebøger og Forges for testkarakterer.
+    await pool.query('update platform.outbox set published_at = now() where published_at is null');
     const event = envelope(TECHNICAL_EVENTS.ping, { hello: 'the Maw' });
     await enqueue(pool, event);
     assert.ok((await relayOnce(pool, bus)) >= 1);

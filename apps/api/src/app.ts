@@ -5,6 +5,9 @@ import type { Bus } from '@maw/platform';
 import { accountsRoutes } from './accounts/routes.ts';
 import { charactersRoutes } from './characters/routes.ts';
 import type { Pool } from './db.ts';
+import { gearRoutes } from './gear/routes.ts';
+import { marketRoutes } from './market/routes.ts';
+import { patronageRoutes } from './patronage/routes.ts';
 
 export function buildApp(pool: Pool, bus?: Bus, logger = false): FastifyInstance {
   const app = Fastify({ logger, bodyLimit: 64 * 1024 });
@@ -24,5 +27,8 @@ export function buildApp(pool: Pool, bus?: Bus, logger = false): FastifyInstance
 
   accountsRoutes(app, pool);
   charactersRoutes(app, pool);
+  gearRoutes(app, pool);
+  marketRoutes(app, pool);
+  patronageRoutes(app, pool);
   return app;
 }

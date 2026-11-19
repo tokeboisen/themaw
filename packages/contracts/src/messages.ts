@@ -9,6 +9,12 @@ export const MESSAGES = {
   wrongLogin: 'Wrong user name or password.',
   /** Feature-001 */
   placeAllPoints: 'Place all your points first.',
+  /** Feature-007, -019, -024 */
+  inventoryFull: 'Your inventory is full.',
+  /** Feature-019, -020 */
+  notEnoughGold: 'Not enough gold.',
+  /** Feature-020 */
+  cannotCarryMore: 'You cannot carry more.',
   /** Feature-038 */
   deleteConfirm: (name: string) => `Delete ${name}? Everything ${name} owns is lost. This cannot be undone.`,
 } as const;

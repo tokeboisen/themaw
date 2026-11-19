@@ -1,5 +1,6 @@
-// Webappen. Fase 1: Sign in (F031, F032), Characters (F026, F038), Create character (F001), the Rim, karakterskærmen
-// (F004) og Account (F033). Teksterne er på engelsk og citeret fra featurene, hvor de nævner dem.
+// Webappen. Fase 1: Sign in (F031, F032), Characters (F026, F038), Create character (F001), karakterskærmen (F004) og
+// Account (F033). Fase 2: the Rim med Forge (F019), Apothecary (F020) og Patrons' Hall (F024), guldet (F018), og
+// inventar og hotbar på karakterskærmen (F007, F027). Teksterne er på engelsk og citeret fra featurene.
 
 import { MESSAGES } from '@maw/contracts';
 import {
@@ -9,6 +10,7 @@ import {
 import { api, type BackgroundView, type CharacterView } from './api.ts';
 import { $, esc, onAction } from './dom.ts';
 import { deleteConfirmation, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
+import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
 import { sheetHtml } from './sheet.ts';
 
 type Overlay = null | 'sheet' | 'account' | { confirmDelete: string };
@@ -22,6 +24,7 @@ const state = {
   backgrounds: [] as BackgroundView[],
   create: { background: 'miner', alloc: null as Allocation | null, name: '', message: '' },
   overlay: null as Overlay,
+  rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', hotbarKey: null as string | null },
 };
 
 const app = $('#app');
@@ -37,6 +40,29 @@ async function loadCharacters(): Promise<void> {
   if (!result.ok) return show('signin');
   state.characters = result.data.characters;
   state.activeId = result.data.activeCharacterId;
+}
+
+/** The Rim's data for den karakter, der spilles: guld, Forge, inventar og gaver. Returnerer, om noget er ændret. */
+async function loadRim(): Promise<boolean> {
+  const c = active();
+  if (!c) return false;
+  const [forge, inventory, gifts] = await Promise.all([api.forge(c.id), api.inventory(c.id), api.gifts(c.id)]);
+  const next: RimData = {
+    gold: forge.ok ? forge.data.gold : 0,
+    stock: forge.ok ? forge.data.stock : [],
+    inventory: inventory.ok ? inventory.data : null,
+    gifts: gifts.ok ? gifts.data.gifts : [],
+  };
+  const changed = JSON.stringify(next) !== JSON.stringify(state.rim.data);
+  state.rim.data = next;
+  return changed;
+}
+
+/** Events fra bussen ankommer et øjeblik efter en handling; hent igen kort efter. */
+function refreshSoon(): void {
+  window.setTimeout(async () => {
+    if (state.screen === 'rim' && (await loadRim())) render();
+  }, 600);
 }
 
 async function loadBackgrounds(): Promise<void> {
@@ -148,15 +174,22 @@ function createHtml(): string {
 
 function rimHtml(): string {
   const c = active();
-  return `<div class="panel">
+  const { tab, data, message } = state.rim;
+  const tabs: [RimTab, string][] = [['forge', 'Forge'], ['apothecary', 'Apothecary'], ['patrons', "Patrons' Hall"]];
+  const views: Record<RimTab, () => string> = { forge: () => forgeHtml(data, message), apothecary: () => apothecaryHtml(data, message), patrons: () => patronsHtml(data, message) };
+  const waiting = data.gifts.length ? ` (${data.gifts.length})` : '';
+  return `<div class="panel wide">
     <header class="top">
       <div><h1>The Rim</h1><p class="muted">${c ? `${esc(c.name)} · ${esc(backgroundName(c.background))} · Mark ${c.mark}` : ''}</p></div>
       <div class="actions">
+        <span class="gold-text big-gold">${data.gold} gold</span>
         <button class="primary" data-act="sheet">Character</button>
         <button class="ghost" data-act="characters">Characters</button>
         <button class="ghost" data-act="account">Account</button>
       </div>
     </header>
+    <nav class="tabs">${tabs.map(([id, name]) => `<button class="${id === tab ? 'active' : ''}" data-act="tab" data-id="${id}">${name}${id === 'patrons' ? waiting : ''}</button>`).join('')}</nav>
+    ${views[tab]()}
   </div>`;
 }
 
@@ -165,7 +198,7 @@ function overlayHtml(): string {
   if (!o) return '';
   if (o === 'sheet') {
     const c = active();
-    return c ? sheetHtml(c, backgroundName(c.background)) : '';
+    return c ? sheetHtml(c, backgroundName(c.background), state.rim.data.inventory, state.rim.hotbarKey, state.rim.sheetMessage) : '';
   }
   if (o === 'account') {
     return `<div class="overlay"><div class="dialog">
@@ -182,8 +215,11 @@ function overlayHtml(): string {
 
 function render(): void {
   const screens: Record<Screen, () => string> = { signin: signInHtml, characters: charactersHtml, create: createHtml, rim: rimHtml };
+  // Overlayet tegnes forfra ved hver handling; scroll-positionen bevares, så karakterskærmen ikke springer til toppen.
+  const scrolled = [...overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog')].map((el) => el.scrollTop);
   app.innerHTML = screens[state.screen]();
   overlay.innerHTML = overlayHtml();
+  overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog').forEach((el, i) => (el.scrollTop = scrolled[i] ?? 0));
   if (state.screen === 'signin') $<HTMLInputElement>('#signin input[name=userName]').focus();
 }
 
@@ -231,6 +267,8 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'account':
       return show(state.screen, 'account');
     case 'sheet':
+      state.rim.hotbarKey = null;
+      state.rim.sheetMessage = '';
       return show(state.screen, 'sheet');
     case 'close':
       return show(state.screen);
@@ -249,6 +287,7 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'play': {
       const result = await api.chooseCharacter(id!);
       if (result.ok) state.activeId = result.data.activeCharacterId;
+      await loadRim();
       return show('rim'); // F026: "After choosing, the player is in the Rim."
     }
     case 'delete':
@@ -287,11 +326,54 @@ async function act(action: string, id: string | undefined): Promise<void> {
         state.create.message = result.refusal.message;
         return render();
       }
-      // F001 EVT-01: den nye karakter er den, der spilles.
+      // F001 EVT-01: den nye karakter er den, der spilles; startudstyr, guld og Forge kommer via bussen.
       await loadCharacters();
       state.create.alloc = null;
-      return show('rim');
+      state.rim.data = { gold: 0, stock: [], inventory: null, gifts: [] };
+      await loadRim();
+      show('rim');
+      return refreshSoon();
     }
+    case 'tab':
+      state.rim.tab = id as RimTab;
+      state.rim.message = '';
+      return render();
+    case 'buy':
+    case 'sell':
+    case 'buy-consumable':
+    case 'accept-gift': {
+      const c = active()!;
+      const result = action === 'buy' ? await api.buy(c.id, id!)
+        : action === 'sell' ? await api.sell(c.id, id!)
+        : action === 'buy-consumable' ? await api.buyConsumable(c.id, id as 'potion' | 'ration')
+        : await api.acceptGift(c.id, id!);
+      // F019 VIEW-01: "A refusal is shown above the lists."
+      state.rim.message = result.ok ? '' : result.refusal.message;
+      await loadRim();
+      render();
+      return refreshSoon();
+    }
+    case 'equip':
+    case 'unequip':
+    case 'hotbar-weapon':
+    case 'hotbar-art':
+    case 'hotbar-clear': {
+      const c = active()!;
+      const key = state.rim.hotbarKey ?? '';
+      const result = action === 'equip' ? await api.equip(c.id, id!)
+        : action === 'unequip' ? await api.unequip(c.id, id!)
+        : action === 'hotbar-weapon' ? await api.assignHotbar(c.id, key, { itemId: id! })
+        : action === 'hotbar-art' ? await api.assignHotbar(c.id, key, { echoArt: id! })
+        : await api.clearHotbar(c.id, key);
+      if (result.ok) state.rim.data.inventory = result.data;
+      // F007 scenario "Unequipping needs room": "Your inventory is full." vises på karakterskærmen.
+      state.rim.sheetMessage = result.ok ? '' : result.refusal.message;
+      if (action.startsWith('hotbar')) state.rim.hotbarKey = null;
+      return render();
+    }
+    case 'hotbar-key':
+      state.rim.hotbarKey = state.rim.hotbarKey === id ? null : id!;
+      return render();
     case 'spend-attribute':
     case 'spend-skill': {
       const c = active()!;
@@ -320,7 +402,13 @@ const me = await api.me();
 if (me.ok) {
   state.userName = me.data.userName;
   await Promise.all([loadCharacters(), loadBackgrounds()]);
+  await loadRim();
   show(screenOnReload(state.characters.length, state.activeId));
 } else {
   show('signin');
 }
+
+// The Rim henter nye data hvert andet sekund (planen, afsnit 7) og tegner kun igen, når noget er ændret.
+window.setInterval(async () => {
+  if (state.screen === 'rim' && (await loadRim())) render();
+}, 2000);

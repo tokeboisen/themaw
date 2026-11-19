@@ -1,0 +1,64 @@
+// The Rim's faner: Forge (Feature-019), Apothecary (Feature-020) og Patrons' Hall (Feature-024).
+
+import { BALANCE as B, sellValue, type Item } from '@maw/rules';
+import type { GiftView, InventoryView } from './api.ts';
+import { esc } from './dom.ts';
+import { itemRow } from './items.ts';
+
+export type RimTab = 'forge' | 'apothecary' | 'patrons';
+
+export interface RimData {
+  gold: number;
+  stock: Item[];
+  inventory: InventoryView | null;
+  gifts: GiftView[];
+}
+
+const price = (gold: number) => `<span class="gold-text">${gold} gold</span>`;
+
+export function forgeHtml(d: RimData, message: string): string {
+  const stock = d.stock.length
+    ? d.stock.map((item) => itemRow(item, `${price(item.value)}
+        <button class="ghost small-btn" data-act="buy" data-id="${item.id}" ${d.gold < item.value ? 'disabled' : ''}>Buy</button>`)).join('')
+    : '<li class="muted">Nothing for sale.</li>';
+  const pack = d.inventory?.pack ?? [];
+  const sell = pack.length
+    ? pack.map((item) => itemRow(item, `${price(sellValue(item, B))}
+        <button class="ghost small-btn" data-act="sell" data-id="${item.id}">Sell</button>`)).join('')
+    : '<li class="muted">Your pack is empty.</li>';
+  return `<p class="quote">Hesta Varn, the smith: "Steel for the Branded. Coin first."</p>
+    <div class="msg">${esc(message)}</div>
+    <div class="cols">
+      <div class="box"><h3>For sale</h3><ul class="items">${stock}</ul></div>
+      <div class="box"><h3>Your inventory</h3><ul class="items">${sell}</ul></div>
+    </div>`;
+}
+
+export function apothecaryHtml(d: RimData, message: string): string {
+  const max = B.character.maxConsumables;
+  const row = (kind: 'potion' | 'ration', name: string, what: string, cost: number, have: number) =>
+    `<li class="item"><div><div class="item-name">${name}</div><div class="hint">${what} You have ${have} / ${max}.</div></div>
+      <div class="actions">${price(cost)}
+        <button class="ghost small-btn" data-act="buy-consumable" data-id="${kind}" ${d.gold < cost || have >= max ? 'disabled' : ''}>Buy</button></div></li>`;
+  return `<p class="quote">Mother Quill: "Drink before you need it, child. Eat before you starve."</p>
+    <div class="msg">${esc(message)}</div>
+    <div class="box"><ul class="items">
+      ${row('potion', 'Healing Draught', `Restores ${Math.round(B.combat.potionHeal * 100)} % of your life.`, B.rim.potionPrice, d.inventory?.potions ?? 0)}
+      ${row('ration', 'Ration', `Restores ${B.hunger.rationRestores} hunger.`, B.rim.rationPrice, d.inventory?.rations ?? 0)}
+    </ul></div>`;
+}
+
+export function patronsHtml(d: RimData, message: string): string {
+  const gifts = d.gifts.length
+    ? d.gifts.map((g) => g.kind === 'gold'
+        ? `<li class="item"><div><div class="item-name">${esc(g.house)} sends ${g.gold} gold</div></div>
+            <div class="actions"><button class="ghost small-btn" data-act="accept-gift" data-id="${g.id}">Accept</button></div></li>`
+        : itemRow(g.item!, `<span class="hint">${esc(g.house)}</span>
+            <button class="ghost small-btn" data-act="accept-gift" data-id="${g.id}">Accept</button>`)).join('')
+    : '<li class="muted">No gifts are waiting.</li>';
+  return `<p class="quote">The agents of the Noble Houses watch every Tithe through the Mirrors. They send one gift for every
+      ${B.rim.giftPerRenown} Renown in a Tithe, at most ${B.rim.maxGifts}. The crowd loves kill streaks, defeated rivals and players,
+      new depths and the Warden.</p>
+    <div class="msg">${esc(message)}</div>
+    <div class="box"><ul class="items">${gifts}</ul></div>`;
+}

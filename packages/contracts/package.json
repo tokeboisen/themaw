@@ -9,5 +9,8 @@
   },
   "devDependencies": {
     "yaml": "2.9.1"
+  },
+  "dependencies": {
+    "@maw/rules": "0.1.0"
   }
 }

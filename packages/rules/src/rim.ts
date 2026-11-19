@@ -72,6 +72,11 @@ export function forgeStock(rng: Rng, ch: Character, B: Balance): Item[] {
   return items;
 }
 
+/** Feature-021 CMD-01: 7 ting med karakterens Mark som item level: 10 % rare, ellers 45 % magic, ellers common. */
+export function forgeStockAt(rng: Rng, mark: number, B: Balance): Item[] {
+  return forgeStock(rng, { level: mark } as Character, B);
+}
+
 function room(ch: Character, B: Balance): boolean {
   return ch.inventory.length < derivedStats(ch, B).capacity;
 }
