@@ -136,7 +136,7 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 .hud-renown { color: #d6a2ff; }
 .hud-right { position: absolute; top: 12px; right: 12px; width: 210px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .hud-buttons { display: flex; gap: 4px; }
-.hud-buttons .small-btn { background: rgba(20, 15, 11, 0.85); }
+.hud-buttons .small-btn { background: rgba(20, 15, 11, 0.85); white-space: nowrap; }
 .minimap { width: 128px; height: 128px; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--line); border-radius: 4px; }
 .hud-candidates { list-style: none; margin: 0; padding: 6px 8px; width: 100%; background: rgba(0, 0, 0, 0.55); border-radius: 6px; font-size: 12px; }
 .hud-candidates li { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; }
@@ -161,3 +161,9 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
   .minimap { width: 96px; height: 96px; }
   .hud-log { bottom: 150px; }
 }
+
+/* Fase 4: Other players og partier (Feature-034, -035) */
+.countdown { margin: 0 0 8px; color: var(--gold); }
+.invitation { margin: 0 0 10px; padding: 10px 12px; border: 1px solid var(--gold); border-radius: 8px; background: rgba(255, 216, 74, 0.08); }
+.invitation p { margin: 0 0 6px; font-weight: 600; }
+.items.plain li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; }

@@ -1,13 +1,15 @@
 // Tithe-skærmen (Feature-010 VIEW-01 Depth): forbinder til tithe-server med billetten, sender spillerens handlinger og
 // tegner serverens snapshots med lidt udjævning. Browseren regner intet selv; serveren afgør alt (Feature-010 SVC-01).
 
-import type { ClientMessage, EndedMessage, ServerMessage, SheetMessage, Snapshot, SnapshotEntity } from '@maw/contracts';
+import type { ClientMessage, EndedMessage, PartyView, ServerMessage, SheetMessage, Snapshot, SnapshotEntity } from '@maw/contracts';
 import { BALANCE as B, HOTBAR_KEYS, type HotbarKey, type SheetAction } from '@maw/rules';
 import { esc } from '../dom.ts';
 import { createRenderer, type Frame, type Renderer } from './render.ts';
 
 export interface GameEvents {
   sheet(message: SheetMessage): void;
+  /** Partiet har ændret sig; invited er sand, når en ny invitation er kommet (Feature-035 VIEW-01 popper op). */
+  party(view: PartyView, invited: boolean): void;
   ended(message: EndedMessage): void;
   refused(message: string): void;
   gone(reason: string): void;
@@ -42,6 +44,7 @@ export function hudHtml(): string {
       <div class="hud-right">
         <div class="hud-buttons">
           <button class="ghost small-btn" data-act="sheet">Character</button>
+          <button class="ghost small-btn" data-act="others">Other players</button>
           <button class="ghost small-btn" data-act="help">Help</button>
           <button class="ghost small-btn" data-act="leave">Leave</button>
         </div>
@@ -81,6 +84,8 @@ export class Game {
   private hotbarHtml = '';
   private candidatesHtml = '';
   private sheet: SheetMessage | null = null;
+  private partyJson = '';
+  private partyState: PartyView | null = null;
   private readonly events: GameEvents;
   private readonly ticket: string;
   private closedByUs = false;
@@ -112,6 +117,11 @@ export class Game {
   /** Den seneste karakterskærm fra serveren (Feature-004, -007, -027 under en Tithe). */
   get sheetData(): SheetMessage | null {
     return this.sheet;
+  }
+
+  /** Partiet, som serveren sidst sendte det (Feature-034 VIEW-01). */
+  get party(): PartyView | null {
+    return this.partyState;
   }
 
   get hotbar() {
@@ -191,6 +201,13 @@ export class Game {
       this.log.push(...s.msgs);
       this.log = this.log.slice(-3);
     }
+    const partyJson = JSON.stringify(s.party);
+    if (partyJson !== this.partyJson) {
+      const before = new Set(this.partyState?.invitations.map((i) => i.from) ?? []);
+      this.partyJson = partyJson;
+      this.partyState = s.party;
+      this.events.party(s.party, s.party.invitations.some((i) => !before.has(i.from)));
+    }
     this.updateHud(s);
   }
 
@@ -221,6 +238,7 @@ export class Game {
     return {
       mapW: this.mapW, mapH: this.mapH, tiles: this.tiles, tilesVersion: this.tilesVersion, you, ents, proj: s.proj, loot: s.loot,
       caches: s.caches, gate: s.gate, sealed: !!s.seal?.sealed, radius: B.view.visionRadius,
+      party: s.party.members.filter((m) => !m.you && m.x !== null && m.y !== null).map((m) => ({ name: m.name, x: m.x!, y: m.y! })),
     };
   }
 
@@ -358,6 +376,11 @@ export class Game {
 
   sheetAction(action: SheetAction): void {
     this.send({ t: 'sheet', action });
+  }
+
+  /** Feature-034 CMD-01 Invite player, CMD-02 Leave party; Feature-035 CMD-01 Accept, CMD-02 Decline. */
+  partyAction(message: Extract<ClientMessage, { t: 'party' }>): void {
+    this.send(message);
   }
 
   /** Feature-029 CMD-01 Leave the Tithe */

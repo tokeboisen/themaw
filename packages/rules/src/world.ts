@@ -1,7 +1,7 @@
 // En Tithe i realtid med op til 8 kandidater: spillerne og NPC-rivalerne (Feature-010 til -017, -002, -003, -006, -008,
 // -028 og -029). Overført fra prototype/js/core/world.js og skrevet om til flere spillere.
 // Ingen DOM og intet netværk her: tithe-server kalder stepTithe 30 gange i sekundet og sender hver spiller det, den kan se.
-// Spillere slår ikke spillere endnu; PvP og partier kommer i fase 4 (Feature-011, -034, -035).
+// Partier dannes i de første 20 sekunder (Feature-034, -035), og spillere slår spillere uden for deres parti (Feature-011).
 
 import type { Balance, MonsterDef, RivalDef } from './balance.ts';
 import {
@@ -34,6 +34,8 @@ const LINES = {
   champion: 'Aurum, behold your Champion: {name}!',
   playerFell: '{name} falls. The Brand drags them back up... The Maw is not finished with them.',
   playerLeft: '{name} has left the Tithe. The Brand drags them back up.',
+  joined: '{name} joined the party.',
+  declined: '{name} declined.',
   depth: 'Depth {d}. The air grows heavier.',
 };
 
@@ -141,6 +143,8 @@ export interface PlayerEnd {
 
 export interface Player extends Body {
   kind: 'player';
+  /** Partiet, spilleren kæmper i; alene er spilleren sit eget parti (Feature-034 AGG-01). */
+  partyId: string;
   userId: string;
   userName: string;
   characterId: string;
@@ -224,6 +228,22 @@ export interface Depth {
   startRooms: Room[];
 }
 
+/** Feature-034 EVT-01 Invitation sent: kan kun besvares i nådetiden (Feature-035). */
+export interface Invitation {
+  from: string;
+  to: string;
+  at: number;
+}
+
+/** Feature-011 EVT-06 Player defeated, til bussen: guldet, der blev spildt, og hvem der slog. */
+export interface Defeat {
+  userId: string;
+  characterId: string;
+  byUserId: string;
+  byCharacterId: string;
+  gold: number;
+}
+
 export interface Message {
   who: string;
   text: string;
@@ -268,6 +288,9 @@ export interface Tithe {
   /** Spillernes gennemsnitlige Mark, som rivalernes og monstrenes niveau følger (Feature-010, -011). */
   mark: number;
   nextId: number;
+  invitations: Invitation[];
+  /** Spillere, der er slået ned af andre spillere, og som endnu ikke er sendt på bussen. */
+  defeats: Defeat[];
 }
 
 export interface TithePlayerSetup {
@@ -294,6 +317,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const t: Tithe = {
     id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
     champion: null, closed: false, wardenAlive: true, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: false, mark, nextId: 1,
+    invitations: [], defeats: [],
   };
   t.players = setup.players.map((s) => makePlayer(t, s));
   // NPC-rivaler fylder pladserne op til 8, valgt blandt de syv (Feature-010 CMD-01).
@@ -333,7 +357,7 @@ function nid(t: Tithe, prefix: string): string {
 function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
   const stats = derivedStats(s.character, t.B);
   return {
-    kind: 'player', id: s.userId, userId: s.userId, userName: s.userName, characterId: s.characterId, name: s.character.name,
+    kind: 'player', id: s.userId, partyId: s.userId, userId: s.userId, userName: s.userName, characterId: s.characterId, name: s.character.name,
     ch: s.character, hotbar: s.hotbar, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
@@ -508,7 +532,10 @@ function graceOver(t: Tithe): boolean {
   return t.time >= t.B.tithe.graceSeconds;
 }
 
-/** Hvem må slå hvem: ingen kandidat slår en anden i nådetiden, rivaler slår ikke hinanden, og spillere ikke spillere (fase 4). */
+/**
+ * Hvem må slå hvem: ingen kandidat slår en anden i nådetiden (Feature-010), rivaler slår ikke hinanden (Feature-014), og
+ * et partis medlemmer rammer aldrig hinanden (Feature-011, -034).
+ */
 function canStrike(t: Tithe, attacker: Body, target: Body): boolean {
   const a = (attacker as { kind?: string }).kind;
   const b = (target as { kind?: string }).kind;
@@ -516,9 +543,13 @@ function canStrike(t: Tithe, attacker: Body, target: Body): boolean {
   if (candidate(a) && candidate(b)) {
     if (!graceOver(t)) return false;
     if (a === 'rival' && b === 'rival') return false;
-    if (a === 'player' && b === 'player') return false;
+    if (a === 'player' && b === 'player' && (attacker as Player).partyId === (target as Player).partyId) return false;
   }
   return true;
+}
+
+export function sameParty(a: Player, b: Player): boolean {
+  return a.partyId === b.partyId;
 }
 
 function hostile(r: Rival, p: Player): boolean {
@@ -632,6 +663,51 @@ export function leaveTithe(t: Tithe, playerId: string): void {
   endPlayer(t, p, 'left', p.name);
 }
 
+// --- Partier (Feature-034 Form a party, Feature-035 Answer an invitation) ------------------------
+
+export type PartyRefusal = 'tooLate' | 'invalid';
+
+/** Feature-034 CMD-01 Invite player: kun spillere i samme Tithe, og kun i dens første 20 sekunder. */
+export function invitePlayer(t: Tithe, fromId: string, toId: string): PartyRefusal | null {
+  const from = t.players.find((x) => x.id === fromId);
+  const to = t.players.find((x) => x.id === toId);
+  if (!from || !to || from === to || from.end || to.end) return 'invalid';
+  if (graceOver(t)) return 'tooLate';
+  if (sameParty(from, to)) return 'invalid';
+  t.invitations = t.invitations.filter((i) => !(i.from === fromId && i.to === toId));
+  t.invitations.push({ from: fromId, to: toId, at: t.time });
+  return null;
+}
+
+/**
+ * Feature-035 CMD-01 Accept invitation og CMD-02 Decline invitation: kun i nådetiden. At tage imod forlader det parti,
+ * spilleren var i. Den, der inviterede, får besked.
+ */
+export function answerInvitation(t: Tithe, toId: string, fromId: string, accept: boolean): PartyRefusal | null {
+  const invitation = t.invitations.find((i) => i.from === fromId && i.to === toId);
+  const from = t.players.find((x) => x.id === fromId);
+  const to = t.players.find((x) => x.id === toId);
+  if (!invitation || !from || !to || to.end) return 'invalid';
+  if (graceOver(t)) return 'tooLate';
+  t.invitations = t.invitations.filter((i) => i !== invitation);
+  if (accept && !from.end) {
+    to.partyId = from.partyId;
+    say(t, 'Party', fmt(LINES.joined, { name: to.userName }), from.id);
+  } else if (!accept) {
+    say(t, 'Party', fmt(LINES.declined, { name: to.userName }), from.id);
+  }
+  return null;
+}
+
+/** Feature-034 CMD-02 Leave party: når som helst; bagefter kan de tidligere medlemmer slå spilleren og omvendt. */
+export function leaveParty(t: Tithe, playerId: string): PartyRefusal | null {
+  const p = t.players.find((x) => x.id === playerId);
+  if (!p || p.end) return 'invalid';
+  if (!t.players.some((x) => x !== p && !x.end && sameParty(x, p))) return null;
+  p.partyId = nid(t, 'party');
+  return null;
+}
+
 export type SheetAction =
   | { action: 'equip'; itemId: string }
   | { action: 'unequip'; slot: Slot }
@@ -698,6 +774,7 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
 export function stepTithe(t: Tithe, dt: number): void {
   if (t.closed) return;
   t.time += dt;
+  if (t.invitations.length && graceOver(t)) t.invitations = [];
   syncRivalPresence(t);
   for (const p of playersIn(t)) {
     p.fieldAge += dt;
@@ -831,7 +908,8 @@ function useHotkey(t: Tithe, p: Player, dep: Depth, key: HotbarKey): void {
 /** Feature-015 CMD-01: porten er kun åben for partiet hos den, der slog The Foreman. */
 function claimTithe(t: Tithe, p: Player): void {
   if (!t.gateOpenFor.has(p.id)) return;
-  const party = [p];
+  // Feature-015 EVT-01: hvert medlem af partiet, der stadig er i Tithen, er Champion.
+  const party = playersIn(t).filter((x) => sameParty(x, p));
   say(t, 'Mirrormaster', fmt(LINES.champion, { name: p.name }));
   t.champion = p.name;
   for (const x of playersIn(t)) endPlayer(t, x, party.includes(x) ? 'champion' : 'rival-champion', p.name);
@@ -841,10 +919,12 @@ function claimTithe(t: Tithe, p: Player): void {
 function targetsFor(t: Tithe, p: Player, dep: Depth): Body[] {
   const list: Body[] = dep.monsters.filter((m) => !m.dead);
   for (const r of realRivals(t, dep.level)) if (canStrike(t, p, r)) list.push(r);
+  for (const o of playersOn(t, dep.level)) if (o !== p && canStrike(t, p, o)) list.push(o);
   return list;
 }
 
-// Sigter automatisk: nærmeste fjende, og først en fredelig rival, hvis der ikke er andre (Feature-011).
+// Sigter automatisk: nærmeste monster eller fjendtlige rival; en anden spiller eller en fredelig rival kun, når intet
+// andet er nær (Feature-011).
 function pickTarget(t: Tithe, p: Player, dep: Depth, range: number): Body | null {
   let best: Body | null = null;
   let bestScore = Infinity;
@@ -852,8 +932,8 @@ function pickTarget(t: Tithe, p: Player, dep: Depth, range: number): Body | null
     const d = dist(p, e) - e.r;
     if (d > range) continue;
     if (!lineOfSight(dep.map, p.x, p.y, e.x, e.y)) continue;
-    const peaceful = isRival(e) && !hostile(e, p);
-    const score = d + (peaceful ? 100 : 0);
+    const last = (isRival(e) && !hostile(e, p)) || isPlayer(e);
+    const score = d + (last ? 100 : 0);
     if (score < bestScore) {
       bestScore = score;
       best = e;
@@ -1089,7 +1169,7 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
       if (p) {
         // Feature-011 EVT-04: porten åbner for den, der slog ham (og i fase 4 hans parti).
         dep.map.gateOpen = true;
-        t.gateOpenFor.add(p.id);
+        for (const x of t.players) if (sameParty(x, p)) t.gateOpenFor.add(x.id);
         p.record.wardenSlain = true;
         addRenown(t, p, B.renown.warden);
         dropLoot(t, dep, target.x, target.y, target.level + 1, { goldChance: 1, items: 3, rarities: ['rare', 'magic', 'magic'], consumableChance: 1 });
@@ -1119,8 +1199,26 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
   if (isPlayer(target)) {
     // Feature-013 EVT-10: spilleren falder, og de andre kandidater fortsætter.
     say(t, 'Mirrormaster', fmt(LINES.playerFell, { name: target.name }));
-    endPlayer(t, target, 'fell', killer ? killer.name : 'the Maw');
+    if (p) defeatPlayer(t, dep, p, target);
+    endPlayer(t, target, 'fell', p ? p.userName : killer ? killer.name : 'the Maw');
   }
+}
+
+/**
+ * Feature-011 EVT-06 Player defeated: den slåede spilder 10–20 % af guldet i tegnebogen på gulvet, hvor den faldt
+ * (Feature-018), og den, der slog, får et Player kill (Feature-039), 60 Renown (Feature-017) og 12 × Mark i Echo (Feature-003).
+ */
+function defeatPlayer(t: Tithe, dep: Depth, by: Player, target: Player): void {
+  const gold = Math.floor(Math.max(0, target.ch.gold) * t.rng.range(0.1, 0.2));
+  if (gold > 0) {
+    target.ch.gold -= gold;
+    dep.loot.push({ id: nid(t, 'l'), kind: 'gold', amount: gold, x: target.x, y: target.y });
+  }
+  t.defeats.push({ userId: target.userId, characterId: target.characterId, byUserId: by.userId, byCharacterId: by.characterId, gold });
+  by.record.playersDefeated += 1;
+  addRenown(t, by, t.B.renown.rival);
+  gainEcho(t, by, Math.round(12 * target.ch.level * by.stats.echoGain));
+  registerKill(t, by, dep);
 }
 
 /** Feature-014 EVT-06: en NPC-rival vinder, og Tithen slutter for alle spillere. */
@@ -1642,4 +1740,4 @@ function updateInteract(t: Tithe, p: Player): void {
 // --- Til tests ------------------------------------------------------------------------------------
 
 /** Hjælpere, som testene bruger til at stille en situation op. Spillet bruger dem ikke. */
-export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth };
+export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth, claimTithe };

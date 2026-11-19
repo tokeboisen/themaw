@@ -1,10 +1,10 @@
 // Det, hver spiller får at se: snapshot, karakterskærm og resultat (Feature-010 VIEW-01, -004/-007/-027 og -016 VIEW-01),
 // og "Tithe ended" til de andre contexts. Kun det, spilleren kan se, kommer med (planen, afsnit 8).
 
-import type { CandidateView, EndedMessage, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
+import type { CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
 import {
-  HOTBAR_KEYS, crownsPurse, echoToNextMark, giftCount, losesFound, sealInfo, type HotbarKey, type Item, type Player, type SkillId,
-  type Tithe, type TitheSummary,
+  BALANCE, HOTBAR_KEYS, crownsPurse, echoToNextMark, giftCount, losesFound, sameParty, sealInfo, type HotbarKey, type Item, type Player,
+  type SkillId, type Tithe, type TitheSummary,
 } from '@maw/rules';
 
 /** Hvad serveren har sendt til en spiller, så næste snapshot kun bærer det nye. */
@@ -41,6 +41,24 @@ function candidates(t: Tithe, p: Player): CandidateView[] {
   }));
   for (const r of t.rivals) list.push({ name: r.name, depth: r.depth, status: r.status, player: false, you: false });
   return list;
+}
+
+/** Feature-034 VIEW-01 og Feature-035 VIEW-01: partiet, de andre spillere i Tithen og invitationerne. */
+function party(t: Tithe, p: Player): PartyView {
+  const r2_ = (x: number) => Math.round(x * 100) / 100;
+  const inviteLeft = Math.max(0, (t.B ?? BALANCE).tithe.graceSeconds - t.time);
+  return {
+    inviteLeft: Math.ceil(inviteLeft),
+    members: t.players
+      .filter((x) => !x.end && sameParty(x, p))
+      .map((x) => ({ id: x.id, name: x.userName, depth: x.depth, x: x.depth === p.depth ? r2_(x.x) : null, y: x.depth === p.depth ? r2_(x.y) : null, you: x === p })),
+    players: t.players
+      .filter((x) => !x.end && x !== p)
+      .map((x) => ({ id: x.id, name: x.userName, inParty: sameParty(x, p), invited: t.invitations.some((i) => i.from === p.id && i.to === x.id) })),
+    invitations: inviteLeft > 0
+      ? t.invitations.filter((i) => i.to === p.id).map((i) => ({ from: i.from, name: t.players.find((x) => x.id === i.from)?.userName ?? '' }))
+      : [],
+  };
 }
 
 export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
@@ -80,7 +98,7 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
   for (const o of t.players) {
     if (o === p || o.end || o.depth !== p.depth || !seen(o)) continue;
     // Feature-010 VIEW-01: spillere i syne viser deres brugernavn over hovedet.
-    ents.push({ id: o.id, kind: 'player', name: o.userName, x: r2(o.x), y: r2(o.y), r: o.r, hp: Math.ceil(o.hp), maxHp: o.maxHp, flash: o.flash > 0 });
+    ents.push({ id: o.id, kind: 'player', name: o.userName, x: r2(o.x), y: r2(o.y), r: o.r, hp: Math.ceil(o.hp), maxHp: o.maxHp, flash: o.flash > 0, party: sameParty(o, p) });
   }
   const gate = map.gate && explored[map.gate.y * map.w + map.gate.x] ? { x: map.gate.x, y: map.gate.y, open: t.gateOpenFor.has(p.id) } : null;
   const msgs = t.messages.slice(view.messages).filter((m) => !m.to || m.to === p.id).map((m) => ({ who: m.who, text: m.text }));
@@ -112,6 +130,7 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
     renown: p.record.renown,
     goldFound: p.record.goldFound,
     candidates: candidates(t, p),
+    party: party(t, p),
     interact: p.interact,
     fx: t.fx
       .filter((f) => f.depth === p.depth && (!f.to || f.to === p.id) && (f.x === undefined || f.y === undefined || seen({ x: f.x, y: f.y }, 2)))

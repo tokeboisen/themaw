@@ -138,3 +138,39 @@ test('F029: a player who never connects has left the Tithe after the reconnect t
   const tithe = (await running()).find((t) => t.id === data.titheId)!;
   assert.deepEqual(tithe.players, []);
 });
+
+test('F034 and F035 over WebSocket: Kael invites Brann, Brann accepts, and both see the party', async () => {
+  const data = launch('Partyfall', ['ticket-k', 'ticket-b2']);
+  const [kaelId, brannId] = data.players.map((p) => p.userId) as [string, string];
+  const kael = await bot('ticket-k');
+  const brann = await bot('ticket-b2');
+  await kael.waitFor('snap');
+  await brann.waitFor('snap');
+  kael.send({ t: 'party', action: 'invite', userId: brannId });
+  const deadline = Date.now() + 3000;
+  let invitation: { from: string } | undefined;
+  while (!invitation && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    invitation = (brann.inbox.filter((m) => m.t === 'snap').at(-1) as Snapshot | undefined)?.party.invitations[0];
+  }
+  assert.equal(invitation?.from, kaelId);
+  brann.send({ t: 'party', action: 'accept', from: kaelId });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const last = kael.inbox.filter((m) => m.t === 'snap').at(-1) as Snapshot;
+  assert.deepEqual(last.party.members.map((m) => m.name).sort(), ['player0', 'player1']);
+  assert.ok(kael.inbox.some((m) => m.t === 'snap' && m.msgs.some((x) => x.text === 'player1 joined the party.')));
+  kael.socket.close();
+  brann.socket.close();
+});
+
+test('F011 EVT-06: a player defeated by another player is published with the spilled gold', async () => {
+  const data = launch('Bloodfall', ['ticket-x', 'ticket-y']);
+  const t = app.host.titheOf(data.titheId)!;
+  const [x, y] = t.players as [import('@maw/rules').Player, import('@maw/rules').Player];
+  y.ch.gold = 100;
+  t.defeats.push({ userId: y.userId, characterId: y.characterId, byUserId: x.userId, byCharacterId: x.characterId, gold: 15 });
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await app.host.drained();
+  const event = published.find((e) => e.type === EVENT.playerDefeated && (e.data as { titheId: string }).titheId === data.titheId);
+  assert.deepEqual(event?.data, { titheId: data.titheId, userId: y.userId, characterId: y.characterId, byUserId: x.userId, byCharacterId: x.characterId, gold: 15 });
+});

@@ -4,11 +4,11 @@
 
 import type { IncomingMessage } from 'node:http';
 import type { WebSocket } from 'ws';
-import { EVENT, MESSAGES, type ClientMessage, type EventEnvelope, type ServerMessage, type TitheLaunched } from '@maw/contracts';
+import { EVENT, MESSAGES, type ClientMessage, type EventEnvelope, type PlayerDefeated, type ServerMessage, type TitheLaunched } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
-  ATTRIBUTES, BALANCE as B, ECHO_ARTS, HOTBAR_KEYS, SKILLS, createTithe, leaveTithe, playersIn, queueAct, randomSeed, setInput,
-  sheetAction, stepTithe, type Balance, type SheetAction, type Tithe,
+  ATTRIBUTES, BALANCE as B, ECHO_ARTS, HOTBAR_KEYS, SKILLS, answerInvitation, createTithe, invitePlayer, leaveParty, leaveTithe,
+  playersIn, queueAct, randomSeed, setInput, sheetAction, stepTithe, type Balance, type SheetAction, type Tithe,
 } from '@maw/rules';
 import { newViewState, results, sheet, snapshot, titheEnded, type ViewState } from './views.ts';
 
@@ -71,6 +71,11 @@ class Room {
 
   /** Feature-016 CMD-01: hver spiller, hvis del er slut, får "Tithe ended" på bussen og resultatet i browseren. */
   private settle(): void {
+    // Feature-011 EVT-06 Player defeated → Market (Feature-018) og Characters (Feature-039).
+    for (const d of this.tithe.defeats.splice(0)) {
+      const data: PlayerDefeated = { titheId: this.tithe.id, ...d };
+      this.host.publish(envelope(EVENT.playerDefeated, data));
+    }
     for (const p of this.tithe.players) {
       const seat = this.seats.get(p.id);
       if (!p.end || !seat || seat.ended) continue;
@@ -146,6 +151,12 @@ class Room {
         if (refusal) this.send(seat, { t: 'refused', message: refusal === 'inventoryFull' ? MESSAGES.inventoryFull : 'Invalid request.' });
         break;
       }
+      case 'party':
+        // Feature-034 CMD-01 Invite player og CMD-02 Leave party; Feature-035 CMD-01 Accept og CMD-02 Decline.
+        if (m.action === 'invite' && typeof m.userId === 'string') invitePlayer(t, id, m.userId);
+        else if ((m.action === 'accept' || m.action === 'decline') && typeof m.from === 'string') answerInvitation(t, id, m.from, m.action === 'accept');
+        else if (m.action === 'leave') leaveParty(t, id);
+        break;
       case 'leave':
         // Feature-029 CMD-01 Leave the Tithe
         leaveTithe(t, id);

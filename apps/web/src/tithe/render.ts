@@ -21,6 +21,8 @@ export interface Frame {
   gate: { x: number; y: number; open: boolean } | null;
   sealed: boolean;
   radius: number;
+  /** Partiets andre medlemmer på samme dybde, til minikortet (Feature-034 AGG-01). */
+  party: { name: string; x: number; y: number }[];
 }
 
 interface Floater {
@@ -249,9 +251,9 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         label(e.name, x, y - r - 10, e.color ?? '#ccc', 12);
         bar(x, y - r - 7, tile * 0.8, e.hp / e.maxHp, '#c8423a');
       } else {
-        // Feature-010 VIEW-01: andre spillere i syne viser deres brugernavn over hovedet.
-        circle(x, y, r, e.flash ? '#fff' : '#3fc7c0', '#e8fffd', 2);
-        label(e.name, x, y - r - 10, '#9ff3ee', 12);
+        // Feature-010 VIEW-01: andre spillere i syne viser deres brugernavn over hovedet; partiet i grønblåt, andre i rav.
+        circle(x, y, r, e.flash ? '#fff' : e.party ? '#3fc7c0' : '#e0905a', e.party ? '#e8fffd' : '#ff4a3a', 2);
+        label(e.name, x, y - r - 10, e.party ? '#9ff3ee' : '#ffc29a', 12);
         bar(x, y - r - 7, tile * 0.8, e.hp / e.maxHp, '#c8423a');
       }
     }
@@ -340,9 +342,18 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       }
     }
     for (const e of f.ents) {
-      if (e.kind === 'monster') continue;
-      mctx.fillStyle = e.kind === 'rival' ? e.color ?? '#ccc' : '#3fc7c0';
+      if (e.kind === 'monster' || e.party) continue;
+      mctx.fillStyle = e.kind === 'rival' ? e.color ?? '#ccc' : '#e0905a';
       mctx.fillRect(e.x * s - 2, e.y * s - 2, 4, 4);
+    }
+    // Feature-034 AGG-01: partiets medlemmer ses på kortet med deres brugernavne, også uden for synsradius.
+    mctx.font = '600 9px system-ui, sans-serif';
+    mctx.textAlign = 'center';
+    for (const m of f.party) {
+      mctx.fillStyle = '#3fc7c0';
+      mctx.fillRect(m.x * s - 2, m.y * s - 2, 4, 4);
+      mctx.fillStyle = '#9ff3ee';
+      mctx.fillText(m.name.slice(0, 10), Math.min(minimap.width - 20, Math.max(20, m.x * s)), Math.max(9, m.y * s - 4));
     }
     mctx.fillStyle = '#fff';
     mctx.fillRect(f.you.x * s - 2, f.you.y * s - 2, 4, 4);

@@ -26,8 +26,15 @@ export function accountsRoutes(app: FastifyInstance, pool: Pool): void {
   app.addHook('onRequest', async (request) => {
     const token = readCookie(request, SESSION_COOKIE);
     if (!token) return;
-    const { rows } = await pool.query<{ user_id: string }>('select user_id from accounts.sessions where token_hash = $1', [tokenHash(token)]);
-    if (rows[0]) request.userId = rows[0].user_id;
+    const hash = tokenHash(token);
+    const { rows } = await pool.query<{ user_id: string; stale: boolean }>(
+      `select user_id, last_seen_at < now() - interval '20 seconds' as stale from accounts.sessions where token_hash = $1`,
+      [hash],
+    );
+    if (!rows[0]) return;
+    request.userId = rows[0].user_id;
+    // Feature-034 VIEW-01: hvem er logget ind lige nu. Opdateres højst hvert 20. sekund.
+    if (rows[0].stale) await pool.query('update accounts.sessions set last_seen_at = now() where token_hash = $1', [hash]);
   });
 
   // Feature-031 CMD-01 Create user

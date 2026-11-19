@@ -55,6 +55,14 @@ export type CurrentTithe =
   | { state: 'lobby'; tithe: LobbyView }
   | { state: 'playing'; tithe: { name: string }; ticket: string };
 
+/** Feature-034 VIEW-01 Other players */
+export interface PlayerRow {
+  userName: string;
+  character: { name: string; mark: number } | null;
+  tithe: string | null;
+  you: boolean;
+}
+
 /** Feature-040 VIEW-01 */
 export interface StatisticsRow {
   id: string;
@@ -131,6 +139,8 @@ export const api = {
   joinTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/join`),
   launchTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/launch`),
   leaveLobby: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/leave`),
+  // Other players (F034)
+  players: () => call<{ players: PlayerRow[] }>('GET', '/api/players'),
   // Statistik (F040)
   statistics: () => call<{ characters: StatisticsRow[] }>('GET', '/api/statistics'),
 };

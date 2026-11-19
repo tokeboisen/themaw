@@ -10,6 +10,7 @@ import { useRegistry, type TitheRegistry } from './lobby/registry.ts';
 import { lobbyRoutes, refuseBusy } from './lobby/routes.ts';
 import { busy } from './lobby/store.ts';
 import { marketRoutes } from './market/routes.ts';
+import { partiesRoutes } from './parties/routes.ts';
 import { patronageRoutes } from './patronage/routes.ts';
 
 const LOCKED = [
@@ -50,5 +51,6 @@ export function buildApp(pool: Pool, bus?: Bus, logger = false, options: { tithe
   marketRoutes(app, pool);
   patronageRoutes(app, pool);
   lobbyRoutes(app, pool);
+  partiesRoutes(app, pool);
   return app;
 }

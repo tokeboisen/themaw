@@ -10,7 +10,22 @@ export type ClientMessage =
   | { t: 'act'; act: 'dodge' | 'potion' | 'ration' | 'interact' }
   | { t: 'act'; act: 'hotkey'; key: HotbarKey }
   | { t: 'sheet'; action: SheetAction }
+  | { t: 'party'; action: 'invite'; userId: string }
+  | { t: 'party'; action: 'accept' | 'decline'; from: string }
+  | { t: 'party'; action: 'leave' }
   | { t: 'leave' };
+
+/** Partiet i en Tithe (Feature-034 VIEW-01, Feature-035 VIEW-01). */
+export interface PartyView {
+  /** Sekunder tilbage af de første 20, hvor der kan inviteres og svares; 0 bagefter. */
+  inviteLeft: number;
+  /** Partiets medlemmer; dem på samme dybde med position til minikortet (Feature-010 VIEW-01). */
+  members: { id: string; name: string; depth: number; x: number | null; y: number | null; you: boolean }[];
+  /** De andre spillere i samme Tithe, der stadig er med. */
+  players: { id: string; name: string; inParty: boolean; invited: boolean }[];
+  /** Invitationer til spilleren, der venter på svar. */
+  invitations: { from: string; name: string }[];
+}
 
 /** Et monster, en rival eller en anden spiller inden for synsradius. */
 export interface SnapshotEntity {
@@ -27,6 +42,8 @@ export interface SnapshotEntity {
   color?: string;
   /** En rival, der er fjendtlig mod spilleren. */
   hostile?: boolean;
+  /** En anden spiller i spillerens parti. */
+  party?: boolean;
   warden?: boolean;
   /** Et angreb på vej: rækkevidden eller sigtet (Feature-011 VIEW-01). */
   windup?: { reach?: number; aimX?: number; aimY?: number };
@@ -92,6 +109,7 @@ export interface Snapshot {
   renown: number;
   goldFound: number;
   candidates: CandidateView[];
+  party: PartyView;
   interact: 'descend' | 'gate' | null;
   fx: { type: string; x?: number; y?: number; text?: string; color?: string; size?: number; amount?: number; kind?: string }[];
   msgs: { who: string; text: string }[];

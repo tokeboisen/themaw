@@ -1,17 +1,19 @@
 // Webappen. Fase 1: Sign in (F031, F032), Characters (F026, F038), Create character (F001), karakterskærmen (F004) og
 // Account (F033). Fase 2: the Rim med Forge (F019), Apothecary (F020) og Patrons' Hall (F024), guldet (F018), og
 // inventar og hotbar på karakterskærmen (F007, F027). Fase 3: Tithes og lobby (F036, F025, F037), selve Tithen (F010–F017,
-// F028, F029), resultatet (F016), Help (F030) og statistikken (F040). Teksterne er på engelsk og citeret fra featurene.
+// F028, F029), resultatet (F016), Help (F030) og statistikken (F040). Fase 4: Other players og partier (F034, F035).
+// Teksterne er på engelsk og citeret fra featurene.
 
 import { MESSAGES, type EndedMessage } from '@maw/contracts';
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
   lower, pointsLeft, raise, suggestedAllocation, type Allocation, type HotbarKey, type PointKind, type Slot,
 } from '@maw/rules';
-import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type StatisticsRow, type TitheListItem } from './api.ts';
+import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type StatisticsRow, type TitheListItem } from './api.ts';
 import { $, esc, onAction } from './dom.ts';
 import { helpHtml } from './help.ts';
 import { lobbyHtml, tithesHtml } from './lobby.ts';
+import { othersHtml } from './others.ts';
 import { RESULTS_DELAY_MS, deleteConfirmation, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
 import { resultsHtml } from './results.ts';
 import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
@@ -19,7 +21,7 @@ import { sheetHtml } from './sheet.ts';
 import { statisticsHtml } from './statistics.ts';
 import { Game } from './tithe/game.ts';
 
-type Overlay = null | 'sheet' | 'account' | 'help' | 'leave' | { confirmDelete: string };
+type Overlay = null | 'sheet' | 'account' | 'help' | 'leave' | 'others' | { confirmDelete: string };
 
 const state = {
   screen: 'signin' as Screen,
@@ -35,6 +37,7 @@ const state = {
   game: null as Game | null,
   ended: null as EndedMessage | null,
   stats: { rows: [] as StatisticsRow[], back: 'rim' as 'rim' | 'characters' },
+  others: [] as PlayerRow[],
 };
 
 const app = $('#app');
@@ -195,6 +198,7 @@ function rimHtml(): string {
         <span class="gold-text big-gold">${data.gold} gold</span>
         <button class="primary" data-act="sheet">Character</button>
         <button class="ghost" data-act="characters">Characters</button>
+        <button class="ghost" data-act="others">Other players</button>
         <button class="ghost" data-act="statistics">Statistics</button>
         <button class="ghost" data-act="help">Help</button>
         <button class="ghost" data-act="account">Account</button>
@@ -225,6 +229,7 @@ function overlayHtml(): string {
     const weapons = inv ? [inv.equipment.weapon, ...inv.pack] : [];
     return helpHtml(hotbar, (id) => weapons.find((w) => w?.id === id)?.name ?? 'a weapon');
   }
+  if (o === 'others') return othersHtml(state.others, state.screen === 'tithe' ? state.game?.party ?? null : null);
   if (o === 'leave') {
     // Feature-029 VIEW-01
     return `<div class="overlay"><div class="dialog">
@@ -313,6 +318,11 @@ function startGame(ticket: string): void {
   state.game = new Game(ticket, {
     sheet: () => {
       if (state.overlay === 'sheet' || state.overlay === 'help') renderOverlay();
+    },
+    party: (_view, invited) => {
+      // Feature-035 VIEW-01: en invitation popper op i Other players.
+      if (invited && state.overlay !== 'others') return void openOthers();
+      if (state.overlay === 'others') renderOverlay();
     },
     ended: (m) => {
       // Feature-016 VIEW-01: resultatet vises 2,5 sekunder efter slutningen.
@@ -417,9 +427,34 @@ function titheSheetAction(action: string, id: string | undefined): boolean {
   return true;
 }
 
+async function loadOthers(): Promise<boolean> {
+  const result = await api.players();
+  if (!result.ok) return false;
+  const changed = JSON.stringify(result.data.players) !== JSON.stringify(state.others);
+  state.others = result.data.players;
+  return changed;
+}
+
+async function openOthers(): Promise<void> {
+  await loadOthers();
+  show(state.screen, 'others');
+}
+
 async function act(action: string, id: string | undefined): Promise<void> {
   if (titheSheetAction(action, id)) return;
   switch (action) {
+    case 'others':
+      return openOthers();
+    case 'invite':
+      state.game?.partyAction({ t: 'party', action: 'invite', userId: id! });
+      return;
+    case 'accept-invite':
+    case 'decline-invite':
+      state.game?.partyAction({ t: 'party', action: action === 'accept-invite' ? 'accept' : 'decline', from: id! });
+      return;
+    case 'leave-party':
+      state.game?.partyAction({ t: 'party', action: 'leave' });
+      return;
     case 'descend':
       // Feature-025 VIEW-01: "Descend into the Maw" åbner listen af Tithes.
       state.lobby.message = '';
@@ -616,6 +651,8 @@ window.addEventListener('keydown', (event) => {
   // F004 VIEW-01: karakterskærmen åbnes med C; F030 VIEW-01: Help med H, i the Rim og under en Tithe.
   if ((event.key === 'c' || event.key === 'C') && playing) void act(state.overlay === 'sheet' ? 'close' : 'sheet', undefined);
   if ((event.key === 'h' || event.key === 'H') && playing) void act(state.overlay === 'help' ? 'close' : 'help', undefined);
+  // F034 VIEW-01: Other players åbnes med O.
+  if ((event.key === 'o' || event.key === 'O') && playing) void act(state.overlay === 'others' ? 'close' : 'others', undefined);
 });
 
 // --- Start ---------------------------------------------------------------------------------------
@@ -638,6 +675,7 @@ if (me.ok) {
 window.setInterval(async () => {
   if (state.screen === 'rim' && (await loadRim())) render();
   if (state.screen === 'tithes' && (await loadTithes())) render();
+  if (state.overlay === 'others' && (await loadOthers()) && state.overlay === 'others') renderOverlay();
 }, 2000);
 window.setInterval(async () => {
   if (state.screen !== 'lobby') return;
