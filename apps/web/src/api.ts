@@ -13,6 +13,9 @@ export interface CharacterView {
   skills: Record<string, SkillState>;
   attributePoints: number;
   skillPoints: number;
+  /** Feature-026 VIEW-01 og Feature-039: antal Tithes og gange som Champion. */
+  tithes?: number;
+  champions?: number;
 }
 
 export interface BackgroundView extends Background {
@@ -26,6 +29,46 @@ export interface InventoryView {
   rations: number;
   hotbar: Hotbar;
   capacity: number;
+}
+
+/** Feature-036 VIEW-01: en åben Tithe i listen. */
+export interface TitheListItem {
+  name: string;
+  opener: string;
+  players: string[];
+  count: number;
+  max: number;
+  full: boolean;
+}
+
+/** Feature-036 VIEW-02 Lobby */
+export interface LobbyView {
+  name: string;
+  isOpener: boolean;
+  players: { userName: string; characterName: string; mark: number; opener: boolean }[];
+  max: number;
+}
+
+/** Hvor spilleren er: ingen steder, i en lobby eller i en Tithe med billetten til WebSocket. */
+export type CurrentTithe =
+  | { state: 'none' }
+  | { state: 'lobby'; tithe: LobbyView }
+  | { state: 'playing'; tithe: { name: string }; ticket: string };
+
+/** Feature-040 VIEW-01 */
+export interface StatisticsRow {
+  id: string;
+  name: string;
+  mark: number;
+  tithes: number;
+  champions: number;
+  falls: number;
+  left: number;
+  deepest: number;
+  monsters: number;
+  rivals: number;
+  playerKills: number;
+  killedByPlayers: number;
 }
 
 export interface GiftView {
@@ -81,4 +124,13 @@ export const api = {
   // Patronage (F024)
   gifts: (id: string) => call<{ gifts: GiftView[] }>('GET', `/api/characters/${id}/gifts`),
   acceptGift: (id: string, giftId: string) => call<GiftView>('POST', `/api/characters/${id}/gifts/${giftId}/accept`),
+  // Lobby (F036, F025, F037)
+  tithes: () => call<{ tithes: TitheListItem[]; max: number }>('GET', '/api/tithes'),
+  currentTithe: () => call<CurrentTithe>('GET', '/api/tithes/current'),
+  openTithe: (name: string) => call<CurrentTithe>('POST', '/api/tithes', { name }),
+  joinTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/join`),
+  launchTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/launch`),
+  leaveLobby: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/leave`),
+  // Statistik (F040)
+  statistics: () => call<{ characters: StatisticsRow[] }>('GET', '/api/statistics'),
 };

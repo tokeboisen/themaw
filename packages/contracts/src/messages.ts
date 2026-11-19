@@ -15,6 +15,14 @@ export const MESSAGES = {
   notEnoughGold: 'Not enough gold.',
   /** Feature-020 */
   cannotCarryMore: 'You cannot carry more.',
+  /** Feature-036 */
+  titheNameTaken: 'A Tithe with this name already exists.',
+  /** Feature-025 */
+  titheFull: 'The Tithe is full.',
+  /** Feature-029 VIEW-01 */
+  leaveConfirm: 'Leave the Tithe? You lose what you found, and it counts as a fall.',
+  /** Feature-038, -026 og planen, afsnit 5: karakteren kan ikke ændres i Rim, mens den er i en lobby eller en Tithe. */
+  inLobbyOrTithe: 'Not while you are in a lobby or a Tithe.',
   /** Feature-038 */
   deleteConfirm: (name: string) => `Delete ${name}? Everything ${name} owns is lost. This cannot be undone.`,
 } as const;

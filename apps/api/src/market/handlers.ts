@@ -1,6 +1,6 @@
 // Feature-018 SVC-01 Banker og Feature-021 SVC-01 Forge keeper.
 
-import type { CharacterCreated, CharacterDeleted, GoldGiftAccepted } from '@maw/contracts';
+import type { CharacterCreated, CharacterDeleted, GoldGiftAccepted, PlayerDefeated, TitheEnded } from '@maw/contracts';
 import { BALANCE as B, createRng, forgeStockAt, randomSeed } from '@maw/rules';
 import type { Client } from '../db.ts';
 
@@ -26,4 +26,15 @@ export async function onGoldReceived(client: Client, data: GoldGiftAccepted | { 
 export async function onCharacterDeleted(client: Client, data: CharacterDeleted): Promise<void> {
   await client.query('delete from market.wallets where character_id = $1', [data.characterId]);
   await client.query('delete from market.forges where character_id = $1', [data.characterId]);
+}
+
+/** Feature-021 CMD-01 Restock the Forge: efter hver Tithe får smedjen nyt lager med karakterens Mark. */
+export async function onTitheEnded(client: Client, data: TitheEnded): Promise<void> {
+  const stock = forgeStockAt(createRng(randomSeed()), data.character.level, B);
+  await client.query('update market.forges set stock = $2 where character_id = $1', [data.characterId, JSON.stringify(stock)]);
+}
+
+/** Feature-018: en spiller, der slås ned af en anden spiller, taber det guld, der blev spildt på gulvet (fase 4). */
+export async function onPlayerDefeated(client: Client, data: PlayerDefeated): Promise<void> {
+  await client.query('update market.wallets set gold = greatest(0, gold - $2) where character_id = $1', [data.characterId, data.gold]);
 }

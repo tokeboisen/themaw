@@ -154,6 +154,8 @@ const RIVALS: RivalDef[] = [
   { id: 'ash', name: 'Ash Kell', weapon: 'blades', levelOffset: 0, aggression: 0.6, color: '#e3a04b' },
   { id: 'rook', name: 'Rook Kell', weapon: 'blades', levelOffset: 0, aggression: 0.6, color: '#c98b3a' },
   { id: 'mira', name: 'Mira Silvertongue', weapon: 'echo', levelOffset: 0, aggression: 0.2, color: '#b48ce0' },
+  { id: 'odo', name: 'Silent Odo', weapon: 'blades', levelOffset: 0, aggression: 0.15, color: '#8fa3b8' },
+  { id: 'garrick', name: 'Garrick Vane', weapon: 'heavy', levelOffset: 1, aggression: 0.8, color: '#4a7fc9' },
 ];
 
 const SKILL_WEIGHTS: Record<SkillId, Partial<Record<Attribute, number>>> = {
@@ -222,6 +224,8 @@ export const BALANCE = {
     arrowSpeed: 13,
     echoBolt: { min: 6, max: 10, focusCost: 8, cooldown: 0.55, range: 8, speed: 11 },
     unarmed: { min: 1, max: 3, reach: 1, cooldown: 0.4, stamina: 3, arc: 80 },
+    /** Feature-028: et våben trækkes på 0,3 sekunder, og imens kan kandidaten ikke slå. */
+    drawTime: 0.3,
   },
   monsters: { levelPerDepth: 1, followPlayerLevel: 0.5, hpPerLevel: 0.35, damagePerLevel: 0.25, perRoom: [1, 3] as [number, number], extraPerDepth: 1, types: MONSTERS },
   loot: {
@@ -243,7 +247,13 @@ export const BALANCE = {
   },
   tithe: {
     depths: 3,
+    /** Feature-010: 8 kandidater, spillere og NPC-rivaler. */
+    candidates: 8,
     graceSeconds: 20,
+    /** Feature-014: en fjendtlig NPC-rival angriber spillere inden for 6 felter. */
+    rivalHuntRange: 6,
+    /** Feature-029: en mistet forbindelse tæller som at forlade Tithen efter 60 sekunder. */
+    reconnectSeconds: 60,
     rivalSpeed: 3.4,
     rivalHpBase: 40,
     rivalHpPerLevel: 8,
@@ -283,6 +293,8 @@ export const BALANCE = {
     fallPenalty: 'lose-found' as 'lose-found' | 'none',
   },
   view: { visionRadius: 7 },
+  /** Feature-036 og -025: navnet på en Tithe og pladserne i den. */
+  lobby: { nameMin: 3, nameMax: 30, maxPlayers: 8 },
 };
 
 export type Balance = typeof BALANCE;

@@ -1,6 +1,6 @@
 // Indholdet af de events, der går over bussen. Navnene er modellens; routing keys kommer fra event-kataloget.
 
-import type { Item } from '@maw/rules';
+import type { Character, Equipment, Hotbar, Item, OutcomeKind, SkillId, TitheRecord } from '@maw/rules';
 import { routingKey } from './events.ts';
 
 export const EVENT = {
@@ -63,5 +63,64 @@ export interface ItemGiftAccepted {
 export interface GoldGiftAccepted {
   characterId: string;
   giftId: string;
+  gold: number;
+}
+
+/** Feature-022 EVT-03 */
+export interface PursePaid {
+  characterId: string;
+  gold: number;
+}
+
+/** Feature-009 EVT-02: det fundne guld, der beholdes, går til tegnebogen (Feature-018). */
+export interface FoundGearKept {
+  characterId: string;
+  titheId: string;
+  gold: number;
+  items: string[];
+}
+
+/** En spiller i en Tithe, der startes: arbejdskopien af karakteren og billetten til WebSocket (planen, afsnit 5 og 8). */
+export interface TithePlayer {
+  userId: string;
+  userName: string;
+  characterId: string;
+  ticket: string;
+  character: Character;
+  hotbar: Hotbar;
+}
+
+/** Feature-037 EVT-01: NPC-rivaler fylder pladserne op til 8, når Tithen startes (Feature-010). */
+export interface TitheLaunched {
+  titheId: string;
+  name: string;
+  players: TithePlayer[];
+}
+
+/**
+ * Feature-016 EVT-04, for én spiller: udfaldet, regnskabet og arbejdskopien. Characters gemmer skills, Echo, Marks og
+ * point og tæller statistikken (F039), Gear afregner det fundne (F009), Market fylder smedjen (F021), og Patronage betaler
+ * pengepungen og giver gaver for summen af Renown (F022, F023).
+ */
+export interface TitheEnded {
+  titheId: string;
+  titheName: string;
+  characterId: string;
+  userId: string;
+  outcome: { kind: OutcomeKind; name: string };
+  seconds: number;
+  record: TitheRecord;
+  start: { mark: number; skills: Record<SkillId, number> };
+  character: Pick<Character, 'level' | 'echo' | 'attributes' | 'skills' | 'attributePoints' | 'skillPoints'>;
+  gear: { equipment: Equipment; pack: Item[]; potions: number; rations: number; hotbar: Hotbar };
+}
+
+/** Feature-011 EVT-06: en spiller er slået ned af en anden spiller (fase 4). */
+export interface PlayerDefeated {
+  titheId: string;
+  characterId: string;
+  userId: string;
+  byCharacterId: string;
+  byUserId: string;
   gold: number;
 }

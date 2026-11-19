@@ -43,7 +43,10 @@ export function generateItem(rng: Rng, level: number, B: Balance, opts: ItemOpti
   let rarity = opts.rarity ?? rollRarity(rng, ilvl, B);
   if (base.slot === 'ring' && rarity === 'common') rarity = 'magic'; // en ring uden egenskaber er intet værd
 
-  const item: Item = { id: 'i' + rng.id() + rng.id(), baseId, slot: base.slot, ilvl, rarity, affixes: [], name: '', value: 0 };
+  // ID'et skal være entydigt på hele serveren (gear.items): en UUID. Generatoren trækkes stadig to gange, så en bane
+  // med samme seed stadig giver de samme ting.
+  const legacyId = 'i' + rng.id() + rng.id();
+  const item: Item = { id: globalThis.crypto?.randomUUID?.() ?? legacyId, baseId, slot: base.slot, ilvl, rarity, affixes: [], name: '', value: 0 };
   if (base.slot === 'weapon') {
     const scale = 1 + B.items.damagePerItemLevel * (ilvl - 1);
     item.skill = base.skill;

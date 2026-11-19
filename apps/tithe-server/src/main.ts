@@ -1,10 +1,10 @@
 // tithe-server: kører Tithes i hukommelsen og taler med browserne over WebSocket (Tithe, Spectacle og partierne i en
-// Tithe). Fase 0: sundhedstjek, WebSocket med ping/pong og lytning på bussen. Selve Tithen kommer i fase 3.
+// Tithe). "Tithe launched" fra lobbyen starter en Tithe; "Tithe ended" går tilbage på bussen for hver spiller.
 
-import { createServer } from 'node:http';
-import { WebSocketServer } from 'ws';
-import { bindingsFor, queueFor } from '@maw/contracts';
+import { EVENT, bindingsFor, queueFor, type TitheLaunched } from '@maw/contracts';
 import { connectBus } from '@maw/platform';
+import { Host } from './host.ts';
+import { createTitheServer } from './server.ts';
 
 const env = {
   rabbitUrl: process.env.RABBITMQ_URL ?? '',
@@ -19,43 +19,21 @@ bus.onClose(() => {
   log('RabbitMQ connection closed; exiting so Docker restarts the service');
   process.exit(1);
 });
-// Tithe launched (Feature-037 → Feature-010) starter Tithen i fase 3.
+
+const host = new Host(bus, log);
+// Feature-037 EVT-01 Tithe launched → Feature-010 SVC-01 Tithe master
 await bus.consume(queueFor('Tithe'), bindingsFor('Tithe'), async (event) => {
-  log(`Received ${event.type} ${event.id} (Tithes are started from phase 3)`);
+  if (event.type === EVENT.titheLaunched) host.launch(event.data as TitheLaunched);
 });
 
-const server = createServer((request, response) => {
-  if (request.url === '/health') {
-    const ok = bus.isOpen();
-    response.writeHead(ok ? 200 : 503, { 'content-type': 'application/json' });
-    response.end(JSON.stringify({ status: ok ? 'ok' : 'degraded', service: 'tithe-server', bus: ok, connections: sockets.clients.size }));
-    return;
-  }
-  response.writeHead(404).end();
-});
-
-const sockets = new WebSocketServer({ server, path: '/ws' });
-sockets.on('connection', (socket) => {
-  socket.send(JSON.stringify({ type: 'hello', service: 'tithe-server' }));
-  socket.on('message', (raw) => {
-    let message: { type?: string; at?: number };
-    try {
-      message = JSON.parse(raw.toString()) as { type?: string; at?: number };
-    } catch {
-      return;
-    }
-    if (message.type === 'ping') socket.send(JSON.stringify({ type: 'pong', at: message.at, players: sockets.clients.size }));
-  });
-});
+const app = createTitheServer(host, () => bus.isOpen());
 
 const shutdown = async () => {
-  for (const client of sockets.clients) client.close(1001, 'Server is shutting down');
-  sockets.close();
-  server.close();
+  await app.close();
   await bus.close();
   process.exit(0);
 };
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-server.listen(env.port, '0.0.0.0', () => log(`Listening on ${env.port}`));
+app.server.listen(env.port, '0.0.0.0', () => log(`Listening on ${env.port}`));

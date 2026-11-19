@@ -2,7 +2,7 @@
 
 import { MESSAGES } from '@maw/contracts';
 
-export type Screen = 'signin' | 'characters' | 'create' | 'rim';
+export type Screen = 'signin' | 'characters' | 'create' | 'rim' | 'tithes' | 'lobby' | 'tithe' | 'results' | 'statistics';
 
 /** Feature-026: efter sign-in vises Characters; en bruger uden karakterer går direkte til Create character. */
 export function screenAfterSignIn(characterCount: number): Screen {
@@ -24,3 +24,6 @@ export function deleteConfirmation(name: string): string {
 export function showPlus(points: number): boolean {
   return points > 0;
 }
+
+/** Feature-016 VIEW-01: resultatet vises 2,5 sekunder efter slutningen. */
+export const RESULTS_DELAY_MS = 2500;

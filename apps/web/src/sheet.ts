@@ -22,17 +22,29 @@ function asCharacter(c: CharacterView, inv: InventoryView | null): Character {
   };
 }
 
+/** Under en Tithe: Drop i pakken og mærket for det, der er fundet i den (Feature-007 VIEW-01). */
+export interface TitheMode {
+  found: string[];
+}
+
+const FOUND = 'Found this Tithe – lost if you fall';
+
 /** Feature-007 VIEW-01 Inventory og Feature-027 VIEW-01: hotbaren nederst. */
-function inventoryHtml(inv: InventoryView | null, selectedKey: string | null): string {
+function inventoryHtml(inv: InventoryView | null, selectedKey: string | null, tithe: TitheMode | null): string {
   if (!inv) return '<div class="box"><h3>Inventory</h3><p class="hint">The inventory is on its way…</p></div>';
   const slots: Slot[] = ['weapon', 'armour', 'ring'];
   const equipped = slots.map((slot) => {
     const item = inv.equipment[slot];
-    return item ? itemRow(item, `<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`)
+    const note = tithe?.found.includes(item?.id ?? '') ? FOUND : '';
+    return item ? itemRow(item, `<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`, note)
       : `<li class="item"><div class="muted">${SLOT_NAMES[slot]}: empty</div></li>`;
   }).join('');
   const pack = inv.pack.length
-    ? inv.pack.map((item) => itemRow(item, `<button class="ghost small-btn" data-act="equip" data-id="${item.id}">Equip</button>`)).join('')
+    ? inv.pack.map((item) => itemRow(
+        item,
+        `<button class="ghost small-btn" data-act="equip" data-id="${item.id}">Equip</button>${tithe ? `<button class="ghost small-btn" data-act="drop" data-id="${item.id}">Drop</button>` : ''}`,
+        tithe?.found.includes(item.id) ? FOUND : '',
+      )).join('')
     : '<li class="muted">Empty.</li>';
   const weapons = [inv.equipment.weapon, ...inv.pack].filter((i): i is Item => !!i && i.slot === 'weapon');
   const label = (key: string): string | null => {
@@ -65,7 +77,7 @@ function weights(skill: SkillId): string {
     .join(', ');
 }
 
-export function sheetHtml(c: CharacterView, backgroundName: string, inv: InventoryView | null, selectedKey: string | null, message = ''): string {
+export function sheetHtml(c: CharacterView, backgroundName: string, inv: InventoryView | null, selectedKey: string | null, message = '', tithe: TitheMode | null = null): string {
   const ch = asCharacter(c, inv);
   const d = derivedStats(ch, B);
   const need = echoToNextMark(c.mark, B);
@@ -117,6 +129,6 @@ export function sheetHtml(c: CharacterView, backgroundName: string, inv: Invento
         <table class="stats">${skillRows}</table>
       </div>
     </div>
-    <div class="cols">${inventoryHtml(inv, selectedKey)}</div>
+    <div class="cols">${inventoryHtml(inv, selectedKey, tithe)}</div>
   </div></div>`;
 }

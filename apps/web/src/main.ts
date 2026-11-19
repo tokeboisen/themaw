@@ -1,19 +1,25 @@
 // Webappen. Fase 1: Sign in (F031, F032), Characters (F026, F038), Create character (F001), karakterskærmen (F004) og
 // Account (F033). Fase 2: the Rim med Forge (F019), Apothecary (F020) og Patrons' Hall (F024), guldet (F018), og
-// inventar og hotbar på karakterskærmen (F007, F027). Teksterne er på engelsk og citeret fra featurene.
+// inventar og hotbar på karakterskærmen (F007, F027). Fase 3: Tithes og lobby (F036, F025, F037), selve Tithen (F010–F017,
+// F028, F029), resultatet (F016), Help (F030) og statistikken (F040). Teksterne er på engelsk og citeret fra featurene.
 
-import { MESSAGES } from '@maw/contracts';
+import { MESSAGES, type EndedMessage } from '@maw/contracts';
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
-  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type PointKind,
+  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type HotbarKey, type PointKind, type Slot,
 } from '@maw/rules';
-import { api, type BackgroundView, type CharacterView } from './api.ts';
+import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type StatisticsRow, type TitheListItem } from './api.ts';
 import { $, esc, onAction } from './dom.ts';
-import { deleteConfirmation, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
+import { helpHtml } from './help.ts';
+import { lobbyHtml, tithesHtml } from './lobby.ts';
+import { RESULTS_DELAY_MS, deleteConfirmation, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
+import { resultsHtml } from './results.ts';
 import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
 import { sheetHtml } from './sheet.ts';
+import { statisticsHtml } from './statistics.ts';
+import { Game } from './tithe/game.ts';
 
-type Overlay = null | 'sheet' | 'account' | { confirmDelete: string };
+type Overlay = null | 'sheet' | 'account' | 'help' | 'leave' | { confirmDelete: string };
 
 const state = {
   screen: 'signin' as Screen,
@@ -25,6 +31,10 @@ const state = {
   create: { background: 'miner', alloc: null as Allocation | null, name: '', message: '' },
   overlay: null as Overlay,
   rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', hotbarKey: null as string | null },
+  lobby: { list: [] as TitheListItem[], current: null as LobbyView | null, message: '', nameDraft: '' },
+  game: null as Game | null,
+  ended: null as EndedMessage | null,
+  stats: { rows: [] as StatisticsRow[], back: 'rim' as 'rim' | 'characters' },
 };
 
 const app = $('#app');
@@ -118,14 +128,14 @@ function signInHtml(): string {
 function charactersHtml(): string {
   const rows = state.characters
     .map((c) => `<li>
-      <div><div class="name">${esc(c.name)}</div><div class="muted">${esc(backgroundName(c.background))} · Mark ${c.mark}</div></div>
+      <div><div class="name">${esc(c.name)}</div><div class="muted">${esc(backgroundName(c.background))} · Mark ${c.mark} · ${c.tithes ?? 0} Tithes · Champion ${c.champions ?? 0}×</div></div>
       <div class="actions">
         <button class="primary small-btn" data-act="play" data-id="${c.id}">Play</button>
         <button class="ghost small-btn" data-act="delete" data-id="${c.id}">Delete</button>
       </div></li>`)
     .join('');
   return `<div class="panel">
-    <header class="top"><h1>Characters</h1><button class="ghost" data-act="account">Account</button></header>
+    <header class="top"><h1>Characters</h1><div class="actions"><button class="ghost" data-act="statistics">Statistics</button><button class="ghost" data-act="account">Account</button></div></header>
     <ul class="list">${rows}</ul>
     <button class="primary" data-act="new">New character</button>
   </div>`;
@@ -185,11 +195,14 @@ function rimHtml(): string {
         <span class="gold-text big-gold">${data.gold} gold</span>
         <button class="primary" data-act="sheet">Character</button>
         <button class="ghost" data-act="characters">Characters</button>
+        <button class="ghost" data-act="statistics">Statistics</button>
+        <button class="ghost" data-act="help">Help</button>
         <button class="ghost" data-act="account">Account</button>
       </div>
     </header>
     <nav class="tabs">${tabs.map(([id, name]) => `<button class="${id === tab ? 'active' : ''}" data-act="tab" data-id="${id}">${name}${id === 'patrons' ? waiting : ''}</button>`).join('')}</nav>
     ${views[tab]()}
+    <footer class="rim-foot"><button class="primary big" data-act="descend">Descend into the Maw</button></footer>
   </div>`;
 }
 
@@ -197,8 +210,27 @@ function overlayHtml(): string {
   const o = state.overlay;
   if (!o) return '';
   if (o === 'sheet') {
+    if (state.screen === 'tithe') {
+      // Under en Tithe kommer karakterskærmen fra tithe-server, og Tithen fortsætter bag den (Feature-004 VIEW-01).
+      const s = state.game?.sheetData;
+      return s ? sheetHtml(s.character, backgroundName(s.character.background), s.inventory, state.rim.hotbarKey, state.rim.sheetMessage, { found: s.found }) : '';
+    }
     const c = active();
     return c ? sheetHtml(c, backgroundName(c.background), state.rim.data.inventory, state.rim.hotbarKey, state.rim.sheetMessage) : '';
+  }
+  if (o === 'help') {
+    const inGame = state.screen === 'tithe';
+    const inv = inGame ? state.game?.sheetData?.inventory : state.rim.data.inventory;
+    const hotbar = inGame ? state.game?.hotbar ?? {} : inv?.hotbar ?? {};
+    const weapons = inv ? [inv.equipment.weapon, ...inv.pack] : [];
+    return helpHtml(hotbar, (id) => weapons.find((w) => w?.id === id)?.name ?? 'a weapon');
+  }
+  if (o === 'leave') {
+    // Feature-029 VIEW-01
+    return `<div class="overlay"><div class="dialog">
+      <p>${esc(MESSAGES.leaveConfirm)}</p>
+      <div class="actions"><button class="danger" data-act="confirm-leave">Leave</button><button class="ghost" data-act="close">Stay</button></div>
+    </div></div>`;
   }
   if (o === 'account') {
     return `<div class="overlay"><div class="dialog">
@@ -213,14 +245,96 @@ function overlayHtml(): string {
   </div></div>`;
 }
 
-function render(): void {
-  const screens: Record<Screen, () => string> = { signin: signInHtml, characters: charactersHtml, create: createHtml, rim: rimHtml };
+function renderOverlay(): void {
   // Overlayet tegnes forfra ved hver handling; scroll-positionen bevares, så karakterskærmen ikke springer til toppen.
   const scrolled = [...overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog')].map((el) => el.scrollTop);
-  app.innerHTML = screens[state.screen]();
   overlay.innerHTML = overlayHtml();
   overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog').forEach((el, i) => (el.scrollTop = scrolled[i] ?? 0));
+}
+
+function render(): void {
+  // Tithe-skærmen bygges én gang og opdateres af spilklienten; kun overlayet tegnes her.
+  if (state.screen === 'tithe') {
+    if (state.game && !state.game.mounted) state.game.mount(app);
+    return renderOverlay();
+  }
+  const screens: Record<Exclude<Screen, 'tithe'>, () => string> = {
+    signin: signInHtml, characters: charactersHtml, create: createHtml, rim: rimHtml,
+    tithes: () => tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft),
+    lobby: () => (state.lobby.current ? lobbyHtml(state.lobby.current, state.lobby.message) : ''),
+    results: () => (state.ended ? resultsHtml(state.ended) : ''),
+    statistics: () => statisticsHtml(state.stats.rows, state.stats.back),
+  };
+  // Et felt, der har fokus, beholder det, når skærmen tegnes igen (f.eks. når listen af Tithes hentes på ny).
+  const focused = document.activeElement instanceof HTMLInputElement && app.contains(document.activeElement) ? document.activeElement.name : '';
+  app.innerHTML = screens[state.screen]();
+  renderOverlay();
   if (state.screen === 'signin') $<HTMLInputElement>('#signin input[name=userName]').focus();
+  if (focused) {
+    const input = app.querySelector<HTMLInputElement>(`input[name="${focused}"]`);
+    if (input) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+// --- Tithes, lobby og Tithe -----------------------------------------------------------------------
+
+async function loadTithes(): Promise<boolean> {
+  const result = await api.tithes();
+  if (!result.ok) return false;
+  const changed = JSON.stringify(result.data.tithes) !== JSON.stringify(state.lobby.list);
+  state.lobby.list = result.data.tithes;
+  return changed;
+}
+
+/** Fører spilleren derhen, hvor lobbyen siger, spilleren er. */
+async function follow(current: CurrentTithe): Promise<void> {
+  if (current.state === 'playing') return startGame(current.ticket);
+  if (current.state === 'lobby') {
+    state.lobby.current = current.tithe;
+    if (state.screen !== 'lobby') state.lobby.message = '';
+    return show('lobby');
+  }
+  // Feature-037: lukkes Tithen, er de andre tilbage ved listen af Tithes.
+  state.lobby.current = null;
+  if (state.screen === 'lobby') {
+    await loadTithes();
+    show('tithes');
+  }
+}
+
+function startGame(ticket: string): void {
+  state.game?.unmount();
+  state.ended = null;
+  state.rim.hotbarKey = null;
+  state.rim.sheetMessage = '';
+  state.game = new Game(ticket, {
+    sheet: () => {
+      if (state.overlay === 'sheet' || state.overlay === 'help') renderOverlay();
+    },
+    ended: (m) => {
+      // Feature-016 VIEW-01: resultatet vises 2,5 sekunder efter slutningen.
+      state.ended = m;
+      window.setTimeout(() => {
+        state.game?.unmount();
+        state.game = null;
+        show('results');
+      }, RESULTS_DELAY_MS);
+    },
+    refused: (message) => {
+      state.rim.sheetMessage = message;
+      renderOverlay();
+    },
+    gone: async () => {
+      state.game?.unmount();
+      state.game = null;
+      await loadRim();
+      show('rim');
+    },
+  });
+  show('tithe');
 }
 
 // --- Handlinger ----------------------------------------------------------------------------------
@@ -257,10 +371,117 @@ app.addEventListener('submit', async (event) => {
 app.addEventListener('input', (event) => {
   const el = event.target as HTMLInputElement;
   if (el.id === 'char-name') state.create.name = el.value;
+  if (el.name === 'name' && el.form?.id === 'open-tithe') state.lobby.nameDraft = el.value;
 });
 
+// Feature-036 CMD-01 Open a Tithe
+app.addEventListener('submit', async (event) => {
+  const form = event.target as HTMLFormElement;
+  if (form.id !== 'open-tithe') return;
+  event.preventDefault();
+  const input = form.elements.namedItem('name') as HTMLInputElement;
+  const name = input.value.trim();
+  if ([...name].length < B.lobby.nameMin || [...name].length > B.lobby.nameMax) {
+    input.setCustomValidity(`Use ${B.lobby.nameMin}–${B.lobby.nameMax} characters.`);
+    input.reportValidity();
+    input.setCustomValidity('');
+    return;
+  }
+  const result = await api.openTithe(name);
+  if (!result.ok) {
+    state.lobby.message = result.refusal.message;
+    await loadTithes();
+    return render();
+  }
+  state.lobby.nameDraft = '';
+  await follow(result.data);
+});
+
+/** Karakterskærmen under en Tithe: handlingerne går til tithe-server (Feature-004, -007, -027). */
+function titheSheetAction(action: string, id: string | undefined): boolean {
+  const game = state.game;
+  if (state.screen !== 'tithe' || !game) return false;
+  const key = state.rim.hotbarKey as HotbarKey | null;
+  state.rim.sheetMessage = '';
+  if (action === 'equip') game.sheetAction({ action: 'equip', itemId: id! });
+  else if (action === 'unequip') game.sheetAction({ action: 'unequip', slot: id as Slot });
+  else if (action === 'drop') game.sheetAction({ action: 'drop', itemId: id! });
+  else if (action === 'hotbar-weapon' && key) game.sheetAction({ action: 'hotbar', key, itemId: id! });
+  else if (action === 'hotbar-art' && key) game.sheetAction({ action: 'hotbar', key, echoArt: 'Echo Bolt' });
+  else if (action === 'hotbar-clear' && key) game.sheetAction({ action: 'clear', key });
+  else if (action === 'spend-attribute') game.sheetAction({ action: 'attribute', attribute: id as never });
+  else if (action === 'spend-skill') game.sheetAction({ action: 'skill', skill: id as never });
+  else return false;
+  if (action.startsWith('hotbar')) state.rim.hotbarKey = null;
+  renderOverlay();
+  return true;
+}
+
 async function act(action: string, id: string | undefined): Promise<void> {
+  if (titheSheetAction(action, id)) return;
   switch (action) {
+    case 'descend':
+      // Feature-025 VIEW-01: "Descend into the Maw" åbner listen af Tithes.
+      state.lobby.message = '';
+      await loadTithes();
+      return show('tithes');
+    case 'rim':
+      await loadRim();
+      return show('rim');
+    case 'join-tithe': {
+      const result = await api.joinTithe(id!);
+      if (!result.ok) {
+        state.lobby.message = result.refusal.message;
+        await loadTithes();
+        return render();
+      }
+      return follow(result.data);
+    }
+    case 'launch-tithe':
+    case 'leave-lobby': {
+      const result = action === 'launch-tithe' ? await api.launchTithe(id!) : await api.leaveLobby(id!);
+      if (!result.ok) {
+        state.lobby.message = result.refusal.message;
+        return render();
+      }
+      if (action === 'leave-lobby') {
+        state.lobby.current = null;
+        await loadTithes();
+        return show('tithes');
+      }
+      return follow(result.data);
+    }
+    case 'statistics': {
+      const result = await api.statistics();
+      state.stats = { rows: result.ok ? result.data.characters : [], back: state.screen === 'characters' ? 'characters' : 'rim' };
+      return show('statistics');
+    }
+    case 'help':
+      return show(state.screen, 'help');
+    case 'leave':
+      return show(state.screen, 'leave');
+    case 'confirm-leave':
+      state.game?.leave();
+      return show(state.screen);
+    case 'hotkey':
+      state.game?.hotkey(id as HotbarKey);
+      return;
+    case 'game-act':
+      state.game?.act(id as 'potion' | 'ration' | 'interact' | 'dodge');
+      return;
+    case 'return-to-rim': {
+      // Feature-016 VIEW-01: "Return to the Rim" åbner the Rim, på Patrons' Hall, når der venter gaver.
+      state.ended = null;
+      state.rim.tab = id === 'patrons' ? 'patrons' : 'forge';
+      state.rim.message = '';
+      await loadCharacters();
+      await loadRim();
+      show('rim');
+      // Pengepung, gaver og det fundne kommer over bussen et øjeblik efter.
+      refreshSoon();
+      window.setTimeout(refreshSoon, 1500);
+      return;
+    }
     case 'mode':
       state.signinMode = state.signinMode === 'login' ? 'create' : 'login';
       return render();
@@ -390,10 +611,11 @@ onAction(overlay, (action, id) => void act(action, id));
 window.addEventListener('keydown', (event) => {
   const typing = (event.target as HTMLElement).tagName === 'INPUT';
   if (event.key === 'Escape' && state.overlay) return void act('close', undefined);
-  // F004 VIEW-01: karakterskærmen åbnes med C.
-  if (!typing && (event.key === 'c' || event.key === 'C') && state.screen === 'rim') {
-    void act(state.overlay === 'sheet' ? 'close' : 'sheet', undefined);
-  }
+  if (typing || event.ctrlKey || event.metaKey || event.altKey) return;
+  const playing = state.screen === 'rim' || state.screen === 'tithe';
+  // F004 VIEW-01: karakterskærmen åbnes med C; F030 VIEW-01: Help med H, i the Rim og under en Tithe.
+  if ((event.key === 'c' || event.key === 'C') && playing) void act(state.overlay === 'sheet' ? 'close' : 'sheet', undefined);
+  if ((event.key === 'h' || event.key === 'H') && playing) void act(state.overlay === 'help' ? 'close' : 'help', undefined);
 });
 
 // --- Start ---------------------------------------------------------------------------------------
@@ -403,12 +625,25 @@ if (me.ok) {
   state.userName = me.data.userName;
   await Promise.all([loadCharacters(), loadBackgrounds()]);
   await loadRim();
-  show(screenOnReload(state.characters.length, state.activeId));
+  // Er spilleren i en lobby eller en Tithe, går webappen derhen igen (Feature-029: forbindelsen kan komme igen).
+  const current = await api.currentTithe();
+  if (current.ok && current.data.state !== 'none') await follow(current.data);
+  else show(screenOnReload(state.characters.length, state.activeId));
 } else {
   show('signin');
 }
 
-// The Rim henter nye data hvert andet sekund (planen, afsnit 7) og tegner kun igen, når noget er ændret.
+// The Rim og listen af Tithes henter nye data hvert andet sekund (planen, afsnit 7) og tegner kun igen, når noget er
+// ændret. Lobbyen spørger hvert sekund, så alle kommer med, når Tithen startes.
 window.setInterval(async () => {
   if (state.screen === 'rim' && (await loadRim())) render();
+  if (state.screen === 'tithes' && (await loadTithes())) render();
 }, 2000);
+window.setInterval(async () => {
+  if (state.screen !== 'lobby') return;
+  const current = await api.currentTithe();
+  if (!current.ok || state.screen !== 'lobby') return;
+  if (current.data.state === 'lobby' && JSON.stringify(current.data.tithe) === JSON.stringify(state.lobby.current)) return;
+  await follow(current.data);
+  if (current.data.state === 'lobby') render();
+}, 1000);

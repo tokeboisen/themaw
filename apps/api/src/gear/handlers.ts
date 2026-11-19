@@ -1,8 +1,12 @@
 // Feature-005 SVC-01 Quartermaster: inventaret følger med, når andre contexts melder noget.
 
-import type { CharacterCreated, CharacterDeleted, ConsumableBought, ItemBought, ItemGiftAccepted, ItemSold } from '@maw/contracts';
-import { BALANCE as B, backgroundById, createRng, randomSeed, removeWeaponFromHotbar, startingKit, type Item } from '@maw/rules';
+import { EVENT, type CharacterCreated, type CharacterDeleted, type ConsumableBought, type FoundGearKept, type ItemBought, type ItemGiftAccepted, type ItemSold, type TitheEnded } from '@maw/contracts';
+import { envelope } from '@maw/platform';
+import {
+  BALANCE as B, backgroundById, createRng, losesFound, randomSeed, removeWeaponFromHotbar, settleFoundGear, startingKit, type Character, type Item,
+} from '@maw/rules';
 import type { Client } from '../db.ts';
+import { enqueue } from '../outbox.ts';
 
 async function addItem(client: Client, characterId: string, item: Item, location: 'pack' | 'weapon' | 'armour' | 'ring' = 'pack') {
   await client.query(
@@ -50,4 +54,41 @@ export function onConsumableBought(kind: 'potions' | 'rations') {
 /** EVT-10 Character deleted → CMD-04 Empty inventory. */
 export async function onCharacterDeleted(client: Client, data: CharacterDeleted): Promise<void> {
   await client.query('delete from gear.inventories where character_id = $1', [data.characterId]);
+}
+
+/**
+ * Feature-009 SVC-01 Quartermaster: når en Tithe slutter, er inventaret arbejdskopien fra Tithen. Ved et fald, eller
+ * når spilleren forlod Tithen, mistes det fundne (EVT-03 Found gear lost); ellers beholdes det, og det fundne guld går
+ * til tegnebogen (EVT-02 Found gear kept → Market, Feature-018).
+ */
+export async function onTitheEnded(client: Client, data: TitheEnded): Promise<void> {
+  const exists = await client.query('select 1 from gear.inventories where character_id = $1 for update', [data.characterId]);
+  if (!exists.rowCount) return; // karakteren er slettet imens
+  const g = data.gear;
+  const ch = { equipment: { ...g.equipment }, inventory: [...g.pack] } as Character;
+  const lose = losesFound(data.outcome.kind);
+  const { lost, kept } = settleFoundGear(ch, data.titheId, lose);
+  let hotbar = g.hotbar;
+  for (const item of lost) hotbar = removeWeaponFromHotbar(hotbar, item.id);
+  await client.query('update gear.inventories set potions = $2, rations = $3, hotbar = $4 where character_id = $1', [
+    data.characterId, Math.min(B.character.maxConsumables, g.potions), Math.min(B.character.maxConsumables, g.rations), JSON.stringify(hotbar),
+  ]);
+  await client.query('delete from gear.items where character_id = $1', [data.characterId]);
+  const placed: [Item, 'pack' | 'weapon' | 'armour' | 'ring'][] = [];
+  for (const slot of ['weapon', 'armour', 'ring'] as const) {
+    const item = ch.equipment[slot];
+    if (item) placed.push([item, slot]);
+  }
+  for (const item of ch.inventory) placed.push([item, 'pack']);
+  // Rækkefølgen i pakken bevares: hver ting får sit eget tidspunkt.
+  for (const [i, [item, location]] of placed.entries()) {
+    await client.query(
+      `insert into gear.items (id, character_id, location, data, added_at) values ($1, $2, $3, $4, now() + $5 * interval '1 millisecond')`,
+      [item.id, data.characterId, location, JSON.stringify(item), i],
+    );
+  }
+  if (!lose) {
+    const kept_: FoundGearKept = { characterId: data.characterId, titheId: data.titheId, gold: data.record.goldFound, items: kept.map((i) => i.id) };
+    await enqueue(client, envelope(EVENT.foundGearKept, kept_));
+  }
 }

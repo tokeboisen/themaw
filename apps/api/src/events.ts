@@ -3,6 +3,7 @@
 
 import { EVENT, bindingsFor, queueFor, type EventEnvelope } from '@maw/contracts';
 import type { Bus } from '@maw/platform';
+import * as characters from './characters/handlers.ts';
 import type { Client, Pool } from './db.ts';
 import * as gear from './gear/handlers.ts';
 import * as market from './market/handlers.ts';
@@ -13,7 +14,12 @@ import * as patronage from './patronage/handlers.ts';
 type Handler = (client: Client, data: never) => Promise<void>;
 
 export const HANDLERS: Record<string, Record<string, Handler>> = {
-  // Feature-005 Stock the inventory
+  // Feature-016 (karakteren gemmes) og Feature-039 Keep player statistics
+  Characters: {
+    [EVENT.titheEnded]: characters.onTitheEnded,
+    [EVENT.playerDefeated]: characters.onPlayerDefeated,
+  },
+  // Feature-005 Stock the inventory og Feature-009 Settle found gear
   Gear: {
     [EVENT.characterCreated]: gear.onCharacterCreated,
     [EVENT.itemBought]: gear.onItemReceived,
@@ -22,6 +28,7 @@ export const HANDLERS: Record<string, Record<string, Handler>> = {
     [EVENT.potionBought]: gear.onConsumableBought('potions'),
     [EVENT.rationBought]: gear.onConsumableBought('rations'),
     [EVENT.characterDeleted]: gear.onCharacterDeleted,
+    [EVENT.titheEnded]: gear.onTitheEnded,
   },
   // Feature-018 Keep the wallet og Feature-021 Restock the Forge
   Market: {
@@ -30,10 +37,13 @@ export const HANDLERS: Record<string, Record<string, Handler>> = {
     [EVENT.pursePaid]: market.onGoldReceived,
     [EVENT.foundGearKept]: market.onGoldReceived,
     [EVENT.characterDeleted]: market.onCharacterDeleted,
+    [EVENT.titheEnded]: market.onTitheEnded,
+    [EVENT.playerDefeated]: market.onPlayerDefeated,
   },
-  // Feature-023 Grant sponsor gifts (tilbagetrækning; at give gaver kommer i fase 3)
+  // Feature-022 Pay the Crown's Purse og Feature-023 Grant sponsor gifts
   Patronage: {
     [EVENT.characterDeleted]: patronage.onCharacterDeleted,
+    [EVENT.titheEnded]: patronage.onTitheEnded,
   },
 };
 

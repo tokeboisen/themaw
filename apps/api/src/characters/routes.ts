@@ -73,9 +73,39 @@ export function charactersRoutes(app: FastifyInstance, pool: Pool): void {
   app.get('/api/characters', async (request, reply) => {
     const userId = requireUser(request, reply);
     if (!userId) return reply;
-    const { rows } = await pool.query<CharacterRow>('select * from characters.characters where user_id = $1 order by created_at', [userId]);
+    const { rows } = await pool.query<CharacterRow & { tithes: number | null; champions: number | null }>(
+      `select c.*, s.tithes, s.champions from characters.characters c
+       left join characters.statistics s on s.character_id = c.id
+       where c.user_id = $1 order by c.created_at`,
+      [userId],
+    );
     const roster = await pool.query<{ active_character_id: string | null }>('select active_character_id from characters.rosters where user_id = $1', [userId]);
-    return reply.send({ characters: rows.map(view), activeCharacterId: roster.rows[0]?.active_character_id ?? null });
+    // Feature-026 VIEW-01: navn, baggrund, Mark, antal Tithes og gange som Champion (Feature-039).
+    return reply.send({
+      characters: rows.map((r) => ({ ...view(r), tithes: r.tithes ?? 0, champions: r.champions ?? 0 })),
+      activeCharacterId: roster.rows[0]?.active_character_id ?? null,
+    });
+  });
+
+  // Feature-040 VIEW-01 Player statistics: kun brugerens egne karakterer.
+  app.get('/api/statistics', async (request, reply) => {
+    const userId = requireUser(request, reply);
+    if (!userId) return reply;
+    const { rows } = await pool.query<{
+      id: string; name: string; mark: number; tithes: number | null; champions: number | null; falls: number | null; left_tithes: number | null;
+      deepest: number | null; monsters: number | null; rivals: number | null; player_kills: number | null; killed_by_players: number | null;
+    }>(
+      `select c.id, c.name, c.mark, s.tithes, s.champions, s.falls, s.left_tithes, s.deepest, s.monsters, s.rivals, s.player_kills, s.killed_by_players
+       from characters.characters c left join characters.statistics s on s.character_id = c.id
+       where c.user_id = $1 order by c.created_at`,
+      [userId],
+    );
+    return reply.send({
+      characters: rows.map((r) => ({
+        id: r.id, name: r.name, mark: r.mark, tithes: r.tithes ?? 0, champions: r.champions ?? 0, falls: r.falls ?? 0, left: r.left_tithes ?? 0,
+        deepest: r.deepest ?? 0, monsters: r.monsters ?? 0, rivals: r.rivals ?? 0, playerKills: r.player_kills ?? 0, killedByPlayers: r.killed_by_players ?? 0,
+      })),
+    });
   });
 
   app.get<{ Params: { id: string } }>('/api/characters/:id', async (request, reply) => {
@@ -128,7 +158,7 @@ export function charactersRoutes(app: FastifyInstance, pool: Pool): void {
     return reply.code(201).send(view(row));
   });
 
-  // Feature-026 CMD-01 Choose character. Fra fase 3 afvises det under en Tithe og mens partiet søger en Tithe.
+  // Feature-026 CMD-01 Choose character. Afvises under en Tithe og i en lobby (låsen i app.ts).
   app.post<{ Params: { id: string } }>('/api/characters/:id/choose', async (request, reply) => {
     const userId = requireUser(request, reply);
     if (!userId) return reply;
@@ -142,7 +172,7 @@ export function charactersRoutes(app: FastifyInstance, pool: Pool): void {
     return reply.send({ activeCharacterId: row.id });
   });
 
-  // Feature-038 CMD-01 Delete character. Fra fase 3 afvises det, mens karakteren er i en lobby eller en Tithe.
+  // Feature-038 CMD-01 Delete character. Afvises, mens karakteren er i en lobby eller en Tithe (låsen i app.ts).
   app.delete<{ Params: { id: string } }>('/api/characters/:id', async (request, reply) => {
     const userId = requireUser(request, reply);
     if (!userId) return reply;
@@ -150,6 +180,8 @@ export function charactersRoutes(app: FastifyInstance, pool: Pool): void {
     const deleted = isUuid(id) && await transaction(pool, async (client) => {
       const result = await client.query('delete from characters.characters where id = $1 and user_id = $2', [id, userId]);
       if (result.rowCount === 0) return false;
+      // Feature-039 CMD-02 Remove statistics: statistikken hører til karakteren og forsvinder med den.
+      await client.query('delete from characters.statistics where character_id = $1', [id]);
       // Feature-038 EVT-01: blev den spillede karakter slettet, vælger spilleren en anden eller opretter en ny.
       await client.query('update characters.rosters set active_character_id = null where user_id = $1 and active_character_id = $2', [userId, id]);
       await enqueue(client, envelope(routingKey('Characters', 'Character deleted'), { characterId: id, userId }));

@@ -25,9 +25,9 @@ bus.onClose(() => {
   log('RabbitMQ connection closed; exiting so Docker restarts the service');
   process.exit(1);
 });
-// Køerne for api'ets bounded contexts oprettes med det samme, så events venter, også før deres lyttere er bygget
-// (Characters' statistik lytter først fra fase 3).
-for (const context of ['Characters', 'Gear', 'Market', 'Patronage']) {
+// Køerne oprettes med det samme, så events venter på deres lyttere: også Tithes kø, så "Tithe launched" ikke går tabt,
+// hvis tithe-server starter efter api'et.
+for (const context of ['Characters', 'Gear', 'Market', 'Patronage', 'Tithe']) {
   const bindings = bindingsFor(context);
   if (bindings.length) await bus.declare(queueFor(context), bindings);
 }

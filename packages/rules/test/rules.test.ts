@@ -16,7 +16,7 @@ function result(t: Partial<TitheResult> & Pick<TitheResult, 'outcome'>): TitheRe
     id: 'T1-test',
     seed: 99,
     time: 120,
-    record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0 },
+    record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
     start: { level: 1, skills: { blades: 3, heavy: 10, bows: 1, echo: 1 } },
     ...t,
   };

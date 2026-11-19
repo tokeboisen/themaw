@@ -8,6 +8,7 @@ import { BALANCE, backgroundById, createRng, generateItem, suggestedAllocation, 
 import { buildApp } from '../src/app.ts';
 import { createPool, migrate, type Pool } from '../src/db.ts';
 import { HANDLERS, consumer } from '../src/events.ts';
+import type { RunningTithe, TitheRegistry } from '../src/lobby/registry.ts';
 
 export const hasDatabase = !!process.env.DATABASE_URL;
 
@@ -33,9 +34,17 @@ export async function testPool(): Promise<Pool> {
 const run = randomBytes(3).toString('hex');
 export const named = (name: string) => `${name}-${run}`;
 
+/** tithe-server, som testene styrer: hvilke Tithes kører, og hvilke spillere er stadig i dem. */
+export const fakeTithes: TitheRegistry & { list: RunningTithe[] } = {
+  list: [],
+  async running() {
+    return this.list;
+  },
+};
+
 export async function setup(): Promise<{ pool: Pool; app: FastifyInstance }> {
   const pool = await testPool();
-  return { pool, app: buildApp(pool) };
+  return { pool, app: buildApp(pool, undefined, false, { tithes: fakeTithes }) };
 }
 
 /** Opretter en bruger og returnerer sessions-cookien. */
