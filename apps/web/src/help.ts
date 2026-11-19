@@ -6,7 +6,7 @@ import { esc } from './dom.ts';
 
 const TOPICS: [string, string][] = [
   ['The Tithe', 'Up to eight candidates – players and NPC rivals – race down three depths of the Old Mines. Slay The Foreman at the bottom and walk through the gate to be the Champion. A fall, or leaving, loses what you found in the Tithe, but never what you brought down.'],
-  ['Fighting', 'Aim is automatic: you strike the nearest enemy in reach. Blades swing narrow arcs, heavy weapons wide ones, bows shoot arrows. Monsters wind up before they attack – dodge through it. For the first 20 seconds no candidate may strike another.'],
+  ['Fighting', 'Aim is automatic: you strike the nearest enemy in reach. A number key chooses what Space uses – a weapon, which you draw, or Echo Bolt. Blades swing narrow arcs, heavy weapons wide ones, bows shoot arrows. Monsters wind up before they attack – dodge through it. For the first 20 seconds no candidate may strike another.'],
   ['Skills and Marks', 'Every blow that lands trains the skill that dealt it; strong enemies teach more. Slain enemies give Echo, and enough Echo burns a new Mark into your Brand: 3 attribute points and 2 skill points to spend on the character sheet, also during a Tithe.'],
   ['Gear and loot', 'Walk over loot to pick it up. Items need room in your pack. Equip, unequip, drop and set your hotbar on the character sheet. Items found in a Tithe are lost if you fall.'],
   ['Hunger and supplies', 'Hunger falls as you fight. At 0 you starve: stamina recovers slowly and life not at all. A ration restores 45 hunger, a potion 40 % of your life. You carry at most 9 of each.'],
@@ -22,7 +22,7 @@ export function helpHtml(hotbar: Hotbar, weaponName: (id: string) => string): st
     return `<tr><td><kbd>${k}</kbd></td><td>${esc(what)}</td></tr>`;
   }).join('');
   const keys: [string, string][] = [
-    ['W A S D / arrows', 'Move'], ['Space', 'Attack'], ['1–8, or click a slot', 'Hotbar'], ['Shift', 'Dodge'], ['Q', 'Potion'], ['R', 'Ration'],
+    ['W A S D / arrows', 'Move'], ['Space', 'Attack with what is chosen on the hotbar'], ['1–8, or click a slot', 'Choose on the hotbar'], ['Shift', 'Dodge'], ['Q', 'Potion'], ['R', 'Ration'],
     ['F', 'Descend and the gate'], ['C', 'Character'], ['O', 'Other players'], ['H', 'Help'], ['Esc', 'Close'],
   ];
   return `<div class="overlay see-through"><div class="sheet">

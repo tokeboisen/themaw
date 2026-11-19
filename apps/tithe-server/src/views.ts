@@ -3,7 +3,7 @@
 
 import type { CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
 import {
-  BALANCE, HOTBAR_KEYS, crownsPurse, echoToNextMark, giftCount, losesFound, sameParty, sealInfo, type HotbarKey, type Item, type Player,
+  BALANCE, chosenKey, crownsPurse, echoToNextMark, giftCount, losesFound, sameParty, sealInfo, type Item, type Player,
   type SkillId, type Tithe, type TitheSummary,
 } from '@maw/rules';
 
@@ -21,15 +21,6 @@ export function newViewState(t: Tithe): ViewState {
 }
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
-
-function weaponKey(p: Player): HotbarKey | null {
-  const id = p.ch.equipment.weapon?.id;
-  if (!id) return null;
-  return HOTBAR_KEYS.find((k) => {
-    const slot = p.hotbar[k];
-    return !!slot && 'weapon' in slot && slot.weapon === id;
-  }) ?? null;
-}
 
 function candidates(t: Tithe, p: Player): CandidateView[] {
   const list: CandidateView[] = t.players.map((x) => ({
@@ -119,7 +110,7 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
       dodgeDir: [r2(p.dodgeDir.x), r2(p.dodgeDir.y)], swing: r2(p.swing), swingDir: [r2(p.swingDir.x), r2(p.swingDir.y)],
       swingArc: p.swingArc, swingReach: p.swingReach, flash: p.flash > 0, drawing: p.drawT > 0, mark: p.ch.level, echo: Math.floor(p.ch.echo),
       echoNext: echoToNextMark(p.ch.level, t.B), points: p.ch.attributePoints + p.ch.skillPoints, potions: p.ch.potions,
-      rations: p.ch.rations, weaponKey: weaponKey(p), hotbar: p.hotbar, starving: p.hunger <= 0,
+      rations: p.ch.rations, chosenKey: chosenKey(p), hotbar: p.hotbar, starving: p.hunger <= 0,
     },
     ents,
     proj: dep.projectiles.filter((x) => seen(x, 1)).map((x) => ({ x: r2(x.x), y: r2(x.y), vx: r2(x.vx), vy: r2(x.vy), kind: x.kind })),

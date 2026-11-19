@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -139,8 +139,8 @@ rules:
   - applies_to:
       - CMD-02
     text: >-
-      Every character can cast Echo Bolt, from its hotbar key (Gear, Use the hotbar). It costs 8 focus, flies
-      8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts.
+      Every character can cast Echo Bolt: its hotbar key chooses it, and Attack (Space) casts it (Gear, Use the
+      hotbar). It costs 8 focus, flies 8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts.
   - applies_to:
       - CMD-01
       - EVT-06

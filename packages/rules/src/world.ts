@@ -151,6 +151,8 @@ export interface Player extends Body {
   /** Arbejdskopien af karakteren (planen, afsnit 5). */
   ch: Character;
   hotbar: Hotbar;
+  /** Den Echo Art, hotbaren har valgt til Attack; null er våbnet i hånden (Feature-028 AGG-01). */
+  chosenArt: EchoArt | null;
   stats: DerivedStats;
   depth: number;
   stamina: number;
@@ -358,7 +360,7 @@ function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
   const stats = derivedStats(s.character, t.B);
   return {
     kind: 'player', id: s.userId, partyId: s.userId, userId: s.userId, userName: s.userName, characterId: s.characterId, name: s.character.name,
-    ch: s.character, hotbar: s.hotbar, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
+    ch: s.character, hotbar: s.hotbar, chosenArt: null, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
     attackCd: 0, boltCd: 0, dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, drawT: 0,
@@ -728,6 +730,8 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
   switch (a.action) {
     case 'equip':
       if (!equipItem(ch, a.itemId)) return 'invalid';
+      // Feature-028 AGG-01: et våben, der tages på, vælges til Attack.
+      if (ch.equipment.weapon?.id === a.itemId) p.chosenArt = null;
       break;
     case 'unequip':
       if (!['weapon', 'armour', 'ring'].includes(a.slot) || !ch.equipment[a.slot]) return 'invalid';
@@ -765,8 +769,23 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
     default:
       return 'invalid';
   }
+  // Fjernes den valgte Echo Art fra hotbaren, bruger Attack igen våbnet i hånden.
+  if (p.chosenArt && !HOTBAR_KEYS.some((k) => {
+    const slot = p.hotbar[k];
+    return !!slot && 'echoArt' in slot && slot.echoArt === p.chosenArt;
+  })) p.chosenArt = null;
   refreshStats(t, p);
   return null;
+}
+
+/** Feature-028 VIEW-01: tasten med det, Attack bruger, fremhæves. */
+export function chosenKey(p: Player): HotbarKey | null {
+  return HOTBAR_KEYS.find((k) => {
+    const slot = p.hotbar[k];
+    if (!slot) return false;
+    if (p.chosenArt) return 'echoArt' in slot && slot.echoArt === p.chosenArt;
+    return 'weapon' in slot && slot.weapon === p.ch.equipment.weapon?.id;
+  }) ?? null;
 }
 
 // --- Hovedløkken --------------------------------------------------------------------------------
@@ -844,7 +863,7 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
       p.stamina -= B.combat.dodgeCost;
     } else if (a.act === 'potion') drinkPotion(t, p);
     else if (a.act === 'ration') eatRation(t, p);
-    else if (a.act === 'hotkey') useHotkey(t, p, dep, a.key);
+    else if (a.act === 'hotkey') useHotkey(t, p, a.key);
     else if (a.act === 'interact') {
       if (p.interact === 'descend' && p.depth < B.tithe.depths) {
         enterDepth(t, p, p.depth + 1);
@@ -865,8 +884,15 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
     p.facing = { x: mx / l, y: my / l };
     moveWithCollision(dep.map, p, mx * s.moveSpeed * dt, my * s.moveSpeed * dt);
   }
-  const w = s.weapon;
-  if (p.input.attack && p.attackCd <= 0 && p.stamina >= w.staminaCost && p.dodgeT <= 0 && p.drawT <= 0) playerAttack(t, p, dep);
+  // Feature-028 EVT-01: Attack bruger det valgte – våbnet i hånden eller den valgte Echo Art.
+  if (p.input.attack && p.dodgeT <= 0) {
+    if (p.chosenArt) {
+      if (p.boltCd <= 0 && p.focus >= s.bolt.focusCost) playerBolt(t, p, dep);
+    } else {
+      const w = s.weapon;
+      if (p.attackCd <= 0 && p.stamina >= w.staminaCost && p.drawT <= 0) playerAttack(t, p, dep);
+    }
+  }
 }
 
 /** Feature-008 CMD-01: 40 % af max liv, én gang i sekundet og kun, når livet ikke er fuldt. */
@@ -891,16 +917,23 @@ function eatRation(t: Tithe, p: Player): void {
   float(t, p.depth, p.x, p.y - 0.6, 'Fed', '#d9b26f', 14);
 }
 
-/** Feature-028 CMD-01: et våben på tasten trækkes, en Echo Art kastes, og en tom tast gør intet. */
-function useHotkey(t: Tithe, p: Player, dep: Depth, key: HotbarKey): void {
+/**
+ * Feature-028 CMD-01 Choose hotbar key: tasten vælger, hvad Attack bruger. Et våben trækkes; en Echo Art vælges uden at
+ * blive kastet, og våbnet bliver i hånden. En tom tast gør intet.
+ */
+function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   const slot = p.hotbar[key];
   if (!slot) return;
   if ('echoArt' in slot) {
-    if (p.boltCd <= 0 && p.focus >= p.stats.bolt.focusCost && p.dodgeT <= 0) playerBolt(t, p, dep);
+    p.chosenArt = slot.echoArt;
     return;
   }
-  if (p.ch.equipment.weapon?.id === slot.weapon) return;
+  if (p.ch.equipment.weapon?.id === slot.weapon) {
+    p.chosenArt = null;
+    return;
+  }
   if (!equipItem(p.ch, slot.weapon)) return;
+  p.chosenArt = null;
   p.drawT = t.B.combat.drawTime;
   refreshStats(t, p);
 }

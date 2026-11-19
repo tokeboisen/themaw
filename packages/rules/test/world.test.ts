@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BALANCE as B, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, sealInfo, setInput,
+  BALANCE as B, chosenKey, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, sealInfo, setInput,
   sheetAction, stepTithe, testing, type Character, type Hotbar, type Monster, type Player, type Rival, type Tithe,
 } from '../src/index.ts';
 
@@ -112,13 +112,32 @@ test('F011 scenario "No focus, no bolt"', () => {
   quiet(t);
   const p = player(t);
   p.focus = 5;
-  queueAct(t, p.id, { act: 'hotkey', key: '2' });
+  queueAct(t, p.id, { act: 'hotkey', key: '2' }); // Echo Bolt is chosen …
+  setInput(t, p.id, { moveX: 0, moveY: 0, attack: true }); // … and Attack casts it
   stepTithe(t, DT);
   assert.equal(depth(t, p).projectiles.length, 0);
   p.focus = 20;
+  stepTithe(t, DT);
+  assert.equal(depth(t, p).projectiles.length, 1);
+});
+
+test('F028 scenario "Choosing Echo Bolt"', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  const pickaxe = p.ch.equipment.weapon!;
   queueAct(t, p.id, { act: 'hotkey', key: '2' });
   stepTithe(t, DT);
-  assert.equal(depth(t, p).projectiles.length, 1); // Echo Bolt from its hotbar key
+  assert.equal(depth(t, p).projectiles.length, 0); // no Echo Bolt is cast
+  assert.equal(p.ch.equipment.weapon?.id, pickaxe.id); // Kael still holds the Pickaxe
+  assert.equal(chosenKey(p), '2');
+  setInput(t, p.id, { moveX: 0, moveY: 0, attack: true });
+  stepTithe(t, DT);
+  assert.equal(depth(t, p).projectiles[0]?.kind, 'bolt'); // Attack casts Echo Bolt
+  // Key 1 chooses the Pickaxe again, and Attack swings it.
+  queueAct(t, p.id, { act: 'hotkey', key: '1' });
+  stepTithe(t, DT);
+  assert.equal(chosenKey(p), '1');
 });
 
 test('F012 scenario "Kael descends": depth 2, its start room and 20 Renown', () => {
@@ -361,7 +380,8 @@ test('F028 scenario "Drawing the bow"', () => {
   stepTithe(t, DT);
   assert.equal(p.ch.equipment.weapon?.id, bow.id);
   assert.ok(p.ch.inventory.some((i) => i.id === pickaxe.id));
-  assert.equal(p.stats.weapon.skill, 'bows');
+  assert.equal(p.stats.weapon.skill, 'bows'); // Attack shoots the Short Bow, and its arrows train Bows
+  assert.equal(chosenKey(p), '3');
   assert.ok(p.drawT > 0); // cannot strike while drawing
 });
 

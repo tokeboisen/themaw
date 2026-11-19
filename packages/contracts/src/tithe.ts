@@ -74,8 +74,8 @@ export interface YouView {
   points: number;
   potions: number;
   rations: number;
-  /** Tasten med våbnet i hånden (Feature-028 VIEW-01). */
-  weaponKey: HotbarKey | null;
+  /** Tasten med det, Attack bruger: våbnet i hånden eller den valgte Echo Art (Feature-028 VIEW-01). */
+  chosenKey: HotbarKey | null;
   hotbar: Hotbar;
   starving: boolean;
 }

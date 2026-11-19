@@ -280,12 +280,12 @@ export class Game {
     const prompt = s.interact === 'descend' ? 'Descend – press F' : s.interact === 'gate' ? 'Claim the Tithe – press F' : '';
     const promptEl = root.querySelector<HTMLElement>('.hud-prompt')!;
     if (promptEl.textContent !== prompt) promptEl.innerHTML = prompt ? `<button class="primary" data-act="game-act" data-id="interact">${prompt}</button>` : '';
-    // Feature-028 VIEW-01: hotbaren nederst med tasterne 1–8; tasten i hånden er fremhævet.
+    // Feature-028 VIEW-01: hotbaren nederst med tasterne 1–8; den valgte tast er fremhævet.
     const weapons = new Map([...(this.sheet ? [this.sheet.inventory.equipment.weapon, ...this.sheet.inventory.pack] : [])].filter((i) => !!i).map((i) => [i!.id, i!.name]));
     const hotbar = HOTBAR_KEYS.map((k) => {
       const slot = y.hotbar[k];
       const name = !slot ? '' : 'echoArt' in slot ? slot.echoArt : weapons.get(slot.weapon) ?? 'Weapon';
-      return `<button class="hotkey ${k === y.weaponKey ? 'selected' : ''}" data-act="hotkey" data-id="${k}" aria-label="Key ${k}: ${esc(name || 'empty')}">
+      return `<button class="hotkey ${k === y.chosenKey ? 'selected' : ''}" data-act="hotkey" data-id="${k}" aria-label="Key ${k}: ${esc(name || 'empty')}">
         <b>${k}</b><span>${name ? esc(name) : '–'}</span></button>`;
     }).join('');
     if (hotbar !== this.hotbarHtml) {
@@ -369,7 +369,7 @@ export class Game {
     this.send({ t: 'act', act });
   }
 
-  /** Feature-028 CMD-01: en tast eller et klik på hotbaren. */
+  /** Feature-028 CMD-01 Choose hotbar key: en tast eller et klik på hotbaren vælger, hvad Attack (Space) bruger. */
   hotkey(key: HotbarKey): void {
     this.send({ t: 'act', act: 'hotkey', key });
   }

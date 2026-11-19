@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -23,8 +23,9 @@ elements:
     description: Shortcut keys and short help texts about the game.
     behavior: >-
       Opened with the Help button or H, in the Rim and during a Tithe, as a see-through overlay like the character
-      sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack (Space),
-      the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration (R), descend and the gate (F), character
+      sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack with what is
+      chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration
+      (R), descend and the gate (F), character
       (C), other players (O), help (H) and close (Esc) – and short texts on: The Tithe, Fighting, Skills and
       Marks, Gear and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others.
 flows: []
