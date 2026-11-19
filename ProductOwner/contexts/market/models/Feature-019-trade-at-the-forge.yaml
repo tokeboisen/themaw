@@ -1,0 +1,136 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Trade at the Forge
+  bounded_context: Market
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: buy weapons, armour and rings from Hesta Varn and sell what is not needed, so the gold
+      of a Tithe becomes the gear for the next.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Forge
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: 'Hesta Varn''s forge in the Rim: the items for sale with price, and the player''s pack with
+      sell price.'
+    behavior: >-
+      "Hesta Varn, the smith: Steel for the Branded. Coin first." Two lists: For sale, each item with its price
+      and Buy (disabled when the gold is not enough), and Your inventory, each item with its sell price and
+      Sell. A refusal is shown above the lists.
+  - id: CMD-01
+    type: command
+    name: Buy item
+    col: 2
+    stack: 1
+    story: As a player I want to buy an item at the Forge, so that I go down better armed.
+    fields:
+      - name: Item
+  - id: CMD-02
+    type: command
+    name: Sell item
+    col: 2
+    stack: 2
+    story: As a player I want to sell an item I do not need, so that I get gold for better gear.
+    fields:
+      - name: Item
+  - id: AGG-01
+    type: aggregate
+    name: Forge
+    col: 3
+    stack: 1
+    description: Hesta Varn's forge and the items for sale.
+    fields:
+      - name: Stock
+        attributes:
+          - name: Item
+          - name: Price
+        many: true
+  - id: AGG-02
+    type: aggregate
+    name: Wallet
+    col: 3
+    stack: 2
+    description: The character's gold.
+    fields:
+      - name: Gold
+  - id: EVT-01
+    type: event
+    name: Item bought
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Gold spent
+    col: 4
+    stack: 2
+  - id: EVT-03
+    type: event
+    name: Item sold
+    col: 4
+    stack: 3
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-01
+    to: AGG-02
+  - from: CMD-02
+    to: AGG-02
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-02
+    to: EVT-02
+  - from: AGG-02
+    to: EVT-03
+rules:
+  - applies_to:
+      - AGG-01
+      - CMD-02
+    text: >-
+      Price: the base price × (1 + 15 % per item level above 1) × the rarity (Common 1, Magic 2.2, Rare 4)
+      + 8 per affix. Selling gives 30 % of the price.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Buying needs the gold and room in the pack; otherwise it is refused with "Not enough gold." or "Your
+      inventory is full.". A bought item leaves the stock.
+  - applies_to:
+      - CMD-02
+    text: Only items in the pack can be sold; equipped items must be unequipped first.
+scenarios:
+  - title: An item is bought
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has 100 gold and the Forge sells a "Short Sword" for 59 gold
+      When the player performs CMD-01 "Buy item" with the Short Sword
+      Then EVT-01 "Item bought" is recorded
+      And EVT-02 "Gold spent" is recorded with 59 gold
+      And Kael has 41 gold
+  - title: Not enough gold
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has 20 gold
+      When the player performs CMD-01 "Buy item" with an item for 59 gold
+      Then nothing is recorded
+      And "Not enough gold." is shown
+  - title: An item is sold
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael has a "Reinforced Leather Jerkin" worth 86 gold in the pack
+      When the player performs CMD-02 "Sell item" with it
+      Then EVT-03 "Item sold" is recorded with 25 gold

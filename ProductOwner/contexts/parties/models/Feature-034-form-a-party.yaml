@@ -1,0 +1,140 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Form a party
+  bounded_context: Parties
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: in the first seconds of a Tithe, invite other players in it into a party – and leave
+      it again – so friends fight as a team, and see who else is on the server.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Other players
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The players signed in on the server, the players in the same Tithe and the player's own party, with the
+      countdown for invitations.
+    behavior: >-
+      Opened with the Other players button or O, in the Rim and during a Tithe, as a see-through overlay. Lists
+      the players signed in on the server with their user name, the character they play and the Tithe they
+      are in. During the first 20 seconds of a Tithe a countdown runs at the top, and the other players in
+      the same Tithe have Invite. The player's party is shown with its members and Leave party.
+  - id: CMD-01
+    type: command
+    name: Invite player
+    col: 2
+    stack: 1
+    story: As a player I want to invite another player in my Tithe into my party, so that we fight as a team.
+    fields:
+      - name: Player
+  - id: CMD-02
+    type: command
+    name: Leave party
+    col: 2
+    stack: 2
+    story: As a player I want to leave my party, so that I fight on my own.
+  - id: AGG-01
+    type: aggregate
+    name: Party
+    col: 3
+    stack: 1
+    description: 'Players who fight together in one Tithe: the members and the open invitations.'
+    fields:
+      - name: Tithe
+      - name: Members
+        attributes:
+          - name: Player
+          - name: Character
+        many: true
+      - name: Invitations
+        attributes:
+          - name: Player
+          - name: Sent at
+          - name: Status
+        many: true
+  - id: EVT-01
+    type: event
+    name: Invitation sent
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Party left
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      A party lives inside one Tithe and ends with it. Every player starts the Tithe without a party, and a
+      party can be as large as the Tithe (8 players).
+  - applies_to:
+      - CMD-01
+    text: >-
+      Invitations can only be sent to players in the same Tithe, and only during its first 20 seconds – the
+      grace – with a countdown in the overlay. After that, Invite is gone.
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: >-
+      Every member can invite. A player can leave the party at any time in the Tithe; after that the former
+      members can strike the player, and the player them.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Party members see each other on the map with their user names (Tithe, Enter the Tithe), and cannot hurt
+      each other (Tithe, Fight in the depths).
+scenarios:
+  - title: Kael invites Brann
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael and Brann are in the same Tithe, which started 8 seconds ago
+      When the player performs CMD-01 "Invite player" with Brann
+      Then EVT-01 "Invitation sent" is recorded
+  - title: Too late to invite
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the Tithe started 25 seconds ago
+      When the player opens VIEW-01 "Other players"
+      Then no player has Invite
+  - title: Kael leaves the party
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael is in a party with Brann
+      When the player performs CMD-02 "Leave party"
+      Then EVT-02 "Party left" is recorded
+      And Brann can strike Kael
+open_questions:
+  - topic: Who starts the descent
+    question: Who starts the descent for a party?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-19: the player who opened the Tithe launches it (Lobby, Launch the Tithe), and parties
+      are formed in the Tithe's first 20 seconds.

@@ -1,0 +1,153 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Spend points
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: spend the points from new Marks on attributes and skills, so the player decides what
+      the character becomes.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Character sheet
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      Attributes, skills, Echo and Marks, with the points left to spend. Opened with the Character button or
+      C, as a see-through overlay.
+    behavior: >-
+      Opened with the Character button (mouse or touch) or C, in the Rim and during a Tithe. It lies as a see-through
+      overlay over the game, so the player can see what happens behind it. It shows the Mark and the Echo to
+      the next one; the five attributes with the bonus from items; the four skills with level, progress to
+      the next level, effective level and which attributes give them a bonus; the combat values that follow;
+      and the inventory and hotbar (Gear). A + button stands by each attribute and skill while there are points
+      left.
+  - id: CMD-01
+    type: command
+    name: Spend attribute point
+    col: 2
+    stack: 1
+    story: As a player I want to spend an attribute point, so that my character gets stronger where I choose.
+    fields:
+      - name: Attribute
+  - id: CMD-02
+    type: command
+    name: Spend skill point
+    col: 2
+    stack: 2
+    story: >-
+      As a player I want to spend a skill point, so that a skill I rely on gets better faster than use alone
+      would make it.
+    fields:
+      - name: Skill
+  - id: AGG-01
+    type: aggregate
+    name: Character
+    col: 3
+    stack: 1
+    description: >-
+      A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills,
+      Echo and Marks.
+    fields:
+      - name: Attributes
+        attributes:
+          - name: Strength
+          - name: Dexterity
+          - name: Stamina
+          - name: Constitution
+          - name: Intelligence
+      - name: Skills
+        attributes:
+          - name: Skill
+          - name: Level
+        many: true
+      - name: Attribute points
+      - name: Skill points
+  - id: EVT-01
+    type: event
+    name: Attribute raised
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Skill raised
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: >-
+      One attribute point raises an attribute by 1. One skill point raises a skill by 2 levels, at most to
+      100. Points can only be spent while there are some left, and they never expire.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Skills get a bonus from attributes: the effective skill is the level + the bonus from items + 1.5 × weight
+      × (attribute − 10) for each of the skill's attributes. Weights: Blades Dexterity 70 % and Strength 30
+      %; Heavy Weapons Strength 80 % and Constitution 20 %; Bows Dexterity 70 % and Strength 30 %; Echo Arts
+      Intelligence 80 % and Stamina 20 %.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Attributes also give: Strength one more place in the pack for every 2 points above 10; Dexterity +0.5
+      % critical chance per point; Stamina +5 stamina, faster stamina recovery and 2 % slower hunger per point;
+      Constitution +6 life per point; Intelligence +4 focus for Echo Bolts and faster learning (Learn by use).
+  - applies_to:
+      - VIEW-01
+    text: 'The sheet never pauses a Tithe: it is a see-through overlay, and the Tithe goes on behind it.'
+scenarios:
+  - title: A point in Dexterity makes Bows better
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has Dexterity 10, Bows 1 and 3 attribute points
+      When the player performs CMD-01 "Spend attribute point" with Dexterity
+      Then EVT-01 "Attribute raised" is recorded with Dexterity 11
+      And Kael's effective Bows is 1.05 higher
+      And Kael has 2 attribute points
+  - title: A skill point gives two levels
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael has Heavy Weapons 15 and 2 skill points
+      When the player performs CMD-02 "Spend skill point" with Heavy Weapons
+      Then EVT-02 "Skill raised" is recorded with Heavy Weapons 17
+      And Kael has 1 skill point
+  - title: No points left
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has no attribute points
+      When the player opens VIEW-01 "Character sheet"
+      Then no + button is shown by the attributes
+open_questions:
+  - topic: Pausing in multiplayer
+    question: Nobody can pause a shared Tithe. What does the character sheet do during a Tithe?
+    status: resolved
+    applies_to:
+      - VIEW-01
+    resolution: >-
+      Decided 2026-11-19: the sheet opens with a Character button as a see-through overlay, and the Tithe goes
+      on behind it.

@@ -1,0 +1,120 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Restock the Forge
+  bounded_context: Market
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Forge gets new stock after every Tithe, at the character's level, so there is always
+      something new to save up for.
+elements:
+  - id: EVT-01
+    type: event
+    name: Character created
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Characters
+      use_case: Create character
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: Tithe ended
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: End the Tithe
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Forge keeper
+    col: 2
+    stack: 1
+  - id: CMD-01
+    type: command
+    name: Restock the Forge
+    col: 3
+    stack: 1
+    fields:
+      - name: Item level
+  - id: AGG-01
+    type: aggregate
+    name: Forge
+    col: 4
+    stack: 1
+    description: Hesta Varn's forge and the items for sale.
+    fields:
+      - name: Stock
+        attributes:
+          - name: Item
+          - name: Price
+        many: true
+  - id: EVT-03
+    type: event
+    name: Forge restocked
+    col: 5
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Character deleted
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Characters
+      use_case: Delete character
+      event: EVT-01
+  - id: CMD-02
+    type: command
+    name: Clear the Forge
+    col: 3
+    stack: 2
+    fields:
+      - name: Character
+  - id: EVT-05
+    type: event
+    name: Forge cleared
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+  - from: EVT-04
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-02
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-05
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      The new stock is 7 items with the character's Mark as item level: 10 % rare, otherwise 45 % magic, otherwise
+      common. The old stock is replaced.
+  - applies_to:
+      - CMD-02
+    text: Every character has its own Forge stock; it is cleared when the character is deleted.
+scenarios:
+  - title: New stock after a Tithe
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is Mark 3
+      When EVT-02 "Tithe ended" has been recorded
+      Then SVC-01 "Forge keeper" performs CMD-01 "Restock the Forge" with item level 3
+      And EVT-03 "Forge restocked" is recorded with 7 items

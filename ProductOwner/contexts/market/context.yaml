@@ -1,0 +1,25 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Market
+  description: >-
+    The Rim's trade and the character's gold: Hesta Varn's forge, Mother Quill's apothecary and the wallet
+    that the Crown's Purse, sponsor gold and found gold fill.
+  vision: Gold turns every Tithe into a better next attempt.
+  domain: The Rim
+  system: Maw Server
+  lifecycle: planned
+  classification: supporting
+  capabilities:
+    - name: Trade
+      description: The Forge and the Apothecary.
+      lifecycle: planned
+      use_cases:
+        - Trade at the Forge
+        - Shop at the Apothecary
+        - Restock the Forge
+    - name: Gold
+      description: The character's gold and where it comes from.
+      lifecycle: planned
+      use_cases:
+        - Keep the wallet

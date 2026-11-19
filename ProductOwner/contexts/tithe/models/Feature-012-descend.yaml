@@ -1,0 +1,85 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Descend
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: take the stairs down to the next depth, so the candidate gets closer to the Warden and
+      away from a depth that is about to be sealed.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: Standing on the stairs shows "Descend – press F" and a Descend button on a touch screen.
+  - id: CMD-01
+    type: command
+    name: Descend
+    col: 2
+    stack: 1
+    story: As a player I want to take the stairs down, so that I get closer to the Warden before my rivals
+      do.
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 3
+    stack: 1
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Depth
+        many: true
+      - name: Record
+        attributes:
+          - name: Deepest depth
+  - id: EVT-01
+    type: event
+    name: Depth reached
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      The player descends by standing on the stairs and pressing Descend. The last depth has no stairs, only
+      the gate.
+  - applies_to:
+      - EVT-01
+    text: >-
+      A new depth starts in its start room. Rivals who are already in that depth appear where they have come
+      to.
+  - applies_to:
+      - EVT-01
+    text: Reaching a depth for the first time gives Renown (Spectacle, Run the show).
+scenarios:
+  - title: Kael descends
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael stands on the stairs of depth 1
+      When the player performs CMD-01 "Descend"
+      Then EVT-01 "Depth reached" is recorded with depth 2
+      And Kael is in the start room of depth 2

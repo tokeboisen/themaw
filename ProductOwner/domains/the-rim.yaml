@@ -1,0 +1,16 @@
+dsl_version: '0.8'
+product: The Maw
+domain:
+  name: The Rim
+  description: >-
+    The home of the Branded between Tithes: gold, trade and the rewards that turn the result of a Tithe into
+    the next attempt.
+  vision: 'A fall is never the end: the Rim turns every Tithe into a better next one.'
+  classification: supporting
+  capabilities:
+    - name: Trade
+      description: Buying and selling gear and supplies for gold.
+      lifecycle: planned
+    - name: Rewards
+      description: The Crown's Purse and the gifts of the Noble Houses after each Tithe.
+      lifecycle: planned

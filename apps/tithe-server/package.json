@@ -1,0 +1,19 @@
+{
+  "name": "@maw/tithe-server",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Kører Tithes i hukommelsen og taler med browserne over WebSocket.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@maw/contracts": "0.1.0",
+    "@maw/platform": "0.1.0",
+    "@maw/rules": "0.1.0",
+    "ws": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
+  }
+}

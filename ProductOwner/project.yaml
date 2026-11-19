@@ -1,0 +1,187 @@
+dsl_version: '0.8'
+project:
+  name: The Maw
+  description: >-
+    Top-down dungeon crawler, a web app for now and an Android app later; the Maw Server runs the game. Players
+    sign in with a user name, build several Branded characters and descend into the Maw in the deadly Tithe
+    – Tithes that players open and join, up to 8 players with NPC rivals for the rest, alone or in parties
+    formed in the first seconds – grow their skills by using them and return to the Rim between Tithes. The
+    numbers in the rules are starting values that playtesting tunes (prototype/balance.js).
+actors:
+  - name: Player
+domains:
+  - The Tithe
+  - Character Progression
+  - The Rim
+  - Online Play
+bounded_contexts:
+  - Tithe
+  - Spectacle
+  - Characters
+  - Gear
+  - Market
+  - Patronage
+  - Accounts
+  - Parties
+  - Lobby
+layout:
+  - bounded_context: Tithe
+    use_case: Fight in the depths
+    x: 1520
+    y: 0
+  - bounded_context: Tithe
+    use_case: Claim the Tithe
+    x: 6400
+    y: 0
+  - bounded_context: Tithe
+    use_case: Enter the Tithe
+    x: 0
+    y: 0
+  - bounded_context: Tithe
+    use_case: Descend
+    x: 2640
+    y: 0
+  - bounded_context: Tithe
+    use_case: Rivals race
+    x: 5080
+    y: 0
+  - bounded_context: Tithe
+    use_case: Survive the depths
+    x: 3760
+    y: 0
+  - bounded_context: Tithe
+    use_case: Leave the Tithe
+    x: 9040
+    y: 0
+  - bounded_context: Tithe
+    use_case: End the Tithe
+    x: 7520
+    y: 0
+  - bounded_context: Tithe
+    use_case: Read help
+    x: 10160
+    y: 0
+  - bounded_context: Spectacle
+    use_case: Run the show
+    x: 0
+    y: 0
+  - bounded_context: Characters
+    use_case: Create character
+    x: 0
+    y: 0
+  - bounded_context: Characters
+    use_case: Learn by use
+    x: 1120
+    y: 0
+  - bounded_context: Characters
+    use_case: Earn Marks
+    x: 2440
+    y: 0
+  - bounded_context: Characters
+    use_case: Spend points
+    x: 3760
+    y: 0
+  - bounded_context: Characters
+    use_case: Delete character
+    x: 6200
+    y: 0
+  - bounded_context: Characters
+    use_case: Choose character
+    x: 4880
+    y: 0
+  - bounded_context: Characters
+    use_case: Keep player statistics
+    x: 7320
+    y: 0
+  - bounded_context: Characters
+    use_case: View player statistics
+    x: 8640
+    y: 0
+  - bounded_context: Gear
+    use_case: Stock the inventory
+    x: 0
+    y: 0
+  - bounded_context: Gear
+    use_case: Pick up loot
+    x: 1320
+    y: 0
+  - bounded_context: Gear
+    use_case: Manage equipment
+    x: 2440
+    y: 0
+  - bounded_context: Gear
+    use_case: Use consumables
+    x: 3560
+    y: 0
+  - bounded_context: Gear
+    use_case: Settle found gear
+    x: 4680
+    y: 0
+  - bounded_context: Gear
+    use_case: Assign hotbar keys
+    x: 6000
+    y: 0
+  - bounded_context: Gear
+    use_case: Use the hotbar
+    x: 7120
+    y: 0
+  - bounded_context: Market
+    use_case: Trade at the Forge
+    x: 1320
+    y: 0
+  - bounded_context: Market
+    use_case: Shop at the Apothecary
+    x: 2440
+    y: 0
+  - bounded_context: Market
+    use_case: Keep the wallet
+    x: 0
+    y: 0
+  - bounded_context: Market
+    use_case: Restock the Forge
+    x: 3560
+    y: 0
+  - bounded_context: Patronage
+    use_case: Accept sponsor gifts
+    x: 2640
+    y: 0
+  - bounded_context: Patronage
+    use_case: Pay the Crown's Purse
+    x: 0
+    y: 0
+  - bounded_context: Patronage
+    use_case: Grant sponsor gifts
+    x: 1320
+    y: 0
+  - bounded_context: Accounts
+    use_case: Log in
+    x: 1120
+    y: 0
+  - bounded_context: Accounts
+    use_case: Create user
+    x: 0
+    y: 0
+  - bounded_context: Accounts
+    use_case: Log out
+    x: 2240
+    y: 0
+  - bounded_context: Parties
+    use_case: Form a party
+    x: 0
+    y: 0
+  - bounded_context: Parties
+    use_case: Answer an invitation
+    x: 1120
+    y: 0
+  - bounded_context: Lobby
+    use_case: Launch the Tithe
+    x: 2640
+    y: 0
+  - bounded_context: Lobby
+    use_case: Join a Tithe
+    x: 0
+    y: 0
+  - bounded_context: Lobby
+    use_case: Open a Tithe
+    x: 1320
+    y: 0

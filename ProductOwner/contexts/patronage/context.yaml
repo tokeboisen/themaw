@@ -1,0 +1,24 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Patronage
+  description: >-
+    The rewards after each Tithe: the Crown's Purse for depth, the Warden, Renown and the championship, and
+    the sponsor gifts that the Noble Houses send for Renown and that wait in the Patrons' Hall.
+  vision: The crowd's favour is worth fighting for, even in a Tithe you cannot win.
+  domain: The Rim
+  system: Maw Server
+  lifecycle: planned
+  classification: supporting
+  capabilities:
+    - name: The Crown's Purse
+      description: Gold from the Crown after every Tithe.
+      lifecycle: planned
+      use_cases:
+        - Pay the Crown's Purse
+    - name: Sponsorship
+      description: Gifts from the Noble Houses for Renown.
+      lifecycle: planned
+      use_cases:
+        - Grant sponsor gifts
+        - Accept sponsor gifts

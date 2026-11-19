@@ -1,0 +1,242 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Survive the depths
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Maw fights back – monsters hunt the candidates, a sealed depth collapses, hunger
+      grows – and potions and rations help, so every Tithe is a fight to stay alive.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe started
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Enter the Tithe
+      event: EVT-02
+  - id: EVT-02
+    type: event
+    name: Depth reached
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Descend
+      event: EVT-01
+  - id: EVT-03
+    type: event
+    name: Beasts released
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Spectacle
+      use_case: Run the show
+      event: EVT-09
+  - id: EVT-04
+    type: event
+    name: Depth sealed
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Spectacle
+      use_case: Run the show
+      event: EVT-11
+  - id: EVT-05
+    type: event
+    name: Potion drunk
+    col: 1
+    stack: 5
+    stimulus:
+      bounded_context: Gear
+      use_case: Use consumables
+      event: EVT-01
+  - id: EVT-06
+    type: event
+    name: Ration eaten
+    col: 1
+    stack: 6
+    stimulus:
+      bounded_context: Gear
+      use_case: Use consumables
+      event: EVT-02
+  - id: SVC-01
+    type: service
+    name: Monsters
+    col: 2
+    stack: 2
+    description: 'The monsters of a depth: they wake when a candidate comes into sight and hunt the nearest
+      one.'
+  - id: SVC-02
+    type: service
+    name: Condition keeper
+    col: 2
+    stack: 5
+    description: >-
+      Keeps the candidates' life and hunger: potions, rations, starving and the collapse of a sealed depth.
+  - id: CMD-01
+    type: command
+    name: Wound candidate
+    col: 3
+    stack: 2
+    fields:
+      - name: Candidate
+      - name: Damage
+  - id: CMD-02
+    type: command
+    name: Heal candidate
+    col: 3
+    stack: 4
+    fields:
+      - name: Candidate
+      - name: Life
+  - id: CMD-03
+    type: command
+    name: Feed candidate
+    col: 3
+    stack: 5
+    fields:
+      - name: Candidate
+      - name: Hunger
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 4
+    stack: 3
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Life
+          - name: Hunger
+          - name: Status
+        many: true
+  - id: EVT-07
+    type: event
+    name: Candidate wounded
+    col: 5
+    stack: 1
+  - id: EVT-08
+    type: event
+    name: Candidate healed
+    col: 5
+    stack: 2
+  - id: EVT-09
+    type: event
+    name: Candidate fed
+    col: 5
+    stack: 3
+  - id: EVT-10
+    type: event
+    name: Player fell
+    col: 5
+    stack: 4
+  - id: EVT-11
+    type: event
+    name: Rival fell
+    col: 5
+    stack: 5
+    description: A rival fell to monsters, the collapse of a sealed depth or the Warden, not by the player's
+      hand.
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-04
+    to: SVC-02
+  - from: EVT-05
+    to: SVC-02
+  - from: EVT-06
+    to: SVC-02
+  - from: SVC-01
+    to: CMD-01
+  - from: SVC-02
+    to: CMD-01
+  - from: SVC-02
+    to: CMD-02
+  - from: SVC-02
+    to: CMD-03
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: CMD-03
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-07
+  - from: AGG-01
+    to: EVT-08
+  - from: AGG-01
+    to: EVT-09
+  - from: AGG-01
+    to: EVT-10
+  - from: AGG-01
+    to: EVT-11
+rules:
+  - applies_to:
+      - SVC-01
+    text: >-
+      Monsters sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls.
+      Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot
+      be hit, for 20 stamina.
+  - applies_to:
+      - CMD-01
+    text: Damage to a candidate is reduced by armour / (armour + 50).
+  - applies_to:
+      - SVC-02
+      - CMD-03
+    text: >-
+      Hunger falls by 0.25 per second, 2 % slower per Stamina above 10. At 0 the candidate starves: stamina
+      recovers at 40 % and life does not recover. Otherwise life recovers 0.3 per second.
+  - applies_to:
+      - SVC-02
+    text: A sealed depth wounds every candidate in it by 3 % of max life per second until they leave it.
+  - applies_to:
+      - CMD-02
+      - CMD-03
+    text: A potion heals 40 % of max life, and a ration restores 45 hunger (Gear, Use consumables).
+  - applies_to:
+      - EVT-10
+      - EVT-11
+    text: >-
+      When a player's life reaches 0, the player falls and the Brand drags them back: the player's part of
+      the Tithe ends (End the Tithe), and the other candidates go on. An NPC rival whose life reaches 0 falls
+      and leaves the Tithe.
+scenarios:
+  - title: A potion heals
+    applies_to:
+      - SVC-02
+    gherkin: |-
+      Given Kael has 20 of 60 life
+      When EVT-05 "Potion drunk" has been recorded
+      Then SVC-02 "Condition keeper" performs CMD-02 "Heal candidate" with 24 life
+      And EVT-08 "Candidate healed" is recorded
+      And Kael has 44 of 60 life
+  - title: The player falls
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael has 3 life
+      When SVC-01 "Monsters" performs CMD-01 "Wound candidate" with 5 damage on Kael
+      Then EVT-07 "Candidate wounded" is recorded
+      And EVT-10 "Player fell" is recorded
+  - title: A sealed depth collapses
+    applies_to:
+      - SVC-02
+    gherkin: |-
+      Given Kael has 60 max life and is still in depth 1
+      When EVT-04 "Depth sealed" has been recorded for depth 1
+      Then SVC-02 "Condition keeper" performs CMD-01 "Wound candidate" with 1.8 damage per second until Kael leaves depth 1

@@ -1,0 +1,148 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Keep player statistics
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: what every character does in the Tithes is counted – Tithes, Champions, falls, kills
+      and Player kills – so the player can follow the character's story and brag about it.
+elements:
+  - id: EVT-01
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+  - id: EVT-02
+    type: event
+    name: Tithe ended
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: End the Tithe
+      event: EVT-04
+  - id: EVT-03
+    type: event
+    name: Character deleted
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Characters
+      use_case: Delete character
+      event: EVT-01
+  - id: SVC-01
+    type: service
+    name: Chronicler
+    col: 2
+    stack: 2
+    description: Keeps the statistics of every character from what happens in the Tithes.
+  - id: CMD-01
+    type: command
+    name: Record statistics
+    col: 3
+    stack: 1
+    fields:
+      - name: Character
+      - name: Record
+  - id: CMD-02
+    type: command
+    name: Remove statistics
+    col: 3
+    stack: 3
+    fields:
+      - name: Character
+  - id: AGG-01
+    type: aggregate
+    name: Statistics
+    col: 4
+    stack: 2
+    description: 'What a character has done in the Tithes: Tithes, Champions, falls, kills and Player kills.'
+    fields:
+      - name: Character
+      - name: Tithes
+      - name: Times Champion
+      - name: Falls
+      - name: Times left
+      - name: Deepest depth
+      - name: Monsters slain
+      - name: Rivals defeated
+      - name: Player kills
+      - name: Killed by players
+  - id: EVT-04
+    type: event
+    name: Statistics recorded
+    col: 5
+    stack: 1
+  - id: EVT-05
+    type: event
+    name: Player kill recorded
+    col: 5
+    stack: 2
+  - id: EVT-06
+    type: event
+    name: Statistics removed
+    col: 5
+    stack: 3
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: SVC-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-04
+  - from: AGG-01
+    to: EVT-05
+  - from: AGG-01
+    to: EVT-06
+rules:
+  - applies_to:
+      - SVC-01
+      - EVT-05
+    text: >-
+      A player who defeats another player gets a Player kill, and the defeated player one more "Killed by players".
+  - applies_to:
+      - CMD-01
+    text: >-
+      When a player's part of a Tithe ends, the Tithe is counted with its outcome – Champion, fall or left
+      – the deepest depth reached, the monsters slain and the rivals defeated.
+  - applies_to:
+      - CMD-02
+    text: Statistics belong to a character and are removed with it.
+scenarios:
+  - title: A Player kill
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael has 1 Player kill
+      When EVT-01 "Player defeated" has been recorded for Brann, struck down by Kael
+      Then SVC-01 "Chronicler" performs CMD-01 "Record statistics"
+      And EVT-05 "Player kill recorded" is recorded
+      And Kael has 2 Player kills and Brann 1 more "Killed by players"
+open_questions:
+  - topic: Seeing others' statistics
+    question: 'Can players see each other''s statistics, for example from Other players? Proposed: not for
+      now.'
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: 'Decided 2026-11-19: no, players only see their own characters'' statistics.'

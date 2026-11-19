@@ -1,0 +1,246 @@
+dsl_version: '0.8'
+product: The Maw
+version: 3
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Stock the inventory
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the starting kit, bought items and supplies and accepted item gifts land in the inventory,
+      sold items leave it, and a deleted character's inventory is emptied, so what the character owns is kept
+      in one place.
+elements:
+  - id: EVT-01
+    type: event
+    name: Character created
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Characters
+      use_case: Create character
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: Item bought
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Market
+      use_case: Trade at the Forge
+      event: EVT-01
+  - id: EVT-03
+    type: event
+    name: Item sold
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Market
+      use_case: Trade at the Forge
+      event: EVT-03
+  - id: EVT-04
+    type: event
+    name: Potion bought
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Market
+      use_case: Shop at the Apothecary
+      event: EVT-01
+  - id: EVT-05
+    type: event
+    name: Ration bought
+    col: 1
+    stack: 5
+    stimulus:
+      bounded_context: Market
+      use_case: Shop at the Apothecary
+      event: EVT-02
+  - id: EVT-06
+    type: event
+    name: Item gift accepted
+    col: 1
+    stack: 6
+    stimulus:
+      bounded_context: Patronage
+      use_case: Accept sponsor gifts
+      event: EVT-01
+  - id: SVC-01
+    type: service
+    name: Quartermaster
+    col: 2
+    stack: 3
+    description: >-
+      Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and
+      the end of a Tithe.
+  - id: CMD-01
+    type: command
+    name: Add item
+    col: 3
+    stack: 2
+    fields:
+      - name: Item
+  - id: CMD-02
+    type: command
+    name: Remove item
+    col: 3
+    stack: 3
+    fields:
+      - name: Item
+  - id: CMD-03
+    type: command
+    name: Add consumable
+    col: 3
+    stack: 4
+    fields:
+      - name: Consumable
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 4
+    stack: 3
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Equipment
+        attributes:
+          - name: Weapon
+          - name: Armour
+          - name: Ring
+      - name: Items
+        attributes:
+          - name: Item
+          - name: Slot
+          - name: Rarity
+          - name: Item level
+          - name: Affixes
+        many: true
+      - name: Potions
+      - name: Rations
+      - name: Hotbar
+        attributes:
+          - name: Key
+          - name: Weapon
+          - name: Echo Art
+        many: true
+  - id: EVT-07
+    type: event
+    name: Item added
+    col: 5
+    stack: 2
+  - id: EVT-08
+    type: event
+    name: Item removed
+    col: 5
+    stack: 3
+  - id: EVT-09
+    type: event
+    name: Consumable added
+    col: 5
+    stack: 4
+  - id: EVT-10
+    type: event
+    name: Character deleted
+    col: 1
+    stack: 7
+    stimulus:
+      bounded_context: Characters
+      use_case: Delete character
+      event: EVT-01
+  - id: CMD-04
+    type: command
+    name: Empty inventory
+    col: 3
+    stack: 5
+    fields:
+      - name: Character
+  - id: EVT-11
+    type: event
+    name: Inventory emptied
+    col: 5
+    stack: 5
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-04
+    to: SVC-01
+  - from: EVT-05
+    to: SVC-01
+  - from: EVT-06
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: SVC-01
+    to: CMD-02
+  - from: SVC-01
+    to: CMD-03
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: CMD-03
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-07
+  - from: AGG-01
+    to: EVT-08
+  - from: AGG-01
+    to: EVT-09
+  - from: EVT-10
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-04
+  - from: CMD-04
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-11
+rules:
+  - applies_to:
+      - SVC-01
+      - CMD-01
+      - CMD-03
+    text: >-
+      A new character gets the background's weapon (Miner Pickaxe, Poacher Short Bow, Temple Acolyte Dagger,
+      Street Runner Rusty Sword) and a Padded Coat, both common and equipped, 2 potions and 3 rations, and
+      a hotbar with the weapon on key 1 and Echo Bolt on key 2.
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      A bought item and an accepted item gift go into the pack. The pack holds 12 items plus 1 for every 2
+      points of Strength above 10; the Forge and the Patrons' Hall check that there is room first.
+  - applies_to:
+      - CMD-02
+    text: A sold item leaves the pack. Only items in the pack can be sold, never equipped ones.
+  - applies_to:
+      - CMD-03
+    text: A character carries at most 9 potions and 9 rations.
+  - applies_to:
+      - CMD-04
+    text: When a character is deleted, its inventory is emptied.
+scenarios:
+  - title: A new Miner gets the starting kit
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given EVT-01 "Character created" has been recorded for Kael, a Miner
+      When SVC-01 "Quartermaster" reacts
+      Then CMD-01 "Add item" is performed with a Pickaxe and a Padded Coat, both equipped
+      And CMD-03 "Add consumable" is performed with 2 potions and 3 rations
+      And EVT-07 "Item added" and EVT-09 "Consumable added" are recorded
+  - title: A bought item lands in the pack
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given EVT-02 "Item bought" has been recorded for a "Short Sword"
+      When SVC-01 "Quartermaster" reacts
+      Then CMD-01 "Add item" is performed with the Short Sword
+      And EVT-07 "Item added" is recorded

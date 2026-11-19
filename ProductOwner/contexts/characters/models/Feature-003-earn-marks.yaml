@@ -1,0 +1,123 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Earn Marks
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Echo of slain monsters and defeated rivals and players gathers in the Brand, and
+      when enough has gathered a new Mark burns in and gives points to spend, so fighting makes the character
+      stronger.
+elements:
+  - id: EVT-01
+    type: event
+    name: Monster slain
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-02
+  - id: EVT-02
+    type: event
+    name: Rival defeated
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-03
+  - id: EVT-05
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+  - id: SVC-01
+    type: service
+    name: Echo keeper
+    col: 2
+    stack: 1
+    description: >-
+      Gathers the Echo of slain monsters and defeated rivals and burns a new Mark into the Brand when enough
+      has gathered.
+  - id: CMD-01
+    type: command
+    name: Gain Echo
+    col: 3
+    stack: 1
+    fields:
+      - name: Echo
+  - id: AGG-01
+    type: aggregate
+    name: Character
+    col: 4
+    stack: 1
+    description: >-
+      A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills,
+      Echo and Marks.
+    fields:
+      - name: Mark
+      - name: Echo
+      - name: Attribute points
+      - name: Skill points
+  - id: EVT-03
+    type: event
+    name: Echo gained
+    col: 5
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Mark earned
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-05
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+  - from: AGG-01
+    to: EVT-04
+rules:
+  - applies_to:
+      - SVC-01
+    text: >-
+      Only the candidate who dealt the killing blow gains the Echo. A monster gives its Echo × its level (Gnawer
+      3, Crystal Spitter 6, Tunnel Brute 9, The Foreman 120), a defeated NPC rival 12 × the rival's level and
+      a defeated player 12 × the player's Mark. Items with "% Echo gained" add to it.
+  - applies_to:
+      - AGG-01
+    text: >-
+      The next Mark needs 20 × Mark^1.5 Echo (Mark 1 to 2: 20, Mark 2 to 3: 57). Echo above the threshold carries
+      on.
+  - applies_to:
+      - EVT-04
+    text: >-
+      Each Mark gives 3 attribute points, 2 skill points and 4 more life. The points are spent on the character
+      sheet (Spend points), also during a Tithe.
+scenarios:
+  - title: A Mark burns in
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is Mark 1 with 15 Echo
+      When EVT-01 "Monster slain" has been recorded for a level 2 Gnawer slain by Kael
+      Then SVC-01 "Echo keeper" performs CMD-01 "Gain Echo" with 6 Echo
+      And EVT-04 "Mark earned" is recorded with Mark 2
+      And Kael has 1 Echo, 3 attribute points and 2 skill points

@@ -1,0 +1,65 @@
+<mxfile host="render_drawio.py">
+  <diagram id="use-case" name="Create user">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-160" y="-360" width="1000" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Accounts" vertex="1">
+          <mxGeometry x="-160" y="-400" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;The users of the game: creating a user with an email address as user name and a password, signing in and out. A user owns characters (Characters)." vertex="1">
+          <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-120" y="-200" width="920" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Create user" vertex="1">
+          <mxGeometry x="-120" y="-240" width="920" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: create a user with a user name and a password, so the player's characters are the player's own and the player can meet other players." vertex="1">
+          <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
+        </mxCell>
+        <UserObject id="VIEW-01" label="Sign in&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The first screen when no user is signed in on the device: log in or create a user.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
+            <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="VIEW-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#00CC00;strokeColor=#006600;" value="UI View" vertex="1">
+          <mxGeometry x="0" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Create user&lt;/b&gt;&lt;br&gt;User name&lt;br&gt;Password" vertex="1">
+          <mxGeometry x="200" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-01" label="&lt;b&gt;User&lt;/b&gt;&lt;br&gt;User name&lt;br&gt;Password hash&lt;br&gt;Created at" tooltip="A player's user: a unique user name, which other players see, and the password, stored only as a hash.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="400" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="400" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="User created" vertex="1">
+          <mxGeometry x="600" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

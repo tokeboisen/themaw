@@ -1,0 +1,69 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Log out
+  bounded_context: Accounts
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: 'For the player: log out of the device, so nobody else can play the player''s characters on it.'
+elements:
+  - id: VIEW-01
+    type: view
+    name: Account
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The account menu in the Rim, with the user name and Log out.
+    behavior: Shows the signed-in user name and Log out. Only reachable outside a Tithe.
+  - id: CMD-01
+    type: command
+    name: Log out
+    col: 2
+    stack: 1
+    story: As a player I want to log out, so that nobody else can play my characters here.
+  - id: AGG-01
+    type: aggregate
+    name: User
+    col: 3
+    stack: 1
+    description: >-
+      A player's user: a unique user name, which other players see, and the password, stored only as a hash.
+    fields:
+      - name: Sessions
+        attributes:
+          - name: Device
+          - name: Signed in at
+        many: true
+  - id: EVT-01
+    type: event
+    name: User logged out
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: Logging out is only possible outside a Tithe. It also leaves the lobby the player is in (Lobby).
+  - applies_to:
+      - EVT-01
+    text: After logging out, the sign-in screen is shown.
+scenarios:
+  - title: Kael logs out
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael is in the Rim
+      When the player performs CMD-01 "Log out"
+      Then EVT-01 "User logged out" is recorded
+      And the sign-in screen is shown

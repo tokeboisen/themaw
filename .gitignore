@@ -1,0 +1,11 @@
+# Afhængigheder og byggeresultater (installeres i Docker, se README)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Hemmeligheder
+deploy/.env
+
+# Diverse
+*.log
+.DS_Store

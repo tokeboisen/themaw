@@ -1,0 +1,18 @@
+# Gatewayen: den eneste container, andre maskiner på netværket kan nå (port 8100, kun HTTP på lokalnettet).
+{
+	auto_https off
+	admin off
+}
+
+:8100 {
+	encode gzip
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+	handle /ws* {
+		reverse_proxy tithe-server:3001
+	}
+	handle {
+		reverse_proxy web:80
+	}
+}

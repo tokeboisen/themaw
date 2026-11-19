@@ -1,0 +1,45 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Tithe
+  description: >-
+    The Tithe itself: one run into the Maw for up to 8 candidates – players and NPC rivals – from the start
+    room to the Champion. It lays out the depths from the Tithe's seed, holds the candidates and the monsters,
+    resolves the blows, moves the candidates down the stairs, keeps their life and hunger, and ends a player's
+    part of the Tithe when the gate is passed, someone else claims it, or the player falls or leaves. It also
+    holds the help.
+  vision: Every Tithe is a new, deadly race to the bottom that is fair to read and hard to win.
+  domain: The Tithe
+  system: Maw Server
+  lifecycle: planned
+  classification: core
+  capabilities:
+    - name: Procedural depths
+      description: New depths from every Tithe's seed, with stairs, caches and the Warden's hall.
+      lifecycle: planned
+      use_cases:
+        - Enter the Tithe
+        - Descend
+    - name: Combat
+      description: Fast top-down fights with automatic aim, dodging, hunger and potions.
+      lifecycle: planned
+      use_cases:
+        - Fight in the depths
+        - Survive the depths
+    - name: Living rivals
+      description: NPC rivals who race the players to the bottom and can win the Tithe.
+      lifecycle: planned
+      use_cases:
+        - Rivals race
+    - name: Winning and losing
+      description: Claiming the Tithe through the gate, leaving it, and the end of every Tithe.
+      lifecycle: planned
+      use_cases:
+        - Claim the Tithe
+        - End the Tithe
+        - Leave the Tithe
+    - name: Help
+      description: Shortcut keys and short help texts.
+      lifecycle: planned
+      use_cases:
+        - Read help

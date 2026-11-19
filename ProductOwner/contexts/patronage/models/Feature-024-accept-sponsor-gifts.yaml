@@ -1,0 +1,90 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Accept sponsor gifts
+  bounded_context: Patronage
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: accept the gifts the Noble Houses sent, so the items and gold become the character's.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Patrons' Hall
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The Noble Houses' agents in the Rim, with the sponsor gifts that wait.
+    behavior: >-
+      Explains that the Houses give one gift for every 100 Renown (at most 4) and what the crowd loves, shows
+      the Renown of the last Tithe and lists the waiting gifts – each item with its house, an item gift with
+      its description – with Accept.
+  - id: CMD-01
+    type: command
+    name: Accept gift
+    col: 2
+    stack: 1
+    story: As a player I want to accept a sponsor gift, so that the item or gold becomes mine.
+    fields:
+      - name: Gift
+  - id: AGG-01
+    type: aggregate
+    name: Sponsor gift
+    col: 3
+    stack: 1
+    description: >-
+      A gift from one of the Noble Houses for the Renown of a Tithe: an item or gold, waiting until it is accepted.
+    fields:
+      - name: Accepted
+  - id: EVT-01
+    type: event
+    name: Item gift accepted
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Gold gift accepted
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      An item gift needs room in the pack; otherwise it is refused with "Your inventory is full." and keeps
+      waiting.
+  - applies_to:
+      - EVT-01
+      - EVT-02
+    text: >-
+      An accepted item goes into the pack (Gear, Stock the inventory), and accepted gold into the wallet (Market,
+      Keep the wallet).
+scenarios:
+  - title: A gold gift is accepted
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given House Vane has sent 64 gold
+      When the player performs CMD-01 "Accept gift" with it
+      Then EVT-02 "Gold gift accepted" is recorded with 64 gold
+  - title: A full pack refuses an item gift
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael's pack is full and House Morrow has sent an item
+      When the player performs CMD-01 "Accept gift" with the item
+      Then nothing is recorded
+      And "Your inventory is full." is shown

@@ -1,0 +1,20 @@
+dsl_version: '0.8'
+product: The Maw
+domain:
+  name: Online Play
+  description: >-
+    Playing the Maw with other people: users, the other players on the server, Tithes that players open and
+    join, and the parties formed inside them.
+  vision: 'Real rivals: other players in the same Tithe, as allies or as enemies.'
+  classification: generic
+  capabilities:
+    - name: Player accounts
+      description: Users who sign in with email and password and own their characters.
+      lifecycle: planned
+    - name: Parties
+      description: Playing together with friends, by invitation.
+      lifecycle: planned
+    - name: Multiplayer Tithes
+      description: Tithes that players open on the server and up to 8 players join, with NPC rivals for the
+        rest.
+      lifecycle: planned

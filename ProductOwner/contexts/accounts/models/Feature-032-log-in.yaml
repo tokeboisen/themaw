@@ -1,0 +1,80 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Log in
+  bounded_context: Accounts
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: 'For the player: log in with user name and password, so the player can play the user''s characters.'
+elements:
+  - id: VIEW-01
+    type: view
+    name: Sign in
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: 'The first screen when no user is signed in on the device: log in or create a user.'
+    behavior: User name, Password and Log in. A wrong login is shown above the fields.
+  - id: CMD-01
+    type: command
+    name: Log in
+    col: 2
+    stack: 1
+    story: As a player I want to log in with my user name and password, so that I can play my characters.
+    fields:
+      - name: User name
+      - name: Password
+  - id: AGG-01
+    type: aggregate
+    name: User
+    col: 3
+    stack: 1
+    description: >-
+      A player's user: a unique user name, which other players see, and the password, stored only as a hash.
+    fields:
+      - name: User name
+      - name: Sessions
+        attributes:
+          - name: Device
+          - name: Signed in at
+        many: true
+  - id: EVT-01
+    type: event
+    name: User logged in
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: A wrong user name or password is refused with "Wrong user name or password." without saying which.
+  - applies_to:
+      - EVT-01
+    text: The game needs a signed-in user. The user stays signed in on the device until Log out.
+scenarios:
+  - title: Kael logs in
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the user "kael" exists
+      When the player performs CMD-01 "Log in" with "kael" and the right password
+      Then EVT-01 "User logged in" is recorded
+  - title: A wrong password
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the user "kael" exists
+      When the player performs CMD-01 "Log in" with a wrong password
+      Then nothing is recorded
+      And "Wrong user name or password." is shown

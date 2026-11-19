@@ -1,0 +1,110 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Use consumables
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: drink a potion or eat a ration in the middle of a Tithe, so the candidate survives longer
+      in the Maw.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
+    behavior: Potion and Ration buttons show how many are left (keys Q and R on a keyboard).
+  - id: CMD-01
+    type: command
+    name: Drink potion
+    col: 2
+    stack: 1
+    story: As a player I want to drink a healing draught, so that I survive a fight that goes badly.
+  - id: CMD-02
+    type: command
+    name: Eat ration
+    col: 2
+    stack: 2
+    story: As a player I want to eat a ration, so that I do not starve deep in the Maw.
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 3
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Potions
+      - name: Rations
+  - id: EVT-01
+    type: event
+    name: Potion drunk
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Ration eaten
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      A potion restores 40 % of the candidate's max life. It can be drunk once per second, and only when life
+      is not full.
+  - applies_to:
+      - CMD-02
+    text: A ration restores 45 hunger and is only eaten when hunger is below 95 of 100.
+  - applies_to:
+      - EVT-01
+      - EVT-02
+    text: >-
+      The candidate's life and hunger belong to the Tithe, which reacts to EVT-01 and EVT-02 (Tithe, Survive
+      the depths).
+scenarios:
+  - title: A potion is drunk
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has 20 of 60 life and 2 potions
+      When the player performs CMD-01 "Drink potion"
+      Then EVT-01 "Potion drunk" is recorded
+      And Kael has 1 potion
+  - title: Full life keeps the potion
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has full life
+      When the player performs CMD-01 "Drink potion"
+      Then nothing is recorded
+  - title: A ration is eaten
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael has 30 hunger and 3 rations
+      When the player performs CMD-02 "Eat ration"
+      Then EVT-02 "Ration eaten" is recorded
+      And Kael has 2 rations

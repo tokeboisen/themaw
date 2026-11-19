@@ -1,0 +1,17 @@
+dsl_version: '0.8'
+product: The Maw
+domain:
+  name: The Tithe
+  description: >-
+    The deadly tournament in the Maw: the Branded descend through depths full of monsters, race their rivals
+    and play to the crowd until one of them is Champion – or falls.
+  vision: >-
+    A tournament run that is different every time, easy to read at a glance on a phone and hard to master.
+  classification: core
+  capabilities:
+    - name: Tournament runs
+      description: Descending through new depths against monsters and rivals until one candidate is Champion.
+      lifecycle: planned
+    - name: The show
+      description: The crowd and the Mirrormaster reward and punish the candidates.
+      lifecycle: planned

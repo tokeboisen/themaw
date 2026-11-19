@@ -1,0 +1,11 @@
+dsl_version: '0.8'
+product: The Maw
+system:
+  name: Maw Server
+  description: >-
+    The game's server, which runs the game: the users and their sign-in, the characters with everything they
+    own (gear, gold, gifts and statistics), the players online, the Tithes that are open and their lobbies,
+    the Tithes themselves with the Mirrormaster's show, and the parties formed inside them.
+  vision: One place where players meet and their characters are safe, so no player can cheat the Maw.
+  lifecycle: planned
+  colour: '#4a7fd6'

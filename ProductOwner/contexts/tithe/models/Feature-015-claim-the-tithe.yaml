@@ -1,0 +1,100 @@
+dsl_version: '0.8'
+product: The Maw
+version: 3
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Claim the Tithe
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: walk through the gate after The Foreman is slain, so the player – and the player's party
+      – is the Champion of the Tithe.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: >-
+      The open gate glows gold; standing at it shows "Claim the Tithe – press F" and a button on a touch screen.
+  - id: CMD-01
+    type: command
+    name: Pass the gate
+    col: 2
+    stack: 1
+    story: As a player I want to walk through the gate, so that I claim the Tithe as its Champion.
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 3
+    stack: 1
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Gate open
+      - name: Outcome
+        attributes:
+          - name: Kind
+          - name: Champion
+  - id: EVT-01
+    type: event
+    name: Tithe claimed
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+      - EVT-01
+    text: >-
+      The gate opens for the party of the player who slew The Foreman (Fight in the depths). When one of them
+      passes the open gate, every member of that party still in the Tithe is Champion.
+  - applies_to:
+      - EVT-01
+    text: >-
+      The Champions get the champion purse (Patronage, Pay the Crown's Purse) and keep everything found (Gear,
+      Settle found gear). For every other player the Tithe ends without a fall.
+scenarios:
+  - title: Kael claims the Tithe
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael slew The Foreman and stands at the open gate
+      When the player performs CMD-01 "Pass the gate"
+      Then EVT-01 "Tithe claimed" is recorded with Kael as Champion
+  - title: The gate is closed while The Foreman lives
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given The Foreman is alive
+      When the player performs CMD-01 "Pass the gate"
+      Then nothing is recorded
+  - title: The whole party is Champion
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael slew The Foreman and Brann from Kael's party is still in the Tithe
+      When the player performs CMD-01 "Pass the gate"
+      Then EVT-01 "Tithe claimed" is recorded with Kael and Brann as Champions
+open_questions:
+  - topic: Champion in a party
+    question: When one member of a party passes the gate, who is Champion?
+    status: resolved
+    applies_to:
+      - EVT-01
+    resolution: 'Decided 2026-11-19: every member of the party still in the Tithe.'

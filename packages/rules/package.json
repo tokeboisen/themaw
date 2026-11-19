@@ -1,0 +1,10 @@
+{
+  "name": "@maw/rules",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Spillets regler og balance, delt af api, tithe-server og web.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

@@ -1,0 +1,20 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Lobby
+  description: >-
+    The Tithes that are open on the server: a player opens a Tithe with a unique name, other players join it
+    and see who is in it, and the player who opened it launches it. NPC rivals fill the places that are left.
+  vision: Friends find each other's Tithe in a moment.
+  domain: Online Play
+  system: Maw Server
+  lifecycle: planned
+  classification: generic
+  capabilities:
+    - name: Open Tithes
+      description: Opening, joining and launching Tithes of up to 8 players.
+      lifecycle: planned
+      use_cases:
+        - Open a Tithe
+        - Join a Tithe
+        - Launch the Tithe

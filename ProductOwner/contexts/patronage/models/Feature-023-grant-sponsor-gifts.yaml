@@ -1,0 +1,130 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Grant sponsor gifts
+  bounded_context: Patronage
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Noble Houses send gifts for the Renown of a Tithe, so playing to the crowd pays even
+      in a Tithe the player does not win.
+elements:
+  - id: EVT-01
+    type: event
+    name: Renown earned
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Spectacle
+      use_case: Run the show
+      event: EVT-07
+  - id: EVT-02
+    type: event
+    name: Tithe ended
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: End the Tithe
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Noble Houses
+    col: 2
+    stack: 1
+  - id: CMD-01
+    type: command
+    name: Grant gift
+    col: 3
+    stack: 1
+    fields:
+      - name: House
+      - name: Gift
+  - id: AGG-01
+    type: aggregate
+    name: Sponsor gift
+    col: 4
+    stack: 1
+    description: >-
+      A gift from one of the Noble Houses for the Renown of a Tithe: an item or gold, waiting until it is accepted.
+    fields:
+      - name: House
+      - name: Kind
+      - name: Item
+      - name: Gold
+      - name: Accepted
+  - id: EVT-03
+    type: event
+    name: Sponsor gift granted
+    col: 5
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Character deleted
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Characters
+      use_case: Delete character
+      event: EVT-01
+  - id: CMD-02
+    type: command
+    name: Withdraw gifts
+    col: 3
+    stack: 2
+    fields:
+      - name: Character
+  - id: EVT-05
+    type: event
+    name: Sponsor gifts withdrawn
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+  - from: EVT-04
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-02
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-05
+rules:
+  - applies_to:
+      - SVC-01
+    text: >-
+      One gift for every 100 Renown in the Tithe, at most 4. They come from House Morrow, House Vane, House
+      Ashgrave and House Lisle.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Every other gift is an item – the first a rare one when the Tithe earned 300 Renown or more, otherwise
+      magic – and the others are gold: 40 × (1 + 0.2 × Mark).
+  - applies_to:
+      - AGG-01
+    text: Gifts wait in the Patrons' Hall until they are accepted (Accept sponsor gifts).
+  - applies_to:
+      - CMD-02
+    text: When a character is deleted, the gifts waiting for it are withdrawn.
+scenarios:
+  - title: Renown brings gifts
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is Mark 3 and earned 324 Renown in the Tithe
+      When EVT-02 "Tithe ended" has been recorded
+      Then SVC-01 "Noble Houses" performs CMD-01 "Grant gift" three times
+      And EVT-03 "Sponsor gift granted" is recorded for a rare item, 64 gold and a magic item

@@ -1,0 +1,97 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Shop at the Apothecary
+  bounded_context: Market
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: buy healing draughts and rations from Mother Quill, so the candidate can survive longer
+      in the next Tithe.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Apothecary
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: 'Mother Quill''s apothecary in the Rim: healing draughts and rations.'
+    behavior: >-
+      "Mother Quill: Drink before you need it, child. Eat before you starve." Healing Draught and Ration with
+      what they do, the price, how many the character carries of the 9, and Buy (disabled without gold or room).
+  - id: CMD-01
+    type: command
+    name: Buy potion
+    col: 2
+    stack: 1
+    story: As a player I want to buy a healing draught, so that I can survive a hard fight.
+  - id: CMD-02
+    type: command
+    name: Buy ration
+    col: 2
+    stack: 2
+    story: As a player I want to buy a ration, so that I do not starve in a long Tithe.
+  - id: AGG-01
+    type: aggregate
+    name: Wallet
+    col: 3
+    stack: 1
+    description: The character's gold.
+    fields:
+      - name: Gold
+  - id: EVT-01
+    type: event
+    name: Potion bought
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Ration bought
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: A healing draught costs 25 gold and a ration 10 gold.
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: >-
+      Buying needs the gold, and the character may carry at most 9 of each; otherwise it is refused with "Not
+      enough gold." or "You cannot carry more.".
+scenarios:
+  - title: A potion is bought
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has 40 gold and 1 potion
+      When the player performs CMD-01 "Buy potion"
+      Then EVT-01 "Potion bought" is recorded
+      And Kael has 15 gold
+  - title: Nine rations are enough
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael carries 9 rations
+      When the player performs CMD-02 "Buy ration"
+      Then nothing is recorded
+      And "You cannot carry more." is shown

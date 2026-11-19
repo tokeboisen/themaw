@@ -1,0 +1,83 @@
+<mxfile host="render_drawio.py">
+  <diagram id="use-case" name="Pick up loot">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-160" y="-360" width="1000" height="980" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
+          <mxGeometry x="-160" y="-400" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;What a character owns and carries: the equipped weapon, armour and ring, the pack, potions and rations, and what was found in the current Tithe until the Tithe is settled." vertex="1">
+          <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-120" y="-200" width="920" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Pick up loot" vertex="1">
+          <mxGeometry x="-120" y="-240" width="920" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: items, gold and supplies on the floor of the Maw are picked up by walking over them, so the candidate can grow stronger and richer during the Tithe – at the risk of losing it all in a fall." vertex="1">
+          <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
+        </mxCell>
+        <UserObject id="VIEW-01" label="Depth&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
+            <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="VIEW-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#00CC00;strokeColor=#006600;" value="UI View" vertex="1">
+          <mxGeometry x="0" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Pick up loot&lt;/b&gt;&lt;br&gt;Loot" vertex="1">
+          <mxGeometry x="200" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Found in Tithe&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;Gold found" tooltip="Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="400" y="0" width="120" height="140" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="400" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Item picked up" vertex="1">
+          <mxGeometry x="600" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Consumable picked up" vertex="1">
+          <mxGeometry x="600" y="220" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="200" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-03" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Gold picked up" vertex="1">
+          <mxGeometry x="600" y="420" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="400" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-03" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-03">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

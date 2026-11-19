@@ -1,0 +1,112 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Pick up loot
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: items, gold and supplies on the floor of the Maw are picked up by walking over them,
+      so the candidate can grow stronger and richer during the Tithe – at the risk of losing it all in a fall.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
+    behavior: >-
+      Loot lies on the floor as small shapes: items as diamonds in the colour of their rarity (common white,
+      magic blue, rare gold), gold as coins, potions red and rations brown. Picked-up items are named over
+      the candidate in their rarity's colour.
+  - id: CMD-01
+    type: command
+    name: Pick up loot
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to pick up what I find by walking over it, so that I never stop fighting to collect
+      loot.
+    fields:
+      - name: Loot
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 3
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Items
+        attributes:
+          - name: Item
+          - name: Found in Tithe
+        many: true
+      - name: Potions
+      - name: Rations
+      - name: Gold found
+  - id: EVT-01
+    type: event
+    name: Item picked up
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Consumable picked up
+    col: 4
+    stack: 2
+  - id: EVT-03
+    type: event
+    name: Gold picked up
+    col: 4
+    stack: 3
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+  - from: AGG-01
+    to: EVT-03
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Loot is picked up by walking over it; there is no button. An item needs room in the pack; with a full
+      pack the item stays on the floor and "Inventory full" is shown over it. Potions and rations stop at 9.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Items and gold picked up during a Tithe are marked as found in that Tithe until it ends (Settle found
+      gear): a fall loses them.
+  - applies_to:
+      - EVT-03
+    text: Gold found is not added to the wallet during the Tithe; it is kept or lost when the Tithe ends.
+scenarios:
+  - title: An item is picked up
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael uses 3 of 12 places in the pack
+      When the player performs CMD-01 "Pick up loot" with a "Cruel War Axe"
+      Then EVT-01 "Item picked up" is recorded
+      And the War Axe is marked as found in this Tithe
+  - title: A full pack leaves the item on the floor
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael's pack is full
+      When the player performs CMD-01 "Pick up loot" with an item
+      Then nothing is recorded
+      And "Inventory full" is shown over the item

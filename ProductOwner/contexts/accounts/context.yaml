@@ -1,0 +1,20 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Accounts
+  description: >-
+    The users of the game: creating a user with an email address as user name and a password, signing in and
+    out. A user owns characters (Characters).
+  vision: Getting in is quick and safe, and no one else can play your characters.
+  domain: Online Play
+  system: Maw Server
+  lifecycle: planned
+  classification: generic
+  capabilities:
+    - name: Sign-in
+      description: Creating a user, logging in and out.
+      lifecycle: planned
+      use_cases:
+        - Create user
+        - Log in
+        - Log out

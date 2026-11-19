@@ -1,0 +1,167 @@
+dsl_version: '0.8'
+product: The Maw
+version: 4
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Enter the Tithe
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the players: when the player who opened a Tithe launches it, it is laid out anew and up to 8 candidates
+      – players and NPC rivals – descend into it, each in a room of their own, so every run is a new race to
+      the bottom.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe launched
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Lobby
+      use_case: Launch the Tithe
+      event: EVT-01
+  - id: SVC-01
+    type: service
+    name: Tithe master
+    col: 2
+    stack: 1
+    description: Starts a Tithe when the matchmaker has filled it.
+  - id: CMD-01
+    type: command
+    name: Start the Tithe
+    col: 3
+    stack: 1
+    fields:
+      - name: Players
+        attributes:
+          - name: Player
+          - name: Character
+        many: true
+      - name: NPC rivals
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 4
+    stack: 1
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Name
+      - name: Seed
+      - name: Depths
+        attributes:
+          - name: Number
+          - name: Layout
+          - name: Seals at
+        many: true
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Kind
+          - name: Party
+          - name: Level
+          - name: Start room
+          - name: Depth
+          - name: Status
+        many: true
+      - name: Warden alive
+  - id: EVT-02
+    type: event
+    name: Tithe started
+    col: 5
+    stack: 1
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 6
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: >-
+      The candidate is in the middle of the screen with the depth around it; what is outside the vision radius
+      of 7 tiles is dark, and what has not been seen is black. The HUD shows life, stamina, focus, hunger,
+      the Echo to the next Mark, the depth, the seal timer, Renown and gold found, a minimap, the candidates
+      and their depths, the hotbar and the Mirrormaster's last three messages, and the buttons Character, Other
+      players, Help and Leave. Players in sight show their user names over their heads; party members are also
+      shown on the minimap with their user names. Mouse and keyboard for now; touch controls wait for the phone
+      version.
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-02
+  - from: EVT-02
+    to: VIEW-01
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      Every Tithe gets a new seed that lays out its depths anew: rooms joined by corridors two tiles wide,
+      the stairs in the room farthest from the start, and two caches. Reach 1, The Old Mines, has 3 depths;
+      the last is The Foreman's Hall with the Warden and the gate.
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      A Tithe has 8 candidates: the players who joined it, and NPC rivals for the places that are left, chosen
+      among Cassian Morrow (heavy weapons, one Mark above the players, hostile 90 %), Vessa Thorne (bows, 35
+      %), Ash and Rook Kell (blades, 60 %), Mira Silvertongue (Echo Arts, 20 %), Silent Odo (blades, 15 %)
+      and Garrick Vane, champion of House Vane (heavy weapons, one Mark above the players, 80 %). A single
+      player meets all seven NPC rivals.
+  - applies_to:
+      - CMD-01
+    text: >-
+      An NPC rival's level follows the players' average Mark. Every player enters with the chosen character,
+      full life, stamina and focus and a full stomach.
+  - applies_to:
+      - AGG-01
+      - EVT-02
+    text: >-
+      Every candidate – player or NPC rival – starts in a room of its own, the rooms chosen about equally far
+      from the stairs. Everyone starts without a party.
+  - applies_to:
+      - EVT-02
+    text: >-
+      For the first 20 seconds no candidate may strike another (grace). In those seconds the players can form
+      parties (Parties, Form a party).
+  - applies_to:
+      - SVC-01
+    text: >-
+      The Maw Server runs the Tithe and the Mirrormaster's show; the players' browsers only show it and send
+      the players' actions, so no player can cheat.
+scenarios:
+  - title: A Tithe with three players starts
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael opened the Tithe "Ashfall" and Brann and Vessa's player joined it
+      When EVT-01 "Tithe launched" has been recorded
+      Then SVC-01 "Tithe master" performs CMD-01 "Start the Tithe" with three players and five NPC rivals
+      And EVT-02 "Tithe started" is recorded
+      And each of the 8 candidates starts in a room of its own
+open_questions:
+  - topic: Where the Tithe runs
+    question: >-
+      Should the Tithe and the Mirrormaster's show be run by the Maw Server, so no player can cheat, or in
+      the players' browsers?
+    status: resolved
+    applies_to:
+      - SVC-01
+    resolution: 'Decided 2026-11-19: the Maw Server runs the Tithe and the show, so no player can cheat.'
+  - topic: Playing without a connection
+    question: Can a player play a Tithe without a connection?
+    status: resolved
+    applies_to:
+      - SVC-01
+    resolution: 'Decided 2026-11-19: no. Characters are kept on the Maw Server, so the game needs a connection.'

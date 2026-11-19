@@ -1,0 +1,207 @@
+dsl_version: '0.8'
+product: The Maw
+version: 3
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Create character
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: create a Branded character – a name, a background that gives the starting weapon and
+      the story, and points placed on attributes and skills within the background's limits – so every character
+      can be built the way the player wants.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Create character
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    behavior: >-
+      Opened with New character, and right away for a user without characters. The four backgrounds are shown
+      as cards; each card has the background's story, its strengths and weaknesses, its starting weapon and
+      the minimum and maximum of every attribute and skill. Choosing a background places its suggested points.
+      A − and a + stand by every attribute and skill, disabled at the background's minimum and maximum, and
+      "Points left" counts the attribute points and the skill points. A name field and "Take the Brand" create
+      the character.
+  - id: CMD-01
+    type: command
+    name: Create character
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to create a character with a background and place its points on attributes and skills
+      myself, so that my character is built the way I want to play.
+    fields:
+      - name: Name
+      - name: Background
+      - name: Attributes
+        attributes:
+          - name: Strength
+          - name: Dexterity
+          - name: Stamina
+          - name: Constitution
+          - name: Intelligence
+      - name: Skills
+        attributes:
+          - name: Skill
+          - name: Level
+        many: true
+  - id: AGG-01
+    type: aggregate
+    name: Character
+    col: 3
+    stack: 1
+    description: >-
+      A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills,
+      Echo and Marks.
+    fields:
+      - name: User
+      - name: Name
+      - name: Background
+      - name: Mark
+      - name: Echo
+      - name: Attributes
+        attributes:
+          - name: Strength
+          - name: Dexterity
+          - name: Stamina
+          - name: Constitution
+          - name: Intelligence
+      - name: Skills
+        attributes:
+          - name: Skill
+          - name: Level
+          - name: Experience
+        many: true
+  - id: EVT-01
+    type: event
+    name: Character created
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - AGG-01
+    text: A user can have several characters. Each belongs to one user and is kept on the Maw Server.
+  - applies_to:
+      - CMD-01
+    text: >-
+      The five attributes add up to 55 points and the four skills (Blades, Heavy Weapons, Bows, Echo Arts)
+      to 16. Every attribute and skill must lie between the background's minimum and maximum, and all points
+      must be placed before the character can be created; otherwise "Place all your points first." is shown.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Miner: strengths Strength, Constitution and Heavy Weapons; weaknesses Dexterity, Intelligence and Echo
+      Arts. Suggestion: Strength 13, Dexterity 10, Stamina 10, Constitution 12, Intelligence 10; Blades 3,
+      Heavy Weapons 10, Bows 2, Echo Arts 1. Limits: Strength 11–16, Dexterity 7–12, Stamina 9–13, Constitution
+      10–15, Intelligence 7–12; Blades 0–8, Heavy Weapons 6–12, Bows 0–6, Echo Arts 0–4. Starting weapon: Pickaxe.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Poacher: strengths Dexterity and Bows; weaknesses Constitution and Heavy Weapons. Suggestion: Strength
+      10, Dexterity 14, Stamina 11, Constitution 10, Intelligence 10; Blades 4, Heavy Weapons 1, Bows 10, Echo
+      Arts 1. Limits: Strength 8–13, Dexterity 12–17, Stamina 9–14, Constitution 7–12, Intelligence 8–13; Blades
+      0–8, Heavy Weapons 0–4, Bows 6–12, Echo Arts 0–6. Starting weapon: Short Bow.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Temple Acolyte: strengths Intelligence and Echo Arts; weaknesses Strength, Constitution and Heavy Weapons.
+      Suggestion: Strength 10, Dexterity 10, Stamina 11, Constitution 10, Intelligence 14; Blades 4, Heavy
+      Weapons 0, Bows 2, Echo Arts 10. Limits: Strength 7–12, Dexterity 8–13, Stamina 9–14, Constitution 7–12,
+      Intelligence 12–17; Blades 0–8, Heavy Weapons 0–4, Bows 0–6, Echo Arts 6–12. Starting weapon: Dagger.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Street Runner: strengths Stamina, Dexterity and Blades; weaknesses Intelligence and Echo Arts. Suggestion:
+      Strength 10, Dexterity 12, Stamina 13, Constitution 10, Intelligence 10; Blades 10, Heavy Weapons 2,
+      Bows 3, Echo Arts 1. Limits: Strength 8–13, Dexterity 10–15, Stamina 11–16, Constitution 8–13, Intelligence
+      7–12; Blades 6–12, Heavy Weapons 0–6, Bows 0–8, Echo Arts 0–4. Starting weapon: Rusty Sword.
+  - applies_to:
+      - AGG-01
+    text: >-
+      The background's limits apply when the character is created. Later, Marks and use raise attributes and
+      skills beyond them (Learn by use, Spend points).
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      A new character is Mark 1 with no Echo and no points to spend. The name is required and at most 20 characters.
+  - applies_to:
+      - EVT-01
+    text: >-
+      EVT-01 "Character created" gives the starting kit and hotbar (Gear, Stock the inventory), the starting
+      gold (Market, Keep the wallet) and the Forge's first stock (Market, Restock the Forge), and the new character
+      becomes the one being played (Choose character).
+scenarios:
+  - title: A Miner is created with the suggested points
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the user has no characters
+      When the player performs CMD-01 "Create character" with the name "Kael", the background Miner and its suggested points
+      Then EVT-01 "Character created" is recorded
+      And Kael has Strength 13, Constitution 12 and Heavy Weapons 10
+  - title: Points are moved within the limits
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the player has chosen Miner
+      When the player moves 2 points from Strength to Dexterity
+      And the player performs CMD-01 "Create character" with the name "Brann"
+      Then EVT-01 "Character created" is recorded with Strength 11 and Dexterity 12
+  - title: A maximum cannot be passed
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the player has chosen Temple Acolyte and Strength is 12
+      When the player looks at Strength in VIEW-01 "Create character"
+      Then the + by Strength is disabled
+  - title: All points must be placed
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the player has 1 skill point left
+      When the player performs CMD-01 "Create character"
+      Then nothing is recorded
+      And "Place all your points first." is shown
+open_questions:
+  - topic: More characters
+    question: Can a player have several characters?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-19: yes. A user can have several characters, each created with points to place; the background
+      suggests the points and sets a minimum and maximum for every attribute and skill.
+  - topic: Limits after creation
+    question: Do the background's maximums also cap the character later, or only at creation?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: 'Decided 2026-11-19: only at creation. Later, Marks and use raise attributes and skills beyond
+      them.'
+  - topic: Deleting a character
+    question: Can a user delete a character?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: 'Decided 2026-11-19: yes (Delete character).'
+  - topic: Where characters are kept
+    question: Should characters be kept on the server?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-19: yes, on the Maw Server – and so is what a character owns: gear, gold, gifts and statistics.

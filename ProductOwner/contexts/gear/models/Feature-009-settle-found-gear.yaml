@@ -1,0 +1,127 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Settle found gear
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: when a Tithe ends, what was found in it is kept – unless the candidate fell or left –
+      so a fall has a price, but never takes what the candidate brought down.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe ended
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: End the Tithe
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Quartermaster
+    col: 2
+    stack: 1
+    description: >-
+      Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and
+      the end of a Tithe.
+  - id: CMD-01
+    type: command
+    name: Settle found gear
+    col: 3
+    stack: 1
+    fields:
+      - name: Outcome
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 4
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Equipment
+        attributes:
+          - name: Weapon
+          - name: Armour
+          - name: Ring
+      - name: Items
+        attributes:
+          - name: Item
+          - name: Found in Tithe
+        many: true
+      - name: Gold found
+  - id: EVT-02
+    type: event
+    name: Found gear kept
+    col: 5
+    stack: 1
+  - id: EVT-03
+    type: event
+    name: Found gear lost
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-02
+  - from: AGG-01
+    to: EVT-03
+rules:
+  - applies_to:
+      - CMD-01
+      - EVT-03
+    text: >-
+      A candidate who falls or leaves the Tithe loses the items and the gold found in that Tithe, also found
+      items that were equipped; never what the candidate brought down.
+  - applies_to:
+      - EVT-02
+    text: >-
+      When the player's party claims the Tithe, or someone else does, everything found is kept and is no longer
+      marked as found.
+  - applies_to:
+      - EVT-02
+    text: The found gold that is kept goes to the wallet (Market, Keep the wallet).
+scenarios:
+  - title: A fall loses what was found
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael went down with a Pickaxe and found a "Cruel War Axe" and 33 gold
+      When EVT-01 "Tithe ended" has been recorded with Kael fallen
+      Then SVC-01 "Quartermaster" performs CMD-01 "Settle found gear"
+      And EVT-03 "Found gear lost" is recorded with the War Axe and 33 gold
+      And Kael still has the Pickaxe
+  - title: A Champion keeps what was found
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael found a "Cruel War Axe" and 33 gold
+      When EVT-01 "Tithe ended" has been recorded with Kael as Champion
+      Then EVT-02 "Found gear kept" is recorded with the War Axe and 33 gold
+  - title: Leaving loses what was found
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael found 20 gold
+      When EVT-01 "Tithe ended" has been recorded with Kael having left the Tithe
+      Then EVT-03 "Found gear lost" is recorded with 20 gold
+open_questions:
+  - topic: What a fall costs
+    question: Does a fall cost anything, and what?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: 'Decided 2026-11-18: the items and gold found in that Tithe, never what the candidate brought
+      down.'

@@ -1,0 +1,118 @@
+<mxfile host="render_drawio.py">
+  <diagram id="use-case" name="Learn by use">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-160" y="-360" width="1200" height="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Characters" vertex="1">
+          <mxGeometry x="-160" y="-400" width="1200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;The Branded characters of a user: name and background, the five attributes and four skills placed with points at creation and grown by use, the Echo that burns Marks into the Brand, and the points the player spends." vertex="1">
+          <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-120" y="-200" width="1120" height="960" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Learn by use" vertex="1">
+          <mxGeometry x="-120" y="-240" width="1120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: every blow that lands makes the skill that dealt it better, so the character grows into what the player actually does instead of a class picked up front." vertex="1">
+          <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-01" label="Blow landed&lt;br&gt;&lt;br&gt;(The Tithe / Tithe)" tooltip="Fight in the depths">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-02" label="Monster slain&lt;br&gt;&lt;br&gt;(The Tithe / Tithe)" tooltip="Fight in the depths">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="200" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-03" label="Rival defeated&lt;br&gt;&lt;br&gt;(The Tithe / Tithe)" tooltip="Fight in the depths">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="400" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="380" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-06" label="Player defeated&lt;br&gt;&lt;br&gt;(The Tithe / Tithe)" tooltip="Fight in the depths">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="600" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-06-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="580" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="SVC-01" label="Skill trainer" tooltip="Turns every blow that lands into experience for the skill that dealt it.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#D689D6;strokeColor=#660066;" vertex="1">
+            <mxGeometry x="200" y="200" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="SVC-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#B347B3;strokeColor=#660066;" value="Application Service" vertex="1">
+          <mxGeometry x="200" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Train skill&lt;/b&gt;&lt;br&gt;Skill&lt;br&gt;Experience" vertex="1">
+          <mxGeometry x="400" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="400" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-01" label="&lt;b&gt;Character&lt;/b&gt;&lt;br&gt;&lt;b&gt;Skills (many)&lt;/b&gt;&lt;br&gt;· Skill&lt;br&gt;· Level&lt;br&gt;· Experience" tooltip="A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills, Echo and Marks.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="600" y="200" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="600" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-04" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Skill trained" vertex="1">
+          <mxGeometry x="800" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="800" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-05" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Skill level gained" vertex="1">
+          <mxGeometry x="800" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-05-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="800" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-01-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-01" target="SVC-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-02-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-02" target="SVC-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-03-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-03" target="SVC-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-06-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-06" target="SVC-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-SVC-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-04" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-05" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-05">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,105 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Delete character
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: delete a character the player no longer wants, so the list holds only the characters
+      the player plays.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Characters
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The user's characters, with Play, New character, Delete and Statistics.
+    behavior: >-
+      Delete by a character asks "Delete <name>? Everything <name> owns is lost. This cannot be undone." with
+      Delete and Keep.
+  - id: CMD-01
+    type: command
+    name: Delete character
+    col: 2
+    stack: 1
+    story: As a player I want to delete a character, so that my list only holds the characters I play.
+    fields:
+      - name: Character
+  - id: AGG-01
+    type: aggregate
+    name: Character
+    col: 3
+    stack: 1
+    description: >-
+      A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills,
+      Echo and Marks.
+    fields:
+      - name: User
+      - name: Name
+      - name: Background
+      - name: Mark
+      - name: Echo
+      - name: Attributes
+        attributes:
+          - name: Strength
+          - name: Dexterity
+          - name: Stamina
+          - name: Constitution
+          - name: Intelligence
+      - name: Skills
+        attributes:
+          - name: Skill
+          - name: Level
+          - name: Experience
+        many: true
+  - id: EVT-01
+    type: event
+    name: Character deleted
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      A character can only be deleted from the character list, not while it is in a lobby or a Tithe. It cannot
+      be undone.
+  - applies_to:
+      - EVT-01
+    text: >-
+      Everything the character owns goes with it: the inventory (Gear, Stock the inventory), the gold (Market,
+      Keep the wallet), the Forge's stock (Market, Restock the Forge), the waiting sponsor gifts (Patronage,
+      Grant sponsor gifts) and the statistics (Keep player statistics).
+  - applies_to:
+      - EVT-01
+    text: >-
+      When the character being played is deleted, the player chooses another character or creates a new one.
+scenarios:
+  - title: Brann is deleted
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael and Brann are the user's characters
+      When the player performs CMD-01 "Delete character" with Brann and confirms
+      Then EVT-01 "Character deleted" is recorded
+      And the list shows only Kael
+  - title: Keep cancels
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given the player has pressed Delete by Brann
+      When the player presses Keep
+      Then nothing is recorded

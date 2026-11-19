@@ -1,0 +1,111 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Launch the Tithe
+  bounded_context: Lobby
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player who opened a Tithe: decide when it starts, so the players who wanted to come are in it.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Lobby
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: 'The waiting room of an open Tithe: its name and the players in it.'
+    behavior: >-
+      Shows the Tithe's name and its players with user name, character and Mark, "n of 8", and Leave. The player
+      who opened the Tithe also has Launch.
+  - id: CMD-01
+    type: command
+    name: Launch the Tithe
+    col: 2
+    stack: 1
+    story: As the player who opened a Tithe I want to launch it, so that we go down when everyone is ready.
+  - id: CMD-02
+    type: command
+    name: Leave the lobby
+    col: 2
+    stack: 2
+    story: As a player I want to leave a lobby before the Tithe starts, so that I can join another.
+  - id: AGG-01
+    type: aggregate
+    name: Lobby
+    col: 3
+    stack: 1
+    description: >-
+      An open Tithe on the server before it is launched: its unique name, the player who opened it and the
+      players who have joined.
+    fields:
+      - name: Players
+        attributes:
+          - name: User name
+          - name: Character
+        many: true
+      - name: NPC places
+      - name: Launched
+  - id: EVT-01
+    type: event
+    name: Tithe launched
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Lobby left
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+      - EVT-01
+    text: >-
+      Only the player who opened the Tithe can launch it, also alone. At launch NPC rivals fill the places
+      up to 8, and EVT-01 "Tithe launched" starts the Tithe (Tithe, Enter the Tithe).
+  - applies_to:
+      - CMD-02
+      - EVT-02
+    text: >-
+      Every player can leave the lobby before the launch. When the player who opened the Tithe leaves, the
+      Tithe is closed and the others return to the list of Tithes.
+scenarios:
+  - title: Kael launches Ashfall
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael opened "Ashfall" and Brann joined it
+      When the player performs CMD-01 "Launch the Tithe"
+      Then EVT-01 "Tithe launched" is recorded with two players and six NPC places
+  - title: Only the opener launches
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Brann joined Kael's "Ashfall"
+      When Brann looks at VIEW-01 "Lobby"
+      Then Brann has Leave but no Launch
+open_questions:
+  - topic: The opener leaves
+    question: What happens when the player who opened a Tithe leaves its lobby?
+    status: resolved
+    applies_to:
+      - CMD-02
+    resolution: 'Decided 2026-11-19: the Tithe is closed, and the others return to the list of Tithes.'

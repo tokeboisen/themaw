@@ -1,0 +1,91 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Use the hotbar
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: press a number key to draw another weapon in the middle of a fight, so the character
+      can switch between a bow at range and a blade up close.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
+    behavior: The hotbar is shown at the bottom of the screen with the keys 1–8; the key in hand is highlighted.
+  - id: CMD-01
+    type: command
+    name: Draw weapon
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to draw the weapon on a number key, so that I fight with the right weapon for the
+      moment.
+    fields:
+      - name: Key
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 3
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Equipment
+        attributes:
+          - name: Weapon
+      - name: Hotbar
+        attributes:
+          - name: Key
+          - name: Weapon
+        many: true
+  - id: EVT-01
+    type: event
+    name: Weapon drawn
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Pressing a key with a weapon draws it: it becomes the equipped weapon, and the weapon in hand goes into
+      the pack. The candidate cannot strike while drawing (0.3 seconds).
+  - applies_to:
+      - CMD-01
+    text: >-
+      Pressing a key with an Echo Art casts it at the automatic target (Tithe, Fight in the depths). A key
+      with nothing on it does nothing.
+  - applies_to:
+      - EVT-01
+    text: Attack (Space) always strikes with the weapon in hand, and its blows train that weapon's skill.
+  - applies_to:
+      - CMD-01
+    text: Clicking a slot of the hotbar with the mouse does the same as pressing its key.
+scenarios:
+  - title: Drawing the bow
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael holds the Pickaxe and the Short Bow is on key 3
+      When the player performs CMD-01 "Draw weapon" with key 3
+      Then EVT-01 "Weapon drawn" is recorded
+      And the Pickaxe is in the pack
+      And Kael's blows now train Bows

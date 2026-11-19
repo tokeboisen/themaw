@@ -1,0 +1,38 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Characters
+  description: >-
+    The Branded characters of a user: name and background, the five attributes and four skills placed with
+    points at creation and grown by use, the Echo that burns Marks into the Brand, and the points the player
+    spends.
+  vision: A character shaped by what the player does, not by a class picked up front.
+  domain: Character Progression
+  system: Maw Server
+  lifecycle: planned
+  classification: core
+  capabilities:
+    - name: Branded characters
+      description: Several characters per user, each built from points within its background's limits.
+      lifecycle: planned
+      use_cases:
+        - Create character
+        - Choose character
+        - Delete character
+    - name: Learning by use
+      description: Every blow that lands makes its skill better.
+      lifecycle: planned
+      use_cases:
+        - Learn by use
+    - name: Marks and points
+      description: Echo gives Marks, and Marks give points for attributes and skills.
+      lifecycle: planned
+      use_cases:
+        - Earn Marks
+        - Spend points
+    - name: Player statistics
+      description: What every character has done in the Tithes, Player kills included.
+      lifecycle: planned
+      use_cases:
+        - Keep player statistics
+        - View player statistics

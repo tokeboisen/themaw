@@ -1,0 +1,129 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Assign hotbar keys
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: put weapons and Echo Arts on the keys 1–8, so the player can switch weapon or cast in
+      the middle of a fight with one key.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Inventory
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The equipped weapon, armour and ring, the items in the pack and the hotbar with the keys 1–8, each item
+      with damage or armour and affixes. Part of the character sheet.
+    behavior: >-
+      At the bottom of the character view a hotbar shows the keys 1–8 with what is on them. The player chooses
+      a key and then a weapon from the equipment or the pack, or an Echo Art, to put on it; Clear empties the
+      key.
+  - id: CMD-01
+    type: command
+    name: Assign hotbar key
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to put a weapon or an Echo Art on a number key, so that I can use it with one key
+      in a fight.
+    fields:
+      - name: Key
+      - name: Weapon
+      - name: Echo Art
+  - id: CMD-02
+    type: command
+    name: Clear hotbar key
+    col: 2
+    stack: 2
+    story: As a player I want to clear a number key, so that my hotbar only holds what I use.
+    fields:
+      - name: Key
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 3
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      potions and rations, the hotbar, and what was found in the current Tithe.
+    fields:
+      - name: Hotbar
+        attributes:
+          - name: Key
+          - name: Weapon
+          - name: Echo Art
+        many: true
+  - id: EVT-01
+    type: event
+    name: Hotbar key assigned
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Hotbar key cleared
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      The hotbar has 8 keys, 1–8. A key holds either a weapon the character owns (equipped or in the pack)
+      or an Echo Art the character knows; today the only Echo Art is Echo Bolt.
+  - applies_to:
+      - CMD-01
+    text: A weapon or an Echo Art is on at most one key; putting it on another key moves it.
+  - applies_to:
+      - VIEW-01
+    text: Keys can be assigned in the Rim and during a Tithe (the character sheet is an overlay).
+  - applies_to:
+      - AGG-01
+    text: >-
+      When a weapon on the hotbar leaves the inventory – sold, dropped or lost in a fall – its key is cleared.
+scenarios:
+  - title: A bow is put on key 3
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has a Short Bow in the pack and key 3 is empty
+      When the player performs CMD-01 "Assign hotbar key" with key 3 and the Short Bow
+      Then EVT-01 "Hotbar key assigned" is recorded
+  - title: Moving Echo Bolt to another key
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Echo Bolt is on key 2
+      When the player performs CMD-01 "Assign hotbar key" with key 5 and Echo Bolt
+      Then EVT-01 "Hotbar key assigned" is recorded
+      And key 2 is empty
+open_questions:
+  - topic: Hotbar on a touch screen
+    question: Phones have no number keys. How does the hotbar work on a phone?
+    status: resolved
+    applies_to:
+      - VIEW-01
+    resolution: >-
+      Decided 2026-11-19: the phone waits. For now The Maw is a web app, where the hotbar is used with the
+      keys 1–8 or by clicking its slots (Use the hotbar).

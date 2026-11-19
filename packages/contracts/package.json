@@ -1,0 +1,13 @@
+{
+  "name": "@maw/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Events, routing og beskeder, delt af api, tithe-server og web.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "yaml": "2.9.1"
+  }
+}

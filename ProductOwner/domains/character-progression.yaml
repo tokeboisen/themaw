@@ -1,0 +1,17 @@
+dsl_version: '0.8'
+product: The Maw
+domain:
+  name: Character Progression
+  description: >-
+    How a Branded grows stronger during and between Tithes: skills that grow by use, Marks with points to spend,
+    and the gear that is found and bought.
+  vision: >-
+    Every swing makes you better: a character shaped by what the player does, not by a class picked up front.
+  classification: core
+  capabilities:
+    - name: Growth by use
+      description: Skills, attributes and Marks that follow how the character is played.
+      lifecycle: planned
+    - name: Gear and loot
+      description: Weapons, armour and rings with random affixes, found in the Maw or bought in the Rim.
+      lifecycle: planned

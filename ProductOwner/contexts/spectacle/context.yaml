@@ -1,0 +1,19 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Spectacle
+  description: >-
+    The show around the Tithe: the Mirrormaster and the crowd of Aurum, watching through the Seeing Mirrors.
+    It turns kills, defeated rivals and new depths into Renown, rewards kill streaks with sponsor gifts, punishes
+    boredom with beasts and seals depths to drive the candidates down.
+  vision: 'The crowd is a player too: it pushes the candidates deeper and makes every Tithe a story.'
+  domain: The Tithe
+  system: Maw Server
+  lifecycle: planned
+  classification: core
+  capabilities:
+    - name: The Mirrormaster's show
+      description: Renown, sponsor gifts, beasts and sealed depths during the Tithe.
+      lifecycle: planned
+      use_cases:
+        - Run the show

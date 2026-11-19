@@ -1,0 +1,20 @@
+{
+  "name": "@maw/api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Commands og forespørgsler for Accounts, Characters, Gear, Market, Patronage, Lobby og Other players.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@maw/contracts": "0.1.0",
+    "@maw/platform": "0.1.0",
+    "@maw/rules": "0.1.0",
+    "fastify": "5.12.8",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

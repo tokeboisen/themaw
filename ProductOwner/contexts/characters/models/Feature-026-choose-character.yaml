@@ -1,0 +1,105 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Choose character
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: choose which of the user's characters to play, so the player can switch between builds.
+elements:
+  - id: EVT-01
+    type: event
+    name: User logged in
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Accounts
+      use_case: Log in
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: User created
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Accounts
+      use_case: Create user
+      event: EVT-01
+  - id: VIEW-01
+    type: view
+    name: Characters
+    col: 2
+    stack: 1
+    actors:
+      - Player
+    description: The user's characters, with Play, New character, Delete and Statistics.
+    behavior: >-
+      Shown after sign-in. Lists the user's characters with name, background, Mark, Tithes played and times
+      as Champion, each with Play and Delete (Delete character), and the buttons New character (Create character)
+      and Statistics (View player statistics). A user without characters goes straight to Create character.
+  - id: CMD-01
+    type: command
+    name: Choose character
+    col: 3
+    stack: 1
+    story: As a player I want to choose which of my characters to play, so that I can play different builds.
+    fields:
+      - name: Character
+  - id: AGG-01
+    type: aggregate
+    name: Roster
+    col: 4
+    stack: 1
+    description: Which of the user's characters is being played.
+    fields:
+      - name: User
+      - name: Active character
+  - id: EVT-03
+    type: event
+    name: Character chosen
+    col: 5
+    stack: 1
+flows:
+  - from: EVT-01
+    to: VIEW-01
+  - from: EVT-02
+    to: VIEW-01
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+rules:
+  - applies_to:
+      - CMD-01
+      - EVT-03
+    text: >-
+      The player plays one character at a time; the chosen character is the one in the Rim, the parties and
+      the Tithe. After choosing, the player is in the Rim.
+  - applies_to:
+      - CMD-01
+    text: >-
+      The character can only be changed in the Rim, not during a Tithe or while the player's party is looking
+      for a Tithe.
+scenarios:
+  - title: Another character is chosen
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael and Brann are the user's characters and Kael is being played
+      When the player performs CMD-01 "Choose character" with Brann
+      Then EVT-03 "Character chosen" is recorded
+      And the Rim shows Brann
+  - title: A new user goes straight to Create character
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given EVT-02 "User created" has been recorded
+      When VIEW-01 "Characters" opens
+      Then Create character is shown, as the user has no characters

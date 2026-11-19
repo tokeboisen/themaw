@@ -1,0 +1,126 @@
+dsl_version: '0.8'
+product: The Maw
+version: 4
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Join a Tithe
+  bounded_context: Lobby
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: join a Tithe another player has opened and see who is in it, so friends go down into
+      the same Tithe.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Tithes
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The Tithes that are open on the server, and the form to open a new one.
+    behavior: >-
+      Opened with "Descend into the Maw" in the Rim. Lists the Tithes that are open on the server with their
+      name, the user name of the player who opened them, the players in them by user name and "n of 8", each
+      with Join (disabled when full). A name field and "Open a Tithe" open a new one.
+  - id: CMD-01
+    type: command
+    name: Join a Tithe
+    col: 2
+    stack: 1
+    story: As a player I want to join a Tithe another player has opened, so that I go down with them.
+    fields:
+      - name: Tithe
+  - id: AGG-01
+    type: aggregate
+    name: Lobby
+    col: 3
+    stack: 1
+    description: >-
+      An open Tithe on the server before it is launched: its unique name, the player who opened it and the
+      players who have joined.
+    fields:
+      - name: Players
+        attributes:
+          - name: User name
+          - name: Character
+        many: true
+  - id: EVT-01
+    type: event
+    name: Player joined
+    col: 4
+    stack: 1
+  - id: VIEW-02
+    type: view
+    name: Lobby
+    col: 5
+    stack: 1
+    actors:
+      - Player
+    description: 'The waiting room of an open Tithe: its name and the players in it.'
+    behavior: >-
+      Shows the Tithe's name and its players with user name, character and Mark, "n of 8", and Leave. The player
+      who opened the Tithe also has Launch.
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: EVT-01
+    to: VIEW-02
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      A Tithe has room for 8 players ("The Tithe is full."). A player joins with the chosen character and is
+      in one lobby at a time.
+  - applies_to:
+      - CMD-01
+      - EVT-01
+    text: Players can join until the Tithe is launched. Everyone in the lobby sees who is in it by user name.
+scenarios:
+  - title: Brann joins Ashfall
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has opened "Ashfall"
+      When the player performs CMD-01 "Join a Tithe" with Ashfall
+      Then EVT-01 "Player joined" is recorded
+      And VIEW-02 "Lobby" shows the user names of Kael and Brann
+  - title: A full Tithe
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given "Ashfall" has 8 players
+      When the player performs CMD-01 "Join a Tithe" with Ashfall
+      Then nothing is recorded
+      And "The Tithe is full." is shown
+open_questions:
+  - topic: Players per Tithe
+    question: How many players can be in one Tithe, and how do players play together?
+    status: resolved
+    applies_to:
+      - SVC-01
+    resolution: >-
+      Decided 2026-11-19: up to 8 players in a Tithe, NPC rivals for the rest. Players play alone or in a team
+      (party), formed by invitations that can be accepted or declined.
+  - topic: Matching
+    question: Are parties matched by Mark, and how long is the wait before NPC rivals fill the Tithe?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-19: there is no automatic matching. A player opens a Tithe with a unique name, others
+      join it, and the player who opened it launches it; NPC rivals fill the places that are left (Open a Tithe,
+      Launch the Tithe).
+  - topic: Joining a running Tithe
+    question: >-
+      Can players join a Tithe after it has been launched, as in Diablo? Proposed: no, only until it is launched.
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: 'Decided 2026-11-19: no. Players can only join until the Tithe is launched.'

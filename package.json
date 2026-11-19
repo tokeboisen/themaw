@@ -1,0 +1,23 @@
+{
+  "name": "the-maw",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The Maw: server og webapp efter Event Modellen i ProductOwner/.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"packages/*/test/*.test.ts\" \"apps/*/test/*.test.ts\"",
+    "build:web": "npm run build -w @maw/web"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

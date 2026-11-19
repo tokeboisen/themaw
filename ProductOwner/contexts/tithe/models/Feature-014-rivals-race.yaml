@@ -1,0 +1,158 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Rivals race
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the players: the NPC rivals race through the same Tithe and can win it, so the players always have
+      to weigh loot and safety against speed.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe started
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Enter the Tithe
+      event: EVT-02
+  - id: EVT-02
+    type: event
+    name: Depth reached
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Descend
+      event: EVT-01
+  - id: EVT-03
+    type: event
+    name: Depth sealed
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Spectacle
+      use_case: Run the show
+      event: EVT-11
+  - id: SVC-01
+    type: service
+    name: Rival director
+    col: 2
+    stack: 2
+    description: Moves the AI rivals through the Tithe, on screen and off it.
+  - id: CMD-01
+    type: command
+    name: Advance rival
+    col: 3
+    stack: 2
+    fields:
+      - name: Rival
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 4
+    stack: 2
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Depth
+          - name: Progress
+          - name: Life
+          - name: Hostile
+          - name: Status
+        many: true
+      - name: Warden alive
+      - name: Warden wounds
+  - id: EVT-04
+    type: event
+    name: Rival reached depth
+    col: 5
+    stack: 1
+  - id: EVT-05
+    type: event
+    name: Rival fell
+    col: 5
+    stack: 2
+    description: A rival fell to monsters, the collapse of a sealed depth or the Warden, not by the player's
+      hand.
+  - id: EVT-06
+    type: event
+    name: Rival claimed the Tithe
+    col: 5
+    stack: 3
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-04
+  - from: AGG-01
+    to: EVT-05
+  - from: AGG-01
+    to: EVT-06
+rules:
+  - applies_to:
+      - SVC-01
+    text: >-
+      Rivals walk toward the stairs in bursts and search on the way, so a depth takes them about 110 seconds
+      (±15 %, a little faster at a higher level). In a sealed depth they move three times as fast. Rivals the
+      player cannot see move on at the same pace without being shown.
+  - applies_to:
+      - SVC-01
+    text: >-
+      An NPC rival fights monsters within 5 tiles (the Warden within 9). A hostile NPC rival also fights players
+      within 6 tiles once the grace is over. NPC rivals never fight each other. Each drinks one potion below
+      30 % life.
+  - applies_to:
+      - AGG-01
+    text: >-
+      The NPC rivals are Cassian Morrow (heavy weapons, one Mark above the players, hostile 90 %), Vessa Thorne
+      (bows, 35 %), Ash and Rook Kell (blades, 60 %), Mira Silvertongue (Echo Arts, 20 %), Silent Odo (blades,
+      15 %) and Garrick Vane, champion of House Vane (heavy weapons, one Mark above the players, 80 %); the
+      percentage is the chance that the rival is hostile, decided when the Tithe starts. Every NPC rival a
+      player strikes becomes hostile to that player.
+  - applies_to:
+      - EVT-05
+      - EVT-06
+    text: >-
+      An NPC rival who reaches The Foreman while no player is in The Foreman's Hall fights him for 20 seconds
+      and wins with 15 % + 4 % per level (at most 70 %), more when The Foreman is wounded. The winner claims
+      the Tithe, and it ends for every player. A rival who loses falls, and The Foreman keeps the wounds: 75
+      % of his life for the next.
+  - applies_to:
+      - EVT-06
+    text: >-
+      When a player is in The Foreman's Hall, the fight is shown, and the candidate who deals the killing blow
+      decides it.
+scenarios:
+  - title: A rival claims the Tithe
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Cassian Morrow reaches The Foreman while Kael is in depth 2
+      When SVC-01 "Rival director" performs CMD-01 "Advance rival" and Cassian wins the fight
+      Then EVT-06 "Rival claimed the Tithe" is recorded
+  - title: A sealed depth makes the rivals hurry
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Vessa Thorne is in depth 1
+      When EVT-03 "Depth sealed" has been recorded for depth 1
+      Then SVC-01 "Rival director" performs CMD-01 "Advance rival" three times as fast for Vessa Thorne

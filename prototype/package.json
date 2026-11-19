@@ -1,0 +1,11 @@
+{
+  "name": "the-maw-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Web-prototype af The Maw: en top-down dungeon crawler, hvor skills vokser ved brug.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python3 serve.py"
+  }
+}

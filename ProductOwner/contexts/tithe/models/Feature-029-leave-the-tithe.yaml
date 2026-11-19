@@ -1,0 +1,96 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Leave the Tithe
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: leave a Tithe before it ends, accepting that it is lost, so the player can always stop
+      playing.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: >-
+      The Leave button asks "Leave the Tithe? You lose what you found, and it counts as a fall." with Leave
+      and Stay.
+  - id: CMD-01
+    type: command
+    name: Leave the Tithe
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to leave a Tithe, so that I can stop playing when I have to, accepting that I lose.
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 3
+    stack: 1
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Status
+        many: true
+  - id: EVT-01
+    type: event
+    name: Player left
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+      - EVT-01
+    text: >-
+      Leaving is losing: the player is out of the Tithe, and it counts as a fall (Gear, Settle found gear;
+      Patronage, Pay the Crown's Purse). The other candidates go on.
+  - applies_to:
+      - EVT-01
+    text: >-
+      Closing the app counts as leaving, and so does a lost connection after 60 seconds. A Tithe that is still
+      unfinished when the player signs in again is settled as left.
+scenarios:
+  - title: Kael leaves
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael is in depth 2 and has found a "Cruel War Axe"
+      When the player performs CMD-01 "Leave the Tithe"
+      Then EVT-01 "Player left" is recorded
+      And the Tithe goes on for the other candidates
+  - title: Closing the app is leaving
+    applies_to:
+      - EVT-01
+    gherkin: |-
+      Given Kael closed the app during a Tithe
+      When the user signs in again
+      Then EVT-01 "Player left" is recorded for that Tithe
+open_questions:
+  - topic: A lost connection
+    question: How long may a player's connection be lost before it counts as leaving?
+    status: resolved
+    applies_to:
+      - EVT-01
+    resolution: 'Decided 2026-11-19: 60 seconds.'

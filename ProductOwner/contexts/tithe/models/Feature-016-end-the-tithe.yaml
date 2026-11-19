@@ -1,0 +1,190 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: End the Tithe
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the player's part of the Tithe ends when it has a Champion or the player falls or leaves,
+      and the results show what the Tithe brought, so the player can see the progress and go again.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe claimed
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Claim the Tithe
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: Rival claimed the Tithe
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Rivals race
+      event: EVT-06
+  - id: EVT-03
+    type: event
+    name: Player fell
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Tithe
+      use_case: Survive the depths
+      event: EVT-10
+  - id: EVT-05
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+  - id: EVT-06
+    type: event
+    name: Player left
+    col: 1
+    stack: 5
+    stimulus:
+      bounded_context: Tithe
+      use_case: Leave the Tithe
+      event: EVT-01
+  - id: SVC-01
+    type: service
+    name: Tithe referee
+    col: 2
+    stack: 3
+    description: Ends the Tithe when it has a Champion or the player has fallen.
+  - id: CMD-01
+    type: command
+    name: End the Tithe
+    col: 3
+    stack: 3
+    fields:
+      - name: Player
+      - name: Outcome
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 4
+    stack: 3
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Outcome
+        attributes:
+          - name: Kind
+          - name: Champions
+      - name: Record
+        attributes:
+          - name: Player
+          - name: Time
+          - name: Deepest depth
+          - name: Kills
+          - name: Rivals defeated
+          - name: Players defeated
+          - name: Warden slain
+        many: true
+  - id: EVT-04
+    type: event
+    name: Tithe ended
+    col: 5
+    stack: 3
+  - id: VIEW-01
+    type: view
+    name: Tithe results
+    col: 6
+    stack: 3
+    actors:
+      - Player
+    behavior: >-
+      Shown 2.5 seconds after the end. The heading is "You are the Champion!", "<name> is the Champion", "You
+      fell" or "You left the Tithe". It shows the Tithe's number, time, deepest depth, monsters slain, rivals
+      and players defeated, Renown, gold found (or lost), the Crown's Purse, sponsor gifts waiting, the Mark
+      and the skills before and after the Tithe, and what was lost. "Return to the Rim" opens the Rim, on the
+      Patrons' Hall when gifts wait.
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-05
+    to: SVC-01
+  - from: EVT-06
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-04
+  - from: EVT-04
+    to: VIEW-01
+rules:
+  - applies_to:
+      - SVC-01
+      - CMD-01
+    text: >-
+      EVT-04 "Tithe ended" is recorded for each player when the player's part of the Tithe ends: the player
+      falls (also when defeated by another player), leaves, or the Tithe gets a Champion – the player's party,
+      another party or an NPC rival. Leaving counts as a fall. When someone else is Champion, the Brand drags
+      the player back without a fall.
+  - applies_to:
+      - AGG-01
+    text: The Tithe closes when it has a Champion or no player is left in it.
+  - applies_to:
+      - EVT-04
+    text: >-
+      The character is saved when the Tithe ends: skills, Marks and points from the Tithe are always kept,
+      and what was found is settled (Gear, Settle found gear).
+  - applies_to:
+      - EVT-04
+    text: >-
+      EVT-04 "Tithe ended" also pays the Crown's Purse and grants sponsor gifts (Patronage) and restocks the
+      Forge (Market).
+scenarios:
+  - title: A fall ends the player's Tithe
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is in depth 2
+      When EVT-03 "Player fell" has been recorded for Kael
+      Then SVC-01 "Tithe referee" performs CMD-01 "End the Tithe" for Kael with the outcome fell
+      And EVT-04 "Tithe ended" is recorded for Kael
+      And VIEW-01 "Tithe results" shows "You fell"
+  - title: Leaving ends the player's Tithe
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is in depth 2
+      When EVT-06 "Player left" has been recorded for Kael
+      Then EVT-04 "Tithe ended" is recorded for Kael with the outcome left
+      And VIEW-01 "Tithe results" shows "You left the Tithe"
+  - title: An NPC rival's victory ends the Tithe for every player
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael and Brann are in depth 2
+      When EVT-02 "Rival claimed the Tithe" has been recorded for Cassian Morrow
+      Then EVT-04 "Tithe ended" is recorded for Kael and for Brann
+      And VIEW-01 "Tithe results" shows "Cassian Morrow is the Champion"
+open_questions:
+  - topic: Leaving a Tithe
+    question: Should an unfinished Tithe count as a fall, be resumable, or be lost?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: 'Decided 2026-11-19: leaving is losing. The player is out, and it counts as a fall (Leave the
+      Tithe).'

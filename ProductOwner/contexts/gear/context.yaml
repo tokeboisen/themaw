@@ -1,0 +1,36 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Gear
+  description: >-
+    What a character owns and carries: the equipped weapon, armour and ring, the pack, potions and rations,
+    and what was found in the current Tithe until the Tithe is settled.
+  vision: Every item found is a choice, and every fall a risk worth taking.
+  domain: Character Progression
+  system: Maw Server
+  lifecycle: planned
+  classification: supporting
+  capabilities:
+    - name: Loot
+      description: Items, gold and supplies found in the Maw, kept or lost when the Tithe ends.
+      lifecycle: planned
+      use_cases:
+        - Pick up loot
+        - Settle found gear
+    - name: Equipment
+      description: Equipping the items that make a build, and the inventory they live in.
+      lifecycle: planned
+      use_cases:
+        - Manage equipment
+        - Stock the inventory
+    - name: Hotbar
+      description: Weapons and Echo Arts on the keys 1–8.
+      lifecycle: planned
+      use_cases:
+        - Assign hotbar keys
+        - Use the hotbar
+    - name: Supplies
+      description: Potions and rations used in the Tithe.
+      lifecycle: planned
+      use_cases:
+        - Use consumables

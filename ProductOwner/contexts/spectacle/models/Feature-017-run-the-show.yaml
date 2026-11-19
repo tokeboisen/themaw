@@ -1,0 +1,261 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Run the show
+  bounded_context: Spectacle
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Mirrormaster and the crowd react to everything the candidates do – Renown, sponsor
+      gifts, beasts and sealed depths – so the Tithe is a show that pushes the candidates deeper.
+elements:
+  - id: EVT-01
+    type: event
+    name: Tithe started
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Enter the Tithe
+      event: EVT-02
+  - id: EVT-02
+    type: event
+    name: Depth reached
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Descend
+      event: EVT-01
+  - id: EVT-03
+    type: event
+    name: Blow landed
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-01
+  - id: EVT-04
+    type: event
+    name: Monster slain
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-02
+  - id: EVT-05
+    type: event
+    name: Rival defeated
+    col: 1
+    stack: 5
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-03
+  - id: EVT-06
+    type: event
+    name: Warden slain
+    col: 1
+    stack: 6
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Mirrormaster
+    col: 2
+    stack: 3
+    description: >-
+      Mirrormaster Lucan Ilveth, who runs the show: he speaks to the candidates, rewards the crowd's favourites
+      and punishes the dull.
+  - id: CMD-01
+    type: command
+    name: Award Renown
+    col: 3
+    stack: 1
+    fields:
+      - name: Renown
+  - id: CMD-02
+    type: command
+    name: Drop sponsor gift
+    col: 3
+    stack: 2
+    fields:
+      - name: House
+      - name: Gift
+  - id: CMD-03
+    type: command
+    name: Release beasts
+    col: 3
+    stack: 3
+    fields:
+      - name: Beasts
+  - id: CMD-04
+    type: command
+    name: Seal depth
+    col: 3
+    stack: 4
+    fields:
+      - name: Depth
+  - id: AGG-01
+    type: aggregate
+    name: Show
+    col: 4
+    stack: 3
+    description: >-
+      The Tithe as the crowd sees it: Renown, kill streaks, sponsor gifts, boredom and the seals of the depths.
+    fields:
+      - name: Tithe
+      - name: Renown
+      - name: Kill streak
+        attributes:
+          - name: Kills
+          - name: Window
+      - name: Last sponsor gift
+      - name: Last blow
+      - name: Depth seals
+        attributes:
+          - name: Depth
+          - name: Seals at
+          - name: Warned
+          - name: Sealed
+        many: true
+  - id: EVT-07
+    type: event
+    name: Renown earned
+    col: 5
+    stack: 1
+  - id: EVT-08
+    type: event
+    name: Sponsor gift dropped
+    col: 5
+    stack: 2
+  - id: EVT-09
+    type: event
+    name: Beasts released
+    col: 5
+    stack: 3
+  - id: EVT-10
+    type: event
+    name: Depth sealing announced
+    col: 5
+    stack: 4
+  - id: EVT-11
+    type: event
+    name: Depth sealed
+    col: 5
+    stack: 5
+  - id: EVT-12
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 7
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-04
+    to: SVC-01
+  - from: EVT-05
+    to: SVC-01
+  - from: EVT-06
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: SVC-01
+    to: CMD-02
+  - from: SVC-01
+    to: CMD-03
+  - from: SVC-01
+    to: CMD-04
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: CMD-03
+    to: AGG-01
+  - from: CMD-04
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-07
+  - from: AGG-01
+    to: EVT-08
+  - from: AGG-01
+    to: EVT-09
+  - from: AGG-01
+    to: EVT-10
+  - from: AGG-01
+    to: EVT-11
+  - from: EVT-12
+    to: SVC-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Renown: 2 × level for each monster the player slays, 60 for each NPC rival or player the player defeats,
+      150 for The Foreman, 20 for each new depth and 15 for each sponsor gift.
+  - applies_to:
+      - CMD-02
+    text: >-
+      Three kills by the player within 8 seconds, at most every 30 seconds, make a Noble House – House Morrow,
+      House Vane, House Ashgrave or House Lisle – drop a gift by the player: a magic item (30 %), a potion
+      (25 %), a ration (20 %) or gold (25 %). Kills of monsters called by the Mirrormaster or The Foreman do
+      not count.
+  - applies_to:
+      - CMD-03
+    text: >-
+      After 40 seconds without the player dealing damage, the crowd is bored and the Mirrormaster releases
+      4 Gnawers 6–11 tiles from the player. They drop nothing.
+  - applies_to:
+      - CMD-04
+      - EVT-10
+    text: >-
+      Depth 1 is sealed 240 seconds after the Tithe starts and depth 2 after 480 seconds; the last depth is
+      never sealed. A candidate who enters a depth with less than 90 seconds left gets 90 seconds. The Mirrormaster
+      announces the seal 30 seconds before, and the HUD shows the time left.
+  - applies_to:
+      - SVC-01
+    text: >-
+      The Mirrormaster speaks to the whole Tithe in the message log: at the start, about the grace, before
+      and at a seal, when he is bored, about sponsor gifts, when rivals reach a depth or fall, when The Foreman
+      wakes and dies, and when the Tithe has a Champion.
+scenarios:
+  - title: A kill streak brings a sponsor gift
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael has slain two Gnawers within the last 5 seconds and no gift has fallen for 30 seconds
+      When EVT-04 "Monster slain" has been recorded for Kael's third Gnawer
+      Then SVC-01 "Mirrormaster" performs CMD-02 "Drop sponsor gift"
+      And EVT-08 "Sponsor gift dropped" is recorded next to Kael
+      And EVT-07 "Renown earned" is recorded with 15 Renown
+  - title: A bored crowd gets beasts
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given the last EVT-03 "Blow landed" by Kael was 40 seconds ago
+      When SVC-01 "Mirrormaster" reacts
+      Then CMD-03 "Release beasts" is performed with 4 Gnawers
+      And EVT-09 "Beasts released" is recorded
+  - title: Depth 1 is sealed
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given EVT-01 "Tithe started" was recorded 210 seconds ago
+      When SVC-01 "Mirrormaster" reacts
+      Then EVT-10 "Depth sealing announced" is recorded for depth 1 in 30 seconds
+      And EVT-11 "Depth sealed" is recorded for depth 1 after 240 seconds

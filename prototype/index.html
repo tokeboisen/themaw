@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#120e0b">
+  <title>The Maw – prototype</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <!-- HUD under en Tithe -->
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <div class="bar hp"><i></i><span></span></div>
+      <div class="bar stamina"><i></i><span></span></div>
+      <div class="bar focus"><i></i><span></span></div>
+      <div class="bar hunger"><i></i><span></span></div>
+      <div class="bar echo"><i></i><span></span></div>
+      <div id="hud-points"></div>
+    </div>
+    <div id="hud-center">
+      <div id="hud-depth"></div>
+      <div id="hud-seal"></div>
+      <div id="hud-renown"></div>
+    </div>
+    <div id="hud-right">
+      <canvas id="minimap" width="128" height="128"></canvas>
+      <ul id="hud-rivals"></ul>
+    </div>
+    <div id="log"></div>
+    <div id="toast"></div>
+    <div id="prompt"></div>
+    <button id="btn-pause" class="hud-btn" title="Character (C)">☰</button>
+  </div>
+
+  <!-- Touch-styring -->
+  <div id="touch" class="hidden">
+    <div id="joy-zone"><div id="joy-base"><div id="joy-knob"></div></div></div>
+    <div id="touch-buttons">
+      <button data-act="interact" class="tb tb-interact hidden">Descend</button>
+      <button data-act="potion" class="tb tb-small">Potion <b></b></button>
+      <button data-act="ration" class="tb tb-small">Ration <b></b></button>
+      <button data-act="dodge" class="tb tb-mid">Dodge</button>
+      <button data-act="bolt" class="tb tb-mid">Bolt</button>
+      <button data-act="attack" class="tb tb-big">Attack</button>
+    </div>
+  </div>
+
+  <!-- Ny karakter -->
+  <section id="screen-create" class="screen hidden">
+    <div class="panel narrow">
+      <h1>The Maw</h1>
+      <p class="lead">You were sentenced to the Tithe for a theft you did not commit. The Brand binds you to the Maw. The only way out is down.</p>
+      <label class="field">Name <input id="create-name" maxlength="20" value="Kael" autocomplete="off"></label>
+      <h2>Background</h2>
+      <div id="create-backgrounds" class="cards"></div>
+      <button id="create-go" class="primary">Take the Brand</button>
+    </div>
+  </section>
+
+  <!-- The Rim -->
+  <section id="screen-rim" class="screen hidden">
+    <div class="panel wide">
+      <header class="rim-head">
+        <div>
+          <h1>The Rim</h1>
+          <p id="rim-sub" class="muted"></p>
+        </div>
+        <div class="gold" id="rim-gold"></div>
+      </header>
+      <nav class="tabs" id="rim-tabs">
+        <button data-tab="character" class="active">Character</button>
+        <button data-tab="forge">Forge</button>
+        <button data-tab="apothecary">Apothecary</button>
+        <button data-tab="patrons">Patrons' Hall</button>
+      </nav>
+      <div id="rim-content"></div>
+      <footer class="rim-foot">
+        <button id="rim-descend" class="primary big">Descend into the Maw</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- Resultat efter en Tithe -->
+  <section id="screen-results" class="screen hidden">
+    <div class="panel narrow">
+      <div id="results-content"></div>
+      <button id="results-go" class="primary">Return to the Rim</button>
+    </div>
+  </section>
+
+  <!-- Pause under en Tithe -->
+  <section id="screen-pause" class="screen overlay hidden">
+    <div class="panel wide">
+      <header class="rim-head">
+        <h1>Paused</h1>
+        <button id="pause-resume" class="primary">Resume</button>
+      </header>
+      <div id="pause-content"></div>
+      <p class="muted keys">Keys: WASD / arrows move · Space or J attack · K Echo Bolt · Shift or L dodge · Q potion · R ration · F or Enter descend · C or Esc pause · ` debug</p>
+    </div>
+  </section>
+
+  <!-- Debug -->
+  <button id="btn-debug" title="Debug (`)">Debug</button>
+  <aside id="debug" class="hidden">
+    <h3>Debug</h3>
+    <label><input type="checkbox" id="dbg-xp"> Show skill XP</label>
+    <label><input type="checkbox" id="dbg-god"> God mode</label>
+    <label><input type="checkbox" id="dbg-touch"> Touch controls</label>
+    <div class="dbg-buttons">
+      <button data-dbg="mark">+1 Mark</button>
+      <button data-dbg="gold">+200 gold</button>
+      <button data-dbg="heal">Heal</button>
+      <button data-dbg="reveal">Reveal map</button>
+      <button data-dbg="kill">Kill monsters</button>
+      <button data-dbg="depth">Next depth</button>
+      <button data-dbg="win">Win Tithe</button>
+      <button data-dbg="replay">Replay seed</button>
+      <button data-dbg="reset" class="danger">Delete character</button>
+    </div>
+    <div id="dbg-info"></div>
+  </aside>
+
+  <script type="module" src="js/client/main.js"></script>
+</body>
+</html>

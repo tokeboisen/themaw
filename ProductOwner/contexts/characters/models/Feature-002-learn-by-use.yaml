@@ -1,0 +1,158 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Learn by use
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: every blow that lands makes the skill that dealt it better, so the character grows into
+      what the player actually does instead of a class picked up front.
+elements:
+  - id: EVT-01
+    type: event
+    name: Blow landed
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: Monster slain
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-02
+  - id: EVT-03
+    type: event
+    name: Rival defeated
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-03
+  - id: EVT-06
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+  - id: SVC-01
+    type: service
+    name: Skill trainer
+    col: 2
+    stack: 2
+    description: Turns every blow that lands into experience for the skill that dealt it.
+  - id: CMD-01
+    type: command
+    name: Train skill
+    col: 3
+    stack: 2
+    fields:
+      - name: Skill
+      - name: Experience
+  - id: AGG-01
+    type: aggregate
+    name: Character
+    col: 4
+    stack: 2
+    description: >-
+      A Branded candidate who belongs to a user: who they are and what they have become – attributes, skills,
+      Echo and Marks.
+    fields:
+      - name: Skills
+        attributes:
+          - name: Skill
+          - name: Level
+          - name: Experience
+        many: true
+  - id: EVT-04
+    type: event
+    name: Skill trained
+    col: 5
+    stack: 1
+  - id: EVT-05
+    type: event
+    name: Skill level gained
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-06
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-04
+  - from: AGG-01
+    to: EVT-05
+rules:
+  - applies_to:
+      - SVC-01
+    text: >-
+      A blow that lands trains the skill of the weapon that dealt it – Blades, Heavy Weapons or Bows (unarmed
+      counts as Blades) – and an Echo Bolt trains Echo Arts. A blow that misses or is dodged trains nothing.
+  - applies_to:
+      - SVC-01
+      - CMD-01
+    text: >-
+      A blow gives 1 experience, and the killing blow 3 more. A swing that hits several enemies trains at most
+      3 of the hits.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Challenge: the experience is multiplied by the enemy's level divided by the character's Mark, kept between
+      0.25 and 1.5, so weak enemies teach little and strong ones more.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Intelligence speeds up learning: +2 % experience for each point of Intelligence above 10, items included.
+  - applies_to:
+      - AGG-01
+    text: >-
+      A skill needs 4 + 0.8 × its level in experience to go up one level, so later levels need more use. Skills
+      stop at 100. Experience above the threshold carries on.
+  - applies_to:
+      - EVT-05
+    text: >-
+      The effective skill used in combat is the level plus the bonus from its attributes and items (Spend points).
+      Each effective level gives 1.5 % more damage and 0.4 % shorter attack time, at most 35 % shorter.
+  - applies_to:
+      - SVC-01
+    text: Blows on other players train like blows on NPC rivals; the challenge uses the other player's Mark.
+scenarios:
+  - title: A blow raises the weapon's skill
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is Mark 1 with Heavy Weapons 10 and 11.5 of the 12 experience to level 11
+      When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 1 Gnawer
+      Then SVC-01 "Skill trainer" performs CMD-01 "Train skill" with Heavy Weapons and 1 experience
+      And EVT-04 "Skill trained" is recorded
+      And EVT-05 "Skill level gained" is recorded with Heavy Weapons 11
+  - title: Weak enemies teach little
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael is Mark 4
+      When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 1 Gnawer
+      Then SVC-01 "Skill trainer" performs CMD-01 "Train skill" with Heavy Weapons and 0.25 experience

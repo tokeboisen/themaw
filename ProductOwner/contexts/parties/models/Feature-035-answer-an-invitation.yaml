@@ -1,0 +1,123 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Answer an invitation
+  bounded_context: Parties
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: accept or decline an invitation in the first seconds of a Tithe, so the player decides
+      who to fight with.
+elements:
+  - id: EVT-01
+    type: event
+    name: Invitation sent
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Parties
+      use_case: Form a party
+      event: EVT-01
+  - id: VIEW-01
+    type: view
+    name: Invitation
+    col: 2
+    stack: 1
+    actors:
+      - Player
+    description: An invitation to join another player's party.
+    behavior: >-
+      Pops up in the Other players overlay: "<user name> invites you to their party." with Accept, Decline
+      and the countdown.
+  - id: CMD-01
+    type: command
+    name: Accept invitation
+    col: 3
+    stack: 1
+    story: As a player I want to accept an invitation, so that I fight in my friend's party.
+    fields:
+      - name: Invitation
+  - id: CMD-02
+    type: command
+    name: Decline invitation
+    col: 3
+    stack: 2
+    story: As a player I want to decline an invitation, so that I choose who I fight with.
+    fields:
+      - name: Invitation
+  - id: AGG-01
+    type: aggregate
+    name: Party
+    col: 4
+    stack: 1
+    description: 'Players who fight together in one Tithe: the members and the open invitations.'
+    fields:
+      - name: Members
+        attributes:
+          - name: Player
+          - name: Character
+        many: true
+      - name: Invitations
+        attributes:
+          - name: Player
+          - name: Status
+        many: true
+  - id: EVT-02
+    type: event
+    name: Party joined
+    col: 5
+    stack: 1
+  - id: EVT-03
+    type: event
+    name: Invitation declined
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: VIEW-01
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-02
+  - from: AGG-01
+    to: EVT-03
+rules:
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: >-
+      An invitation can only be answered during the Tithe's first 20 seconds; when the countdown ends, it lapses.
+  - applies_to:
+      - CMD-01
+    text: Accepting leaves the party the player was in.
+  - applies_to:
+      - EVT-02
+      - EVT-03
+    text: The one who invited sees "<user name> joined the party." or "<user name> declined.".
+scenarios:
+  - title: Brann accepts
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given EVT-01 "Invitation sent" has been recorded from Kael to Brann 5 seconds after the start
+      When the player performs CMD-01 "Accept invitation"
+      Then EVT-02 "Party joined" is recorded
+      And Kael and Brann see each other on the map with their user names
+  - title: Brann declines
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given EVT-01 "Invitation sent" has been recorded from Kael to Brann
+      When the player performs CMD-02 "Decline invitation"
+      Then EVT-03 "Invitation declined" is recorded
+      And Kael sees "brann declined."

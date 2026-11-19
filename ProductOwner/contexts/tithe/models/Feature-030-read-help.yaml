@@ -1,0 +1,46 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Read help
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: look up the shortcut keys and short texts about how the game works, so a new player can
+      learn the game while playing.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Help
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: Shortcut keys and short help texts about the game.
+    behavior: >-
+      Opened with the Help button or H, in the Rim and during a Tithe, as a see-through overlay like the character
+      sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack (Space),
+      the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration (R), descend and the gate (F), character
+      (C), other players (O), help (H) and close (Esc) – and short texts on: The Tithe, Fighting, Skills and
+      Marks, Gear and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others.
+flows: []
+rules:
+  - applies_to:
+      - VIEW-01
+    text: The help texts are short (a few sentences per topic) and in English, like the rest of the game.
+  - applies_to:
+      - VIEW-01
+    text: The key list shows what is actually on the hotbar keys of the character being played.
+scenarios:
+  - title: Help during a Tithe
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael is in a Tithe
+      When the player opens VIEW-01 "Help"
+      Then the shortcut keys and the help topics are shown
+      And the Tithe goes on behind the help

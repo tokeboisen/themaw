@@ -1,0 +1,19 @@
+dsl_version: '0.8'
+product: The Maw
+bounded_context:
+  name: Parties
+  description: >-
+    The parties formed inside a Tithe: during its first 20 seconds the players invite each other and accept
+    or decline, and a player can leave the party; and the overview of the other players on the server.
+  vision: Teaming up takes a few clicks in the first seconds of a Tithe, as in the old dungeon crawlers.
+  domain: Online Play
+  system: Maw Server
+  lifecycle: planned
+  classification: supporting
+  capabilities:
+    - name: Parties
+      description: Inviting other players and playing as a team.
+      lifecycle: planned
+      use_cases:
+        - Form a party
+        - Answer an invitation

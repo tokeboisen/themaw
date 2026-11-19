@@ -1,0 +1,11 @@
+dsl_version: '0.8'
+product: The Maw
+system:
+  name: The Maw App
+  description: >-
+    The game client: a web app in the browser for now, an Android app later. It shows the views of every bounded
+    context and sends the player's actions to the Maw Server; it runs no rules of its own, so it implements
+    no bounded context.
+  vision: A dungeon crawler that is quick to pick up on a phone and deep enough to play for months.
+  lifecycle: planned
+  colour: '#c8553d'

@@ -1,0 +1,187 @@
+dsl_version: '0.8'
+product: The Maw
+version: 3
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Keep the wallet
+  bounded_context: Market
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the starting gold, the Crown's Purse, sponsor gold and the gold found in a Tithe land
+      in one wallet, and a defeat by another player spills some of it, so the player can see and spend what
+      the character owns.
+elements:
+  - id: EVT-01
+    type: event
+    name: Character created
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Characters
+      use_case: Create character
+      event: EVT-01
+  - id: EVT-02
+    type: event
+    name: Found gear kept
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Gear
+      use_case: Settle found gear
+      event: EVT-02
+  - id: EVT-03
+    type: event
+    name: Purse paid
+    col: 1
+    stack: 3
+    stimulus:
+      bounded_context: Patronage
+      use_case: Pay the Crown's Purse
+      event: EVT-03
+  - id: EVT-04
+    type: event
+    name: Gold gift accepted
+    col: 1
+    stack: 4
+    stimulus:
+      bounded_context: Patronage
+      use_case: Accept sponsor gifts
+      event: EVT-02
+  - id: SVC-01
+    type: service
+    name: Banker
+    col: 2
+    stack: 2
+  - id: CMD-01
+    type: command
+    name: Add gold
+    col: 3
+    stack: 2
+    fields:
+      - name: Gold
+  - id: AGG-01
+    type: aggregate
+    name: Wallet
+    col: 4
+    stack: 2
+    description: The character's gold.
+    fields:
+      - name: Gold
+  - id: EVT-05
+    type: event
+    name: Gold added
+    col: 5
+    stack: 2
+  - id: EVT-06
+    type: event
+    name: Player defeated
+    col: 1
+    stack: 5
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the depths
+      event: EVT-06
+  - id: EVT-07
+    type: event
+    name: Character deleted
+    col: 1
+    stack: 6
+    stimulus:
+      bounded_context: Characters
+      use_case: Delete character
+      event: EVT-01
+  - id: CMD-02
+    type: command
+    name: Spill gold
+    col: 3
+    stack: 3
+    fields:
+      - name: Gold
+  - id: CMD-03
+    type: command
+    name: Close wallet
+    col: 3
+    stack: 4
+    fields:
+      - name: Character
+  - id: EVT-08
+    type: event
+    name: Gold spilled
+    col: 5
+    stack: 3
+  - id: EVT-09
+    type: event
+    name: Wallet closed
+    col: 5
+    stack: 4
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: EVT-03
+    to: SVC-01
+  - from: EVT-04
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-05
+  - from: EVT-06
+    to: SVC-01
+  - from: EVT-07
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-02
+  - from: SVC-01
+    to: CMD-03
+  - from: CMD-02
+    to: AGG-01
+  - from: CMD-03
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-08
+  - from: AGG-01
+    to: EVT-09
+rules:
+  - applies_to:
+      - SVC-01
+    text: A new character starts with 60 gold.
+  - applies_to:
+      - SVC-01
+    text: The gold found in a Tithe is only added when it is kept (EVT-02); a fall adds nothing of it.
+  - applies_to:
+      - AGG-01
+    text: The Rim shows the gold at the top of every tab.
+  - applies_to:
+      - CMD-02
+      - EVT-08
+    text: >-
+      A player defeated by another player spills 10–20 % of the gold in the wallet, rounded down. It lies on
+      the floor where the player fell, and whoever picks it up finds it (Gear, Pick up loot).
+  - applies_to:
+      - CMD-03
+    text: When a character is deleted, its wallet is closed and the gold is gone.
+scenarios:
+  - title: The Crown pays
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael has 60 gold
+      When EVT-03 "Purse paid" has been recorded with 690 gold
+      Then SVC-01 "Banker" performs CMD-01 "Add gold" with 690 gold
+      And EVT-05 "Gold added" is recorded
+      And Kael has 750 gold
+  - title: A defeat spills gold
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Brann has 200 gold
+      When EVT-06 "Player defeated" has been recorded for Brann
+      Then SVC-01 "Banker" performs CMD-02 "Spill gold" with between 20 and 40 gold
+      And EVT-08 "Gold spilled" is recorded

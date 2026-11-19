@@ -1,0 +1,17 @@
+{
+  "name": "@maw/platform",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Fælles drift for api og tithe-server: bussen over RabbitMQ.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@maw/contracts": "0.1.0",
+    "amqplib": "0.10.9"
+  },
+  "devDependencies": {
+    "@types/amqplib": "0.10.8"
+  }
+}

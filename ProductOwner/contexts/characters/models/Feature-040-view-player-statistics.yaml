@@ -1,0 +1,43 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: View player statistics
+  bounded_context: Characters
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: see what the user's characters have done in the Tithes, so the player can follow their
+      progress.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Player statistics
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The statistics of the user's characters.
+    behavior: >-
+      Opened with Statistics on the character list and in the Rim. Shows for each of the user's characters:
+      Tithes played, times Champion, falls, times left, deepest depth, monsters slain, rivals defeated, Player
+      kills and times killed by players.
+flows: []
+rules:
+  - applies_to:
+      - VIEW-01
+    text: The statistics come from Keep player statistics.
+  - applies_to:
+      - VIEW-01
+    text: Players only see the statistics of their own characters.
+scenarios:
+  - title: Kael's Player kills
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael has 2 Player kills
+      When the player opens VIEW-01 "Player statistics"
+      Then Kael's Player kills show 2

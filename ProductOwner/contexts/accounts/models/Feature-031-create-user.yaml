@@ -1,0 +1,133 @@
+dsl_version: '0.8'
+product: The Maw
+version: 3
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Create user
+  bounded_context: Accounts
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: create a user with a user name and a password, so the player's characters are the player's
+      own and the player can meet other players.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Sign in
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: 'The first screen when no user is signed in on the device: log in or create a user.'
+    behavior: >-
+      User name and Password with Log in, and Create user. Create user asks for a user name and a password.
+      Errors are shown under the field they concern.
+  - id: CMD-01
+    type: command
+    name: Create user
+    col: 2
+    stack: 1
+    story: As a player I want to create a user with a user name and a password, so that my characters are mine.
+    fields:
+      - name: User name
+      - name: Password
+  - id: AGG-01
+    type: aggregate
+    name: User
+    col: 3
+    stack: 1
+    description: >-
+      A player's user: a unique user name, which other players see, and the password, stored only as a hash.
+    fields:
+      - name: User name
+      - name: Password hash
+      - name: Created at
+  - id: EVT-01
+    type: event
+    name: User created
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      The user name is 3–20 characters – letters, digits and symbols, without spaces ("Use 3–20 letters, digits
+      or symbols, without spaces.") – and must be unique, regardless of upper and lower case ("This user name
+      is taken.").
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      The password can be anything of at least 8 characters ("The password must be at least 8 characters.").
+      It is stored only as a hash.
+  - applies_to:
+      - EVT-01
+    text: >-
+      There are no email addresses for now. A new user is signed in right away and goes to Create character
+      (Characters, Choose character).
+  - applies_to:
+      - AGG-01
+    text: >-
+      The user name is shown to other players: in the list of Tithes, in the lobby, over the player in a Tithe,
+      on the map of the player's party and in Other players.
+scenarios:
+  - title: A user is created
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given no user is called "kael"
+      When the player performs CMD-01 "Create user" with "kael" and a password of 10 characters
+      Then EVT-01 "User created" is recorded
+      And the player is signed in
+  - title: The user name is taken
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given a user is called "Kael"
+      When the player performs CMD-01 "Create user" with "kael"
+      Then nothing is recorded
+      And "This user name is taken." is shown
+  - title: A short password
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given no user is called "brann"
+      When the player performs CMD-01 "Create user" with "brann" and a password of 7 characters
+      Then nothing is recorded
+      And "The password must be at least 8 characters." is shown
+open_questions:
+  - topic: Password rules
+    question: Is a minimum of 8 characters the right password rule?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: 'Decided 2026-11-19: yes, any password of at least 8 characters.'
+  - topic: Email addresses
+    question: Should users have an email address, confirmed, with a reset of forgotten passwords?
+    status: resolved
+    applies_to:
+      - EVT-01
+    resolution: >-
+      Decided 2026-11-19: no email addresses for now – only user name and password. So there is no confirmation,
+      and a forgotten password cannot be reset until user administration comes.
+  - topic: User administration
+    question: Should an administrator be able to see, block and delete users?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: 'Decided 2026-11-19: not now; it comes later.'
+  - topic: User names
+    question: Are 3–20 letters, digits, - or _ the right rule for user names?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: 'Decided 2026-11-19: letters, digits and symbols, 3–20 characters.'

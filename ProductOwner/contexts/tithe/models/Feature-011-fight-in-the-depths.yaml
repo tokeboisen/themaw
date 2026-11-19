@@ -1,0 +1,234 @@
+dsl_version: '0.8'
+product: The Maw
+version: 4
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Fight in the depths
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: strike monsters, rivals and other players with the weapon in hand or an Echo Art, so
+      the candidate survives, earns Echo and Renown and finds loot.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: >-
+      A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to
+      the player in red). Monsters about to attack show their reach in red, and the Foreman's slam a red circle.
+  - id: CMD-01
+    type: command
+    name: Strike
+    col: 2
+    stack: 1
+    story: As a player I want to strike with my weapon, so that I kill what stands between me and the bottom.
+    fields:
+      - name: Weapon
+      - name: Target
+  - id: CMD-02
+    type: command
+    name: Cast Echo Bolt
+    col: 2
+    stack: 2
+    story: As a player I want to cast an Echo Bolt, so that I can hit from afar with any weapon.
+    fields:
+      - name: Target
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 3
+    stack: 3
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Life
+          - name: Stamina
+          - name: Focus
+          - name: Hostile
+        many: true
+      - name: Monsters
+        attributes:
+          - name: Kind
+          - name: Level
+          - name: Life
+        many: true
+      - name: Warden alive
+      - name: Gate open
+      - name: Record
+        attributes:
+          - name: Kills
+          - name: Rivals defeated
+  - id: EVT-01
+    type: event
+    name: Blow landed
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Monster slain
+    col: 4
+    stack: 2
+  - id: EVT-03
+    type: event
+    name: Rival defeated
+    col: 4
+    stack: 3
+  - id: EVT-04
+    type: event
+    name: Warden slain
+    col: 4
+    stack: 4
+  - id: EVT-05
+    type: event
+    name: Loot dropped
+    col: 4
+    stack: 5
+  - id: EVT-06
+    type: event
+    name: Player defeated
+    col: 4
+    stack: 6
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+  - from: AGG-01
+    to: EVT-03
+  - from: AGG-01
+    to: EVT-04
+  - from: AGG-01
+    to: EVT-05
+  - from: AGG-01
+    to: EVT-06
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Aim is automatic: the nearest monster or hostile NPC rival within reach and in sight; another player
+      or a peaceful NPC rival only when nothing else is near. Party members are never aimed at. A melee weapon
+      hits everything in its arc (blades 80–100°, heavy weapons 140–150°); a bow shoots an arrow.
+  - applies_to:
+      - CMD-01
+    text: >-
+      A strike costs stamina and cannot be repeated before the weapon's attack time has passed. Damage is the
+      weapon's damage × (1 + 1.5 % per effective skill level) × (1 + % damage from items). Critical hits –
+      5 % + 0.5 % per Dexterity above 10 – deal 1.6 times the damage.
+  - applies_to:
+      - CMD-02
+    text: >-
+      Every character can cast Echo Bolt, from its hotbar key (Gear, Use the hotbar). It costs 8 focus, flies
+      8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts.
+  - applies_to:
+      - CMD-01
+      - EVT-06
+    text: >-
+      Players may strike players outside their party, never members of their own party; a player without a
+      party can be struck by every other player once the grace is over. A player who is struck down by another
+      player is defeated: the player falls and leaves the Tithe (End the Tithe).
+  - applies_to:
+      - EVT-06
+    text: >-
+      A defeated player spills 10–20 % of the gold in the wallet on the floor where the player fell, for anyone
+      to pick up (Market, Keep the wallet), and the one who struck the player down gets a Player kill (Characters,
+      Keep player statistics).
+  - applies_to:
+      - EVT-03
+    text: >-
+      A rival that is struck becomes hostile to the player. A defeated rival is dragged back by the Brand and
+      drops gold and perhaps an item.
+  - applies_to:
+      - EVT-02
+      - EVT-04
+    text: >-
+      EVT-02 "Monster slain" is recorded for every monster, The Foreman included. Only the player who slays
+      The Foreman opens the gate (Claim the Tithe); if a rival slays him, the rival claims the Tithe (Rivals
+      race).
+  - applies_to:
+      - EVT-05
+    text: >-
+      A monster slain by the player drops gold (40 %), an item (12 %, Tunnel Brute 30 %) and a potion or a
+      ration (15 %); The Foreman drops gold, a rare and two magic items. Monsters called by the Mirrormaster
+      or The Foreman drop nothing. A cache drops gold, one or two items and perhaps a supply when the candidate
+      walks into it.
+  - applies_to:
+      - AGG-01
+    text: >-
+      The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar
+      and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam
+      around him, calls Gnawers every 14 seconds, never leaves his hall). A monster's level is the depth +
+      half of the player's Marks above 1.
+scenarios:
+  - title: A blow slays a Gnawer
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given a level 1 Gnawer with 5 life left is next to Kael
+      When the player performs CMD-01 "Strike" with the Pickaxe
+      Then EVT-01 "Blow landed" is recorded
+      And EVT-02 "Monster slain" is recorded
+  - title: Striking a peaceful rival makes her hostile
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Vessa Thorne is peaceful and the only candidate near Kael
+      When the player performs CMD-01 "Strike"
+      Then EVT-01 "Blow landed" is recorded on Vessa Thorne
+      And Vessa Thorne is hostile to Kael
+  - title: No focus, no bolt
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael has 5 focus
+      When the player performs CMD-02 "Cast Echo Bolt"
+      Then nothing is recorded
+  - title: A party member is never hit
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Brann is in Kael's party and stands in Kael's swing
+      When the player performs CMD-01 "Strike"
+      Then no blow lands on Brann
+open_questions:
+  - topic: Players fighting players
+    question: May players strike players outside their party?
+    status: resolved
+    applies_to:
+      - CMD-01
+      - EVT-06
+    resolution: >-
+      Decided 2026-11-19: yes, players in other parties and players without a party; never members of their
+      own party.
+  - topic: What a defeated player drops
+    question: >-
+      Proposal: a player defeated by another player spills 10–20 % of the gold in the wallet on the floor,
+      and the one who struck the player down gets a Player kill, shown in the player statistics. Is it 10–20
+      % or a fixed 10–20 gold?
+    status: resolved
+    applies_to:
+      - EVT-06
+    resolution: >-
+      Decided 2026-11-19: the defeated player spills 10–20 % of the gold in the wallet on the floor, and the
+      one who struck the player down gets a Player kill, shown in the player statistics.

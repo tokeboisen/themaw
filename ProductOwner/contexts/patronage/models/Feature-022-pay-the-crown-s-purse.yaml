@@ -1,0 +1,100 @@
+dsl_version: '0.8'
+product: The Maw
+version: 2
+status: draft
+created: '2026-11-19'
+use_case:
+  name: Pay the Crown's Purse
+  bounded_context: Patronage
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: the Crown pays gold after every Tithe for how deep the candidate came, the Warden, Renown
+      and the championship, so even a lost Tithe brings the character forward.
+elements:
+  - id: EVT-01
+    type: event
+    name: Renown earned
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Spectacle
+      use_case: Run the show
+      event: EVT-07
+  - id: EVT-02
+    type: event
+    name: Tithe ended
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: End the Tithe
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Crown treasurer
+    col: 2
+    stack: 1
+  - id: CMD-01
+    type: command
+    name: Pay the purse
+    col: 3
+    stack: 1
+    fields:
+      - name: Tithe
+  - id: AGG-01
+    type: aggregate
+    name: Crown's Purse
+    col: 4
+    stack: 1
+    description: The gold the Crown pays a candidate after a Tithe.
+    fields:
+      - name: Tithe
+      - name: Deepest depth
+      - name: Warden slain
+      - name: Renown
+      - name: Outcome
+      - name: Amount
+  - id: EVT-03
+    type: event
+    name: Purse paid
+    col: 5
+    stack: 1
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+rules:
+  - applies_to:
+      - SVC-01
+    text: The treasurer adds up the Renown earned during the Tithe and pays when it ends.
+  - applies_to:
+      - CMD-01
+      - AGG-01
+    text: >-
+      The purse is 40 × the deepest depth + 150 when the player's party slew The Foreman + 0.3 × Renown + 300
+      for each Champion. A fall or leaving halves it.
+scenarios:
+  - title: The Champion's purse
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael reached depth 3, slew The Foreman and earned 400 Renown
+      When EVT-02 "Tithe ended" has been recorded with Kael as Champion
+      Then SVC-01 "Crown treasurer" performs CMD-01 "Pay the purse"
+      And EVT-03 "Purse paid" is recorded with 690 gold
+  - title: A fall halves the purse
+    applies_to:
+      - SVC-01
+    gherkin: |-
+      Given Kael reached depth 2 and earned 100 Renown
+      When EVT-02 "Tithe ended" has been recorded with Kael fallen
+      Then EVT-03 "Purse paid" is recorded with 55 gold

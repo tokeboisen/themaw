@@ -1,0 +1,119 @@
+# The Maw i Docker Desktop. Kun gatewayen kan nås fra lokalnettet (port 8100); se README.md.
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#   docker compose -f deploy/docker-compose.yml run --rm tools npm test
+name: maw
+
+x-db-url: &database-url postgres://maw:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@postgres:5432/maw
+x-rabbit-url: &rabbit-url amqp://maw:${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in deploy/.env}@rabbitmq:5672
+
+services:
+  gateway:
+    image: caddy:2
+    ports:
+      - "0.0.0.0:8100:8100"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      web:
+        condition: service_started
+      api:
+        condition: service_healthy
+      tithe-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: web
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: api
+    environment:
+      DATABASE_URL: *database-url
+      RABBITMQ_URL: *rabbit-url
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  tithe-server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: tithe-server
+    environment:
+      RABBITMQ_URL: *rabbit-url
+      PORT: "3001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: maw
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "127.0.0.1:15673:15672" # management-UI, kun på denne maskine
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: maw
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: maw
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maw -d maw"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Installation, typetjek og tests med node_modules i et Docker-volume, så de ikke synkroniseres til OneDrive.
+  tools:
+    profiles: ["tools"]
+    image: node:22-alpine
+    working_dir: /repo
+    environment:
+      DATABASE_URL: *database-url
+      RABBITMQ_URL: *rabbit-url
+    volumes:
+      - ..:/repo
+      - node_modules:/repo/node_modules
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  node_modules:
