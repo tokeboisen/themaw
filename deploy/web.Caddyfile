@@ -6,6 +6,8 @@
 
 :80 {
 	root * /srv
+	# Browseren tjekker altid, om der er en ny version (ETag gør det billigt), så en ny klient følger et deploy.
+	header Cache-Control "no-cache"
 	try_files {path} /index.html
 	file_server
 }
