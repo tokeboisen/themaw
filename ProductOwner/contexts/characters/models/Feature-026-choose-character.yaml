@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -39,9 +39,10 @@ elements:
       - Player
     description: The user's characters, with Play, New character, Delete and Statistics.
     behavior: >-
-      Shown after sign-in. Lists the user's characters with name, background, Mark, Tithes played and times
-      as Champion, each with Play and Delete (Delete character), and the buttons New character (Create character)
-      and Statistics (View player statistics). A user without characters goes straight to Create character.
+      Shown after sign-in and with the Characters button in the Rim. Lists the user's characters with name,
+      background, Mark, Tithes played and times as Champion, each with Play and Delete (Delete character),
+      and the buttons New character (Create character) and Statistics (View player statistics). A user without
+      characters goes straight to Create character.
   - id: CMD-01
     type: command
     name: Choose character

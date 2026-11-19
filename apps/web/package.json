@@ -5,7 +5,7 @@
   "description": "Webappen: klienten, der viser alle views og sender spillerens handlinger.",
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && esbuild src/main.ts --bundle --format=esm --target=es2022 --minify --sourcemap --outfile=dist/main.js && cp index.html dist/"
+    "build": "rm -rf dist && mkdir -p dist && esbuild src/main.ts --bundle --format=esm --target=es2022 --minify --sourcemap --outfile=dist/main.js && cp index.html style.css dist/"
   },
   "dependencies": {
     "@maw/contracts": "0.1.0",

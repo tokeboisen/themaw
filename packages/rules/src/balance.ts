@@ -2,7 +2,25 @@
 // Reglerne i Event Modellen nævner de samme tal; ændres et tal, der står i en feature, ændres featuren først.
 // Tider er i sekunder, afstande i felter (tiles), og en egenskab starter på 10.
 
-import type { AffixDef, Background, ItemBase, SkillId, Attribute } from './types.ts';
+import type { AffixDef, Attribute, Background, ItemBase, Range, SkillId } from './types.ts';
+
+// Egenskaber i rækkefølgen Strength, Dexterity, Stamina, Constitution, Intelligence; skills i rækkefølgen Blades,
+// Heavy Weapons, Bows, Echo Arts. Et tal er en værdi, et par er [minimum, maksimum].
+function attrs(str: number, dex: number, sta: number, con: number, int: number): Record<Attribute, number>;
+function attrs(str: [number, number], dex: [number, number], sta: [number, number], con: [number, number], int: [number, number]): Record<Attribute, Range>;
+function attrs(...v: (number | [number, number])[]): Record<Attribute, number | Range> {
+  const keys: Attribute[] = ['strength', 'dexterity', 'stamina', 'constitution', 'intelligence'];
+  return Object.fromEntries(keys.map((k, i) => [k, toValue(v[i]!)])) as Record<Attribute, number | Range>;
+}
+function skills(blades: number, heavy: number, bows: number, echo: number): Record<SkillId, number>;
+function skills(blades: [number, number], heavy: [number, number], bows: [number, number], echo: [number, number]): Record<SkillId, Range>;
+function skills(...v: (number | [number, number])[]): Record<SkillId, number | Range> {
+  const keys: SkillId[] = ['blades', 'heavy', 'bows', 'echo'];
+  return Object.fromEntries(keys.map((k, i) => [k, toValue(v[i]!)])) as Record<SkillId, number | Range>;
+}
+function toValue(v: number | [number, number]): number | Range {
+  return typeof v === 'number' ? v : { min: v[0], max: v[1] };
+}
 
 export interface MonsterDef {
   name: string;
@@ -37,36 +55,57 @@ export interface RivalDef {
 }
 
 const BACKGROUNDS: Background[] = [
+  // Feature-001 Create character: styrker, svagheder, forslag og grænser pr. baggrund.
   {
     id: 'miner',
     name: 'Miner',
     text: 'Dug Echo crystals in the shafts of Cinderhollow. Strong and hard to kill.',
-    attributes: { strength: 3, constitution: 2 },
-    skills: { heavy: 10, blades: 3, bows: 1, echo: 1 },
+    strengths: ['Strength', 'Constitution', 'Heavy Weapons'],
+    weaknesses: ['Dexterity', 'Intelligence', 'Echo Arts'],
+    suggestion: { attributes: attrs(13, 10, 10, 12, 10), skills: skills(3, 10, 2, 1) },
+    limits: {
+      attributes: attrs([11, 16], [7, 12], [9, 13], [10, 15], [7, 12]),
+      skills: skills([0, 8], [6, 12], [0, 6], [0, 4]),
+    },
     weapon: 'pickaxe',
   },
   {
     id: 'poacher',
     name: 'Poacher',
     text: "Hunted the Crown's deer by night. Quick hands, sharp eyes.",
-    attributes: { dexterity: 4, stamina: 1 },
-    skills: { bows: 10, blades: 4, heavy: 1, echo: 1 },
+    strengths: ['Dexterity', 'Bows'],
+    weaknesses: ['Constitution', 'Heavy Weapons'],
+    suggestion: { attributes: attrs(10, 14, 11, 10, 10), skills: skills(4, 1, 10, 1) },
+    limits: {
+      attributes: attrs([8, 13], [12, 17], [9, 14], [7, 12], [8, 13]),
+      skills: skills([0, 8], [0, 4], [6, 12], [0, 6]),
+    },
     weapon: 'short_bow',
   },
   {
     id: 'acolyte',
     name: 'Temple Acolyte',
     text: 'Studied the Echo in the temple archives. Weak arm, bright mind.',
-    attributes: { intelligence: 4, stamina: 1 },
-    skills: { echo: 10, blades: 4, bows: 2, heavy: 0 },
+    strengths: ['Intelligence', 'Echo Arts'],
+    weaknesses: ['Strength', 'Constitution', 'Heavy Weapons'],
+    suggestion: { attributes: attrs(10, 10, 11, 10, 14), skills: skills(4, 0, 2, 10) },
+    limits: {
+      attributes: attrs([7, 12], [8, 13], [9, 14], [7, 12], [12, 17]),
+      skills: skills([0, 8], [0, 4], [0, 6], [6, 12]),
+    },
     weapon: 'dagger',
   },
   {
     id: 'runner',
     name: 'Street Runner',
     text: 'Ran messages and errands through every alley in Aurum. Never tires.',
-    attributes: { stamina: 3, dexterity: 2 },
-    skills: { blades: 10, bows: 3, heavy: 2, echo: 1 },
+    strengths: ['Stamina', 'Dexterity', 'Blades'],
+    weaknesses: ['Intelligence', 'Echo Arts'],
+    suggestion: { attributes: attrs(10, 12, 13, 10, 10), skills: skills(10, 2, 3, 1) },
+    limits: {
+      attributes: attrs([8, 13], [10, 15], [11, 16], [8, 13], [7, 12]),
+      skills: skills([6, 12], [0, 6], [0, 8], [0, 4]),
+    },
     weapon: 'rusty_sword',
   },
 ];
@@ -151,6 +190,8 @@ export const BALANCE = {
     capacityPerTwoStrength: 1,
   },
   backgrounds: BACKGROUNDS,
+  /** Feature-001: egenskaberne giver tilsammen 55 og skills 16; navnet er højst 20 tegn. */
+  creation: { attributeTotal: 55, skillTotal: 16, nameMax: 20 },
   marks: { echoBase: 20, echoExponent: 1.5, attributePoints: 3, skillPoints: 2 },
   skills: {
     max: 100,

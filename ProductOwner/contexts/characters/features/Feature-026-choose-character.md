@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-026-choose-character.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -109,7 +109,7 @@ Scenario: Another character is chosen
 |---|---|---|---|
 | VIEW-01 | Characters | EVT-01, EVT-02 | CMD-01 |
 
-**VIEW-01:** Shown after sign-in. Lists the user's characters with name, background, Mark, Tithes played and times as Champion, each with Play and Delete (Delete character), and the buttons New character (Create character) and Statistics (View player statistics). A user without characters goes straight to Create character.
+**VIEW-01:** Shown after sign-in and with the Characters button in the Rim. Lists the user's characters with name, background, Mark, Tithes played and times as Champion, each with Play and Delete (Delete character), and the buttons New character (Create character) and Statistics (View player statistics). A user without characters goes straight to Create character.
 
 ```gherkin
 Scenario: A new user goes straight to Create character
@@ -120,7 +120,7 @@ Scenario: A new user goes straight to Create character
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

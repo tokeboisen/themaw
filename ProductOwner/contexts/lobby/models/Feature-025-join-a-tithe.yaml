@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -82,6 +82,11 @@ rules:
       - CMD-01
       - EVT-01
     text: Players can join until the Tithe is launched. Everyone in the lobby sees who is in it by user name.
+  - applies_to:
+      - VIEW-01
+    text: >-
+      The Rim has the buttons Character, Characters, Other players, Help and Account, and "Descend into the
+      Maw", which opens VIEW-01 "Tithes".
 scenarios:
   - title: Brann joins Ashfall
     applies_to:

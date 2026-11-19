@@ -1,8 +1,8 @@
 // api: commands og forespørgsler for Accounts, Characters, Gear, Market, Patronage, Lobby og Other players.
-// Fase 0: sundhedstjek, migrationer, bussen og outbox-relæet. Endpoints for features kommer i fase 1 og frem.
 
-import Fastify from 'fastify';
+import { bindingsFor, queueFor } from '@maw/contracts';
 import { connectBus } from '@maw/platform';
+import { buildApp } from './app.ts';
 import { createPool, migrate, waitForDatabase } from './db.ts';
 import { startRelay } from './outbox.ts';
 
@@ -13,8 +13,7 @@ const env = {
 };
 if (!env.databaseUrl || !env.rabbitUrl) throw new Error('DATABASE_URL and RABBITMQ_URL must be set');
 
-const app = Fastify({ logger: true });
-const log = (m: string) => app.log.info(m);
+const log = (message: string) => console.log(JSON.stringify({ time: new Date().toISOString(), service: 'api', message }));
 
 const pool = createPool(env.databaseUrl);
 await waitForDatabase(pool, log);
@@ -22,22 +21,18 @@ await migrate(pool, undefined, log);
 
 const bus = await connectBus(env.rabbitUrl, { log });
 bus.onClose(() => {
-  app.log.error('RabbitMQ connection closed; exiting so Docker restarts the service');
+  log('RabbitMQ connection closed; exiting so Docker restarts the service');
   process.exit(1);
 });
+// Køerne for api'ets bounded contexts oprettes med det samme, så events venter, også før deres lyttere er bygget
+// (f.eks. "Character created" til Gear og Market, der kommer i fase 2).
+for (const context of ['Characters', 'Gear', 'Market', 'Patronage']) {
+  const bindings = bindingsFor(context);
+  if (bindings.length) await bus.declare(queueFor(context), bindings);
+}
 const stopRelay = startRelay(pool, bus, log);
 
-app.get('/api/health', async (_request, reply) => {
-  let database = false;
-  try {
-    await pool.query('select 1');
-    database = true;
-  } catch {
-    database = false;
-  }
-  const ok = database && bus.isOpen();
-  return reply.code(ok ? 200 : 503).send({ status: ok ? 'ok' : 'degraded', service: 'api', database, bus: bus.isOpen() });
-});
+const app = buildApp(pool, bus, true);
 
 const shutdown = async () => {
   await stopRelay();

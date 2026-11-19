@@ -26,27 +26,33 @@ export async function waitForDatabase(pool: Pool, log: (m: string) => void = () 
   }
 }
 
+const MIGRATION_LOCK = 7_272_001; // advisory lock, så to processer ikke migrerer samtidig
+
 export async function migrate(pool: Pool, folder = MIGRATIONS, log: (m: string) => void = () => {}): Promise<string[]> {
-  await pool.query(`create schema if not exists platform;
-    create table if not exists platform.migrations (name text primary key, applied_at timestamptz not null default now())`);
-  const files = (await readdir(folder)).filter((f) => f.endsWith('.sql')).sort();
-  const applied = new Set((await pool.query<{ name: string }>('select name from platform.migrations')).rows.map((r) => r.name));
+  const client = await pool.connect();
   const done: string[] = [];
-  for (const file of files.filter((f) => !applied.has(f))) {
-    const client = await pool.connect();
-    try {
-      await client.query('begin');
-      await client.query(await readFile(join(folder, file), 'utf8'));
-      await client.query('insert into platform.migrations (name) values ($1)', [file]);
-      await client.query('commit');
-      done.push(file);
-      log(`Migration ${file} applied`);
-    } catch (err) {
-      await client.query('rollback');
-      throw err;
-    } finally {
-      client.release();
+  try {
+    await client.query('select pg_advisory_lock($1)', [MIGRATION_LOCK]);
+    await client.query(`create schema if not exists platform;
+      create table if not exists platform.migrations (name text primary key, applied_at timestamptz not null default now())`);
+    const files = (await readdir(folder)).filter((f) => f.endsWith('.sql')).sort();
+    const applied = new Set((await client.query<{ name: string }>('select name from platform.migrations')).rows.map((r) => r.name));
+    for (const file of files.filter((f) => !applied.has(f))) {
+      try {
+        await client.query('begin');
+        await client.query(await readFile(join(folder, file), 'utf8'));
+        await client.query('insert into platform.migrations (name) values ($1)', [file]);
+        await client.query('commit');
+        done.push(file);
+        log(`Migration ${file} applied`);
+      } catch (err) {
+        await client.query('rollback');
+        throw err;
+      }
     }
+  } finally {
+    await client.query('select pg_advisory_unlock($1)', [MIGRATION_LOCK]).catch(() => {});
+    client.release();
   }
   return done;
 }

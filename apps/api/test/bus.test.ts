@@ -6,15 +6,14 @@ import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { TECHNICAL_EVENTS } from '@maw/contracts';
 import { connectBus, envelope } from '@maw/platform';
-import { createPool, migrate } from '../src/db.ts';
 import { enqueue, idempotent, relayOnce } from '../src/outbox.ts';
+import { testPool } from './helpers.ts';
 
 const databaseUrl = process.env.DATABASE_URL;
 const rabbitUrl = process.env.RABBITMQ_URL;
 
 test('an event goes from the outbox over RabbitMQ to a listener, and only counts once', { skip: !databaseUrl || !rabbitUrl }, async () => {
-  const pool = createPool(databaseUrl!);
-  await migrate(pool);
+  const pool = await testPool(); // maw_test, så spillets egne data ikke røres
   const bus = await connectBus(rabbitUrl!, { retries: 5 });
   const queue = `maw.test-${randomUUID()}`;
   try {

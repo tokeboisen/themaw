@@ -18,18 +18,20 @@ export const ATTRIBUTE_NAMES: Record<Attribute, string> = {
 export const SKILLS: SkillId[] = ['blades', 'heavy', 'bows', 'echo'];
 export const SKILL_NAMES: Record<SkillId, string> = { blades: 'Blades', heavy: 'Heavy Weapons', bows: 'Bows', echo: 'Echo Arts' };
 
+/**
+ * En ny karakter med baggrundens forslag og startudstyr, som i prototypen (bruges af tests og den kommende Tithe).
+ * Serveren opretter karakteren med newCharacter (creation.ts), og Gear giver startudstyret (Feature-005).
+ */
 export function createCharacter(name: string, backgroundId: string, rng: Rng, B: Balance): Character {
   const bg = B.backgrounds.find((b) => b.id === backgroundId) ?? B.backgrounds[0]!;
   const C = B.character;
-  const attributes = Object.fromEntries(ATTRIBUTES.map((a) => [a, C.startAttribute + (bg.attributes[a] ?? 0)])) as Character['attributes'];
-  const skills = Object.fromEntries(SKILLS.map((s) => [s, { level: bg.skills[s] ?? 0, xp: 0 }])) as Character['skills'];
   return {
     name: name || 'Nameless',
     background: bg.id,
     level: 1,
     echo: 0,
-    attributes,
-    skills,
+    attributes: { ...bg.suggestion.attributes },
+    skills: Object.fromEntries(SKILLS.map((s) => [s, { level: bg.suggestion.skills[s], xp: 0 }])) as Character['skills'],
     attributePoints: 0,
     skillPoints: 0,
     gold: C.startGold,

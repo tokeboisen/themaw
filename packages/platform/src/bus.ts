@@ -14,6 +14,8 @@ export interface Bus {
   publish(event: EventEnvelope): Promise<void>;
   /** Lytter på køen med de givne routing keys. En handler, der fejler, sender beskeden til dead-letter-køen. */
   consume(queue: string, bindings: string[], handler: Handler): Promise<void>;
+  /** Opretter en holdbar kø med sine bindinger, så events venter i den, indtil nogen lytter. */
+  declare(queue: string, bindings: string[]): Promise<void>;
   deleteQueue(queue: string): Promise<void>;
   isOpen(): boolean;
   /** Kaldes, hvis forbindelsen lukker uventet. Services afslutter så, og Docker starter dem igen. */
@@ -57,6 +59,11 @@ export async function connectBus(url: string, opts: { retries?: number; log?: Lo
   const sub = await connection.createChannel();
   await sub.prefetch(10);
 
+  const declare = async (queue: string, bindings: string[]): Promise<void> => {
+    await sub.assertQueue(queue, { durable: true, deadLetterExchange: DEAD_LETTER_EXCHANGE });
+    for (const binding of bindings) await sub.bindQueue(queue, EXCHANGE, binding);
+  };
+
   return {
     async publish(event) {
       pub.publish(EXCHANGE, event.type, Buffer.from(JSON.stringify(event)), {
@@ -68,9 +75,9 @@ export async function connectBus(url: string, opts: { retries?: number; log?: Lo
       });
       await pub.waitForConfirms();
     },
+    declare,
     async consume(queue, bindings, handler) {
-      await sub.assertQueue(queue, { durable: true, deadLetterExchange: DEAD_LETTER_EXCHANGE });
-      for (const binding of bindings) await sub.bindQueue(queue, EXCHANGE, binding);
+      await declare(queue, bindings);
       await sub.consume(queue, (msg) => {
         if (!msg) return;
         let event: EventEnvelope;

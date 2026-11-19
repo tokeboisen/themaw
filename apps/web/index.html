@@ -5,34 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#120e0b">
   <title>The Maw</title>
-  <style>
-    :root { --bg: #120e0b; --panel: #1e1813; --line: #3d3228; --text: #ece4d6; --muted: #a39581; --ok: #6fcf6f; --bad: #ff7a6b; --accent: #c8553d; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at top, #2a1d14, var(--bg) 70%); color: var(--text);
-      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: grid; place-items: center; padding: 16px; }
-    main { width: min(520px, 100%); }
-    h1 { margin: 0 0 4px; font-size: 32px; letter-spacing: 0.03em; }
-    .lead { color: var(--muted); margin: 0 0 20px; }
-    .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
-    .row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .row:last-child { border-bottom: 0; }
-    .ok { color: var(--ok); }
-    .bad { color: var(--bad); }
-    .muted { color: var(--muted); }
-    code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <h1>The Maw</h1>
-    <p class="lead">The server is being built. This page checks that everything is reachable on your network.</p>
-    <div class="box">
-      <div class="row"><span>Game server (API)</span><span id="api" class="muted">checking…</span></div>
-      <div class="row"><span>Tithe server (live)</span><span id="ws" class="muted">connecting…</span></div>
-      <div class="row"><span>Players connected</span><span id="players" class="muted">–</span></div>
-    </div>
-    <p class="muted">Other players on your network join at <code id="address"></code></p>
-  </main>
+  <div id="app"></div>
+  <div id="overlay"></div>
   <script type="module" src="main.js"></script>
 </body>
 </html>

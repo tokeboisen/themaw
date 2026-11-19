@@ -38,9 +38,28 @@ export interface Background {
   id: string;
   name: string;
   text: string;
-  attributes: Partial<Record<Attribute, number>>;
-  skills: Partial<Record<SkillId, number>>;
+  strengths: string[];
+  weaknesses: string[];
+  /** Pointene, baggrunden foreslår (Feature-001). */
+  suggestion: Allocation;
+  /** Minimum og maksimum ved oprettelsen (Feature-001). */
+  limits: {
+    attributes: Record<Attribute, Range>;
+    skills: Record<SkillId, Range>;
+  };
+  /** Startvåbnet (et ItemBase-ID). */
   weapon: string;
+}
+
+export interface Range {
+  min: number;
+  max: number;
+}
+
+/** Fordelingen af point på egenskaber og skills, når en karakter oprettes. */
+export interface Allocation {
+  attributes: Record<Attribute, number>;
+  skills: Record<SkillId, number>;
 }
 
 export interface Affix {

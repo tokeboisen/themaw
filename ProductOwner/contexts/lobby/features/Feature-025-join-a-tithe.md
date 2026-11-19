@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-025-join-a-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -101,6 +101,7 @@ Scenario: A full Tithe
 
 - A Tithe has room for 8 players ("The Tithe is full."). A player joins with the chosen character and is in one lobby at a time. (CMD-01)
 - Players can join until the Tithe is launched. Everyone in the lobby sees who is in it by user name. (CMD-01, EVT-01)
+- The Rim has the buttons Character, Characters, Other players, Help and Account, and "Descend into the Maw", which opens VIEW-01 "Tithes". (VIEW-01)
 
 ## 8. Integrations
 
@@ -121,7 +122,7 @@ Scenario: A full Tithe
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|
