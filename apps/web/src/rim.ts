@@ -1,6 +1,6 @@
 // The Rim's faner: Forge (Feature-019), Apothecary (Feature-020) og Patrons' Hall (Feature-024).
 
-import { BALANCE as B, sellValue, type Item } from '@maw/rules';
+import { BALANCE as B, sellValue, type Character, type Item } from '@maw/rules';
 import type { GiftView, InventoryView } from './api.ts';
 import { esc } from './dom.ts';
 import { itemRow } from './items.ts';
@@ -16,21 +16,43 @@ export interface RimData {
 
 const price = (gold: number) => `<span class="gold-text">${gold} gold</span>`;
 
-export function forgeHtml(d: RimData, message: string): string {
+export function forgeHtml(d: RimData, message: string, ch: Character | null = null): string {
   const stock = d.stock.length
     ? d.stock.map((item) => itemRow(item, `${price(item.value)}
-        <button class="ghost small-btn" data-act="buy" data-id="${item.id}" ${d.gold < item.value ? 'disabled' : ''}>Buy</button>`)).join('')
+        <button class="ghost small-btn" data-act="buy" data-id="${item.id}" ${d.gold < item.value ? 'disabled' : ''}>Buy</button>`, '', '', ch)).join('')
     : '<li class="muted">Nothing for sale.</li>';
   const pack = d.inventory?.pack ?? [];
   const sell = pack.length
     ? pack.map((item) => itemRow(item, `${price(sellValue(item, B))}
-        <button class="ghost small-btn" data-act="sell" data-id="${item.id}">Sell</button>`)).join('')
+        <button class="ghost small-btn" data-act="sell" data-id="${item.id}">Sell</button>`, '', '', ch)).join('')
     : '<li class="muted">Your pack is empty.</li>';
   return `<p class="quote">Hesta Varn, the smith: "Steel for the Branded. Coin first."</p>
     <div class="msg">${esc(message)}</div>
     <div class="cols">
       <div class="box"><h3>For sale</h3><ul class="items">${stock}</ul></div>
       <div class="box"><h3>Your inventory</h3><ul class="items">${sell}</ul></div>
+    </div>`;
+}
+
+/**
+ * Feature-043 VIEW-01 Chest: tingene i kisten med Take og tingene i pakken med Put in chest, og hvor mange af de 12
+ * pladser der er brugt.
+ */
+export function chestHtml(d: RimData, message: string, ch: Character | null = null): string {
+  const inv = d.inventory;
+  if (!inv) return '<p class="hint">The chest is on its way…</p>';
+  const full = inv.chest.length >= inv.chestSize;
+  const chest = inv.chest.length
+    ? inv.chest.map((item) => itemRow(item, `<button class="ghost small-btn" data-act="chest-take" data-id="${item.id}">Take</button>`, '', '', ch)).join('')
+    : '<li class="muted">The chest is empty.</li>';
+  const pack = inv.pack.length
+    ? inv.pack.map((item) => itemRow(item, `<button class="ghost small-btn" data-act="chest-put" data-id="${item.id}" ${full ? 'disabled' : ''}>Put in chest</button>`, '', '', ch)).join('')
+    : '<li class="muted">Your pack is empty.</li>';
+  return `<p class="quote">An iron-bound chest with your Brand burned into the lid. What lies here never goes into the Maw.</p>
+    <div class="msg">${esc(message)}</div>
+    <div class="cols">
+      <div class="box"><h3>Chest · ${inv.chest.length} / ${inv.chestSize}</h3><ul class="items">${chest}</ul></div>
+      <div class="box"><h3>Your pack · ${inv.pack.length} / ${inv.capacity}</h3><ul class="items">${pack}</ul></div>
     </div>`;
 }
 

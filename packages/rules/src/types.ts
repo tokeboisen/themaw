@@ -20,8 +20,9 @@ export interface ItemBase {
   cooldown?: number;
   stamina?: number;
   arc?: number;
-  /** Feature-007: hvor højt brugerens skill højst tæller med våbnet og trænes af dets slag. */
-  skillCap?: number;
+  /** Feature-007: kravet ved item level 1 – våbnets skill og attributten (våben og rustning); intet er 0. */
+  reqSkill?: number;
+  reqAttribute?: number;
   // Rustning
   armour?: number;
 }

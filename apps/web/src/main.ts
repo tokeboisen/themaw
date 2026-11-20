@@ -5,20 +5,24 @@
 // Fase 6: Mustering Square (F042) med stederne som overlays og Reaches på tavlen (F036).
 // Teksterne er på engelsk og citeret fra featurene.
 
-import { MESSAGES, type EndedMessage } from '@maw/contracts';
+import { MESSAGES, type ArenaEndedMessage, type EndedMessage } from '@maw/contracts';
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
   lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EquipSlot, type HotbarKey, type PointKind, type SquarePlace,
 } from '@maw/rules';
-import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type ReachView, type StatisticsRow, type TitheListItem } from './api.ts';
+import {
+  api, type ArenaBoard, type ArenaMatchView, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type ReachView,
+  type StatisticsRow, type TitheListItem,
+} from './api.ts';
+import { arenaBoardHtml, arenaLobbyHtml, arenaResultsHtml, type ArenaForm } from './arena.ts';
 import { $, esc, onAction } from './dom.ts';
 import { helpHtml } from './help.ts';
 import { lobbyHtml, tithesHtml } from './lobby.ts';
 import { othersHtml } from './others.ts';
 import { RESULTS_DELAY_MS, deleteConfirmation, escapeAction, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
 import { resultsHtml } from './results.ts';
-import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
-import { sheetHtml } from './sheet.ts';
+import { apothecaryHtml, chestHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
+import { asCharacter, sheetHtml } from './sheet.ts';
 import { statisticsHtml } from './statistics.ts';
 import { SquareView } from './square/view.ts';
 import { Game } from './tithe/game.ts';
@@ -35,7 +39,10 @@ const state = {
   create: { background: 'miner', alloc: null as Allocation | null, name: '', message: '' },
   overlay: null as Overlay,
   rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', hotbarKey: null as string | null },
-  lobby: { list: [] as TitheListItem[], reaches: [] as ReachView[], current: null as LobbyView | null, message: '', nameDraft: '', reach: 'mines' },
+  lobby: { list: [] as TitheListItem[], reaches: [] as ReachView[], current: null as LobbyView | ArenaMatchView | null, message: '', nameDraft: '', reach: 'mines' },
+  // Feature-044: arena-tavlen og formularen til en ny arenakamp.
+  arena: { board: null as ArenaBoard | null, message: '', form: { name: '', format: '1v1', stake: '0', side: '1' } as ArenaForm },
+  arenaEnded: null as ArenaEndedMessage | null,
   game: null as Game | null,
   ended: null as EndedMessage | null,
   stats: { rows: [] as StatisticsRow[], back: 'rim' as 'rim' | 'characters' },
@@ -212,14 +219,25 @@ function overlayHtml(): string {
   const place = (title: string, body: string) => `<div class="overlay see-through"><div class="sheet place">
     <header class="top"><h2>${title}</h2><div class="actions"><span class="gold-text big-gold">${state.rim.data.gold} gold</span>
       <button class="ghost" data-act="close">Close</button></div></header>${body}</div></div>`;
-  if (o === 'forge') return place('The Forge', forgeHtml(state.rim.data, state.rim.message));
+  // Feature-007: kravene står med rødt, når karakteren ikke opfylder dem.
+  const playing = active();
+  const ch = playing ? asCharacter(playing, state.rim.data.inventory) : null;
+  if (o === 'forge') return place('The Forge', forgeHtml(state.rim.data, state.rim.message, ch));
+  if (o === 'chest') return place('The Chest', chestHtml(state.rim.data, state.rim.message, ch));
   if (o === 'apothecary') return place('The Apothecary', apothecaryHtml(state.rim.data, state.rim.message));
   if (o === 'patrons') return place("The Patrons' Hall", patronsHtml(state.rim.data, state.rim.message));
   if (o === 'board') {
     return `<div class="overlay see-through"><div class="sheet place">${tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft, state.lobby.reaches, state.lobby.reach)}</div></div>`;
   }
   if (o === 'lobby') {
-    return state.lobby.current ? `<div class="overlay see-through"><div class="sheet place">${lobbyHtml(state.lobby.current, state.lobby.message)}</div></div>` : '';
+    const cur = state.lobby.current;
+    if (!cur) return '';
+    // Feature-044 VIEW-02: en arenakamp vises med sine to sider.
+    const body = cur.reach === 'arena' ? arenaLobbyHtml(cur as ArenaMatchView, state.lobby.message) : lobbyHtml(cur as LobbyView, state.lobby.message);
+    return `<div class="overlay see-through"><div class="sheet place">${body}</div></div>`;
+  }
+  if (o === 'arena') {
+    return `<div class="overlay see-through"><div class="sheet place">${arenaBoardHtml(state.arena.board, state.arena.message, state.arena.form)}</div></div>`;
   }
   if (o === 'leave') {
     // Feature-029 VIEW-01
@@ -276,6 +294,13 @@ async function openPlace(place: SquarePlace): Promise<void> {
     await loadTithes();
     return show('rim', 'board');
   }
+  // Feature-044 VIEW-01 Arena board; venter spilleren i en kamp, vises den.
+  if (place === 'arena') {
+    if (state.lobby.current) return show('rim', 'lobby');
+    state.arena.message = '';
+    await loadArena();
+    return show('rim', 'arena');
+  }
   await loadRim();
   show('rim', place);
 }
@@ -299,8 +324,12 @@ function render(): void {
   const screens: Record<Exclude<Screen, 'tithe' | 'rim'>, () => string> = {
     signin: signInHtml, characters: charactersHtml, create: createHtml,
     tithes: () => tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft, state.lobby.reaches, state.lobby.reach),
-    lobby: () => (state.lobby.current ? lobbyHtml(state.lobby.current, state.lobby.message) : ''),
-    results: () => (state.ended ? resultsHtml(state.ended) : ''),
+    lobby: () => {
+      const cur = state.lobby.current;
+      if (!cur) return '';
+      return cur.reach === 'arena' ? arenaLobbyHtml(cur as ArenaMatchView, state.lobby.message) : lobbyHtml(cur as LobbyView, state.lobby.message);
+    },
+    results: () => (state.arenaEnded ? arenaResultsHtml(state.arenaEnded) : state.ended ? resultsHtml(state.ended) : ''),
     statistics: () => statisticsHtml(state.stats.rows, state.stats.back),
   };
   // Et felt, der har fokus, beholder det, når skærmen tegnes igen (f.eks. når listen af Tithes hentes på ny).
@@ -319,6 +348,15 @@ function render(): void {
 
 // --- Tithes, lobby og Tithe -----------------------------------------------------------------------
 
+/** Feature-044 VIEW-01: de åbne arenakampe. */
+async function loadArena(): Promise<boolean> {
+  const result = await api.arena();
+  if (!result.ok) return false;
+  const changed = JSON.stringify(result.data) !== JSON.stringify(state.arena.board);
+  state.arena.board = result.data;
+  return changed;
+}
+
 async function loadTithes(): Promise<boolean> {
   const result = await api.tithes();
   if (!result.ok) return false;
@@ -336,9 +374,14 @@ async function follow(current: CurrentTithe): Promise<void> {
     state.lobby.current = current.tithe;
     return show('rim', 'lobby');
   }
-  // Feature-037: lukkes Tithen, er de andre tilbage ved listen af Tithes.
+  // Feature-037: lukkes Tithen, er de andre tilbage ved listen af Tithes; en arenakamp ved arena-tavlen (Feature-044).
+  const wasArena = state.lobby.current?.reach === 'arena';
   state.lobby.current = null;
   if (state.overlay === 'lobby') {
+    if (wasArena) {
+      await loadArena();
+      return show('rim', 'arena');
+    }
     await loadTithes();
     show('rim', 'board');
   }
@@ -357,6 +400,15 @@ function startGame(ticket: string): void {
       // Feature-035 VIEW-01: en invitation popper op i Other players.
       if (invited && state.overlay !== 'others') return void openOthers();
       if (state.overlay === 'others') renderOverlay();
+    },
+    arenaEnded: (m) => {
+      // Feature-045 VIEW-02 Arena result: 2,5 sekunder efter slutningen.
+      state.arenaEnded = m;
+      window.setTimeout(() => {
+        state.game?.unmount();
+        state.game = null;
+        show('results');
+      }, RESULTS_DELAY_MS);
     },
     ended: (m) => {
       // Feature-016 VIEW-01: resultatet vises 2,5 sekunder efter slutningen.
@@ -430,6 +482,35 @@ overlay.addEventListener('input', (event) => {
     state.lobby.reach = el.value;
     renderOverlay();
   }
+});
+// Feature-044 CMD-01 Open an arena match (formularen ligger på arena-tavlen)
+overlay.addEventListener('input', (event) => {
+  const el = event.target as HTMLInputElement;
+  if (el.form?.id === 'open-arena' && el.name in state.arena.form) state.arena.form[el.name as keyof ArenaForm] = el.value;
+});
+overlay.addEventListener('submit', async (event) => {
+  const form = event.target as HTMLFormElement;
+  if (form.id !== 'open-arena') return;
+  event.preventDefault();
+  const input = form.elements.namedItem('name') as HTMLInputElement;
+  const name = input.value.trim();
+  if ([...name].length < B.lobby.nameMin || [...name].length > B.lobby.nameMax) {
+    input.setCustomValidity(`Use ${B.lobby.nameMin}–${B.lobby.nameMax} characters.`);
+    input.reportValidity();
+    input.setCustomValidity('');
+    return;
+  }
+  const f = state.arena.form;
+  const stake = Math.max(0, Math.min(B.arena.stakeMax, Math.floor(Number(f.stake) || 0)));
+  const result = await api.openArena({ name, format: f.format, stake, side: Number(f.side) });
+  if (!result.ok) {
+    state.arena.message = result.refusal.message;
+    await loadArena();
+    return render();
+  }
+  state.arena.form.name = '';
+  state.arena.message = '';
+  await follow(result.data);
 });
 overlay.addEventListener('submit', async (event) => {
   const form = event.target as HTMLFormElement;
@@ -527,7 +608,12 @@ async function act(action: string, id: string | undefined): Promise<void> {
         return render();
       }
       if (action === 'leave-lobby') {
+        const wasArena = state.lobby.current?.reach === 'arena';
         state.lobby.current = null;
+        if (wasArena) {
+          await loadArena();
+          return show('rim', 'arena');
+        }
         await loadTithes();
         return show('rim', 'board');
       }
@@ -551,9 +637,30 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'game-act':
       state.game?.act(id as 'potion' | 'ration' | 'interact' | 'dodge');
       return;
+    case 'arena-join': {
+      // Feature-044 CMD-02 Join a side
+      const [name, side] = (id ?? '').split('|');
+      const result = await api.joinArena(name!, Number(side));
+      if (!result.ok) {
+        state.arena.message = result.refusal.message;
+        await loadArena();
+        return render();
+      }
+      return follow(result.data);
+    }
+    case 'arena-start': {
+      // Feature-044 CMD-03 Start the arena match
+      const result = await api.startArena(id!);
+      if (!result.ok) {
+        state.lobby.message = result.refusal.message;
+        return render();
+      }
+      return follow(result.data);
+    }
     case 'return-to-rim': {
       // Feature-016 VIEW-01: "Return to the Rim" åbner the Rim, på Patrons' Hall, når der venter gaver.
       state.ended = null;
+      state.arenaEnded = null;
       state.rim.message = '';
       await loadCharacters();
       await loadRim();
@@ -640,10 +747,14 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'buy':
     case 'sell':
     case 'buy-consumable':
-    case 'accept-gift': {
+    case 'accept-gift':
+    case 'chest-put':
+    case 'chest-take': {
       const c = active()!;
       const result = action === 'buy' ? await api.buy(c.id, id!)
         : action === 'sell' ? await api.sell(c.id, id!)
+        : action === 'chest-put' ? await api.putInChest(c.id, id!)
+        : action === 'chest-take' ? await api.takeFromChest(c.id, id!)
         : action === 'buy-consumable' ? await api.buyConsumable(c.id, id as 'potion' | 'ration')
         : await api.acceptGift(c.id, id!);
       // F019 VIEW-01: "A refusal is shown above the lists."
@@ -727,6 +838,7 @@ if (me.ok) {
 window.setInterval(async () => {
   if (state.screen === 'rim' && (await loadRim())) render();
   if (state.overlay === 'board' && (await loadTithes()) && state.overlay === 'board') renderOverlay();
+  if (state.overlay === 'arena' && (await loadArena()) && state.overlay === 'arena') renderOverlay();
   if (state.overlay === 'others' && (await loadOthers()) && state.overlay === 'others') renderOverlay();
 }, 2000);
 window.setInterval(async () => {

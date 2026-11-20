@@ -29,7 +29,13 @@ export interface InventoryView {
   rations: number;
   hotbar: Hotbar;
   capacity: number;
+  /** Feature-043: kisten på Mustering Square. */
+  chest: Item[];
+  chestSize: number;
 }
+
+/** Inventaret uden kisten – sådan som det følger med i en Tithe. */
+export type PackView = Omit<InventoryView, 'chest' | 'chestSize'>;
 
 /** Feature-036 VIEW-01: en åben Tithe i listen. */
 export interface TitheListItem {
@@ -62,9 +68,34 @@ export interface LobbyView {
 }
 
 /** Hvor spilleren er: ingen steder, i en lobby eller i en Tithe med billetten til WebSocket. */
+/** Feature-044: en side i en arenakamp. */
+export interface ArenaSideView {
+  places: number;
+  players: { userName: string; characterName: string; mark: number; opener: boolean; you: boolean }[];
+}
+
+/** Feature-044 VIEW-02 Arena match. */
+export interface ArenaMatchView {
+  name: string;
+  reach: 'arena';
+  reachName: string;
+  format: string;
+  stake: number;
+  isOpener: boolean;
+  sides: Record<1 | 2, ArenaSideView>;
+  full: boolean;
+}
+
+/** Feature-044 VIEW-01 Arena board. */
+export interface ArenaBoard {
+  formats: string[];
+  stakeMax: number;
+  matches: { name: string; format: string; stake: number; opener: string; sides: Record<1 | 2, ArenaSideView>; full: boolean }[];
+}
+
 export type CurrentTithe =
   | { state: 'none' }
-  | { state: 'lobby'; tithe: LobbyView }
+  | { state: 'lobby'; tithe: LobbyView | ArenaMatchView }
   | { state: 'playing'; tithe: { name: string }; ticket: string };
 
 /** Feature-034 VIEW-01 Other players */
@@ -132,6 +163,8 @@ export const api = {
   inventory: (id: string) => call<InventoryView>('GET', `/api/characters/${id}/inventory`),
   equip: (id: string, itemId: string, ring?: 'ring1' | 'ring2') => call<InventoryView>('POST', `/api/characters/${id}/equip`, ring ? { itemId, ring } : { itemId }),
   unequip: (id: string, slot: string) => call<InventoryView>('POST', `/api/characters/${id}/unequip`, { slot }),
+  putInChest: (id: string, itemId: string) => call<InventoryView>('POST', `/api/characters/${id}/chest/put`, { itemId }),
+  takeFromChest: (id: string, itemId: string) => call<InventoryView>('POST', `/api/characters/${id}/chest/take`, { itemId }),
   assignHotbar: (id: string, key: string, target: { itemId: string } | { echoArt: string }) =>
     call<InventoryView>('PUT', `/api/characters/${id}/hotbar/${key}`, target),
   clearHotbar: (id: string, key: string) => call<InventoryView>('DELETE', `/api/characters/${id}/hotbar/${key}`),
@@ -151,6 +184,11 @@ export const api = {
   joinTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/join`),
   launchTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/launch`),
   leaveLobby: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/leave`),
+  // Arenaen (F044)
+  arena: () => call<ArenaBoard>('GET', '/api/arena'),
+  openArena: (body: { name: string; format: string; stake: number; side: number }) => call<CurrentTithe>('POST', '/api/arena', body),
+  joinArena: (name: string, side: number) => call<CurrentTithe>('POST', `/api/arena/${encodeURIComponent(name)}/join`, { side }),
+  startArena: (name: string) => call<CurrentTithe>('POST', `/api/arena/${encodeURIComponent(name)}/start`),
   // Other players (F034)
   players: () => call<{ players: PlayerRow[] }>('GET', '/api/players'),
   // Statistik (F040)

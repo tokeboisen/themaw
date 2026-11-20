@@ -2,14 +2,20 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MESSAGES } from '@maw/contracts';
-import { BALANCE as B, assignHotbarKey, clearHotbarKey, isEchoArt, isEquipSlot, isHotbarKey, targetSlot, type HotbarSlot } from '@maw/rules';
+import {
+  BALANCE as B, assignHotbarKey, clearHotbarKey, isEchoArt, isEquipSlot, isHotbarKey, meetsRequirements, removeWeaponFromHotbar, targetSlot,
+  type HotbarSlot,
+} from '@maw/rules';
 import { transaction, type Pool } from '../db.ts';
 import { INVALID, refuse, requireUser } from '../http.ts';
-import { capacity, loadInventory, type Inventory } from './store.ts';
+import { capacity, characterOf, loadInventory, type Inventory } from './store.ts';
 
 
 async function view(pool: Pool, inv: Inventory) {
-  return { equipment: inv.equipment, pack: inv.pack, potions: inv.potions, rations: inv.rations, hotbar: inv.hotbar, capacity: await capacity(pool, inv) };
+  return {
+    equipment: inv.equipment, pack: inv.pack, potions: inv.potions, rations: inv.rations, hotbar: inv.hotbar, capacity: await capacity(pool, inv),
+    chest: inv.chest, chestSize: B.chest.size,
+  };
 }
 
 type Req = FastifyRequest<{ Params: { id: string; key?: string }; Body: Record<string, unknown> | undefined }>;
@@ -45,12 +51,55 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
       if (!inv) return null;
       const item = inv.pack.find((i) => i.id === itemId);
       if (!item) return 'invalid' as const;
+      // Feature-007 CMD-01: kun når karakteren opfylder tingens krav.
+      const character = await characterOf(client, inv);
+      if (!character || !meetsRequirements(character, item, B)) return 'requirements' as const;
       const slot = targetSlot(inv.equipment, item, B, item.slot === 'ring' ? ring : undefined);
       await client.query(`update gear.items set location = 'pack', added_at = now() where character_id = $1 and location = $2`, [inv.characterId, slot]);
       await client.query(`update gear.items set location = $3 where character_id = $1 and id = $2`, [inv.characterId, item.id, slot]);
       return loadInventory(client, inv.characterId);
     });
     if (result === null) return reply;
+    if (result === 'requirements') return refuse(reply, 409, { message: MESSAGES.requirementsNotMet });
+    if (result === 'invalid' || !result) return refuse(reply, 400, INVALID);
+    return reply.send(await view(pool, result));
+  });
+
+  // Feature-043 CMD-01 Put item in the chest: kun ting fra pakken; en fuld kiste afviser, og et våben forlader hotbaren
+  // (Feature-027).
+  app.post('/api/characters/:id/chest/put', async (request: Req, reply) => {
+    const itemId = request.body?.itemId;
+    if (typeof itemId !== 'string') return refuse(reply, 400, INVALID);
+    const result = await transaction(pool, async (client) => {
+      const inv = await owned(request, reply, true, client);
+      if (!inv) return null;
+      if (!inv.pack.some((i) => i.id === itemId)) return 'invalid' as const;
+      if (inv.chest.length >= B.chest.size) return 'full' as const;
+      await client.query(`update gear.items set location = 'chest', added_at = now() where character_id = $1 and id = $2`, [inv.characterId, itemId]);
+      const hotbar = removeWeaponFromHotbar(inv.hotbar, itemId);
+      await client.query('update gear.inventories set hotbar = $2 where character_id = $1', [inv.characterId, JSON.stringify(hotbar)]);
+      return loadInventory(client, inv.characterId);
+    });
+    if (result === null) return reply;
+    if (result === 'full') return refuse(reply, 409, { message: MESSAGES.chestFull });
+    if (result === 'invalid' || !result) return refuse(reply, 400, INVALID);
+    return reply.send(await view(pool, result));
+  });
+
+  // Feature-043 CMD-02 Take item from the chest: kræver plads i pakken.
+  app.post('/api/characters/:id/chest/take', async (request: Req, reply) => {
+    const itemId = request.body?.itemId;
+    if (typeof itemId !== 'string') return refuse(reply, 400, INVALID);
+    const result = await transaction(pool, async (client) => {
+      const inv = await owned(request, reply, true, client);
+      if (!inv) return null;
+      if (!inv.chest.some((i) => i.id === itemId)) return 'invalid' as const;
+      if (inv.pack.length >= (await capacity(client, inv))) return 'full' as const;
+      await client.query(`update gear.items set location = 'pack', added_at = now() where character_id = $1 and id = $2`, [inv.characterId, itemId]);
+      return loadInventory(client, inv.characterId);
+    });
+    if (result === null) return reply;
+    if (result === 'full') return refuse(reply, 409, { message: MESSAGES.inventoryFull });
     if (result === 'invalid' || !result) return refuse(reply, 400, INVALID);
     return reply.send(await view(pool, result));
   });

@@ -77,7 +77,8 @@ export async function onTitheEnded(client: Client, data: TitheEnded): Promise<vo
   await client.query('update gear.inventories set potions = $2, rations = $3, hotbar = $4 where character_id = $1', [
     data.characterId, Math.min(B.character.maxConsumables, g.potions), Math.min(B.character.maxConsumables, g.rations), JSON.stringify(hotbar),
   ]);
-  await client.query('delete from gear.items where character_id = $1', [data.characterId]);
+  // Feature-043: kisten var aldrig med i Tithen og bliver stående.
+  await client.query(`delete from gear.items where character_id = $1 and location <> 'chest'`, [data.characterId]);
   const placed: [Item, 'pack' | EquipSlot][] = [];
   for (const slot of EQUIP_SLOTS) {
     const item = ch.equipment[slot];

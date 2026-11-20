@@ -3,8 +3,8 @@ product: The Maw
 bounded_context:
   name: Gear
   description: >-
-    What a character owns and carries: the equipped weapon, armour and ring, the pack, potions and rations,
-    and what was found in the current Tithe until the Tithe is settled.
+    What a character owns and carries: the equipped weapons, armour and rings, the pack, the chest on the
+    Mustering Square, potions and rations, and what was found in the current Tithe until the Tithe is settled.
   vision: Every item found is a choice, and every fall a risk worth taking.
   domain: Character Progression
   system: Maw Server
@@ -34,3 +34,8 @@ bounded_context:
       lifecycle: planned
       use_cases:
         - Use consumables
+    - name: Storage
+      description: Keeping items safe in the chest on the Mustering Square between Tithes.
+      lifecycle: planned
+      use_cases:
+        - Use the chest

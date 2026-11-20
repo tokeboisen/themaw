@@ -4,13 +4,26 @@
 
 import type { IncomingMessage } from 'node:http';
 import type { WebSocket } from 'ws';
-import { EVENT, MESSAGES, type ClientMessage, type EventEnvelope, type PlayerDefeated, type ServerMessage, type TitheLaunched } from '@maw/contracts';
+import {
+  EVENT, MESSAGES, type ArenaMatchStarted, type ClientMessage, type EventEnvelope, type PlayerDefeated, type ServerMessage, type TitheLaunched,
+} from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
   ATTRIBUTES, BALANCE as B, ECHO_ARTS, HOTBAR_KEYS, SKILLS, answerInvitation, isEquipSlot, createTithe, invitePlayer, leaveParty, leaveTithe,
-  playersIn, queueAct, randomSeed, setInput, sheetAction, stepTithe, type Balance, type SheetAction, type Tithe,
+  playersIn, queueAct, randomSeed, setInput, sheetAction, stepTithe, type ArenaFormat, type Balance, type ReachId, type SheetAction, type Tithe,
+  type TithePlayerSetup,
 } from '@maw/rules';
-import { newViewState, results, sheet, snapshot, titheEnded, type ViewState } from './views.ts';
+import { arenaMatchEnded, arenaResult, newViewState, results, sheet, snapshot, titheEnded, type ViewState } from './views.ts';
+
+/** Det, et rum startes med: en Tithe (Feature-010) eller en arenakamp (Feature-045). */
+interface RoomSetup {
+  id: string;
+  name: string;
+  reach: ReachId;
+  level?: number;
+  players: TithePlayerSetup[];
+  arena?: { format: ArenaFormat; stake: number };
+}
 
 export interface Publisher {
   publish(event: EventEnvelope): Promise<void>;
@@ -38,19 +51,11 @@ class Room {
   private closedAt: number | null = null;
   private readonly host: Host;
 
-  constructor(data: TitheLaunched, host: Host) {
+  private arenaSettled = false;
+
+  constructor(data: RoomSetup, host: Host) {
     this.host = host;
-    this.tithe = createTithe(
-      {
-        id: data.titheId,
-        name: data.name,
-        reach: data.reach === 'city' ? 'city' : 'mines',
-        ...(data.level ? { level: data.level } : {}),
-        seed: randomSeed(),
-        players: data.players.map((p) => ({ userId: p.userId, userName: p.userName, characterId: p.characterId, character: p.character, hotbar: p.hotbar })),
-      },
-      host.balance,
-    );
+    this.tithe = createTithe({ ...data, seed: randomSeed() }, host.balance);
     // Feature-029: at lukke appen er at forlade Tithen – også før den første forbindelse. Uret stopper, når spilleren forbinder.
     for (const p of data.players) {
       const seat: Seat = { userId: p.userId, socket: null, view: newViewState(this.tithe), ended: false, leaveTimer: null };
@@ -73,6 +78,7 @@ class Room {
 
   /** Feature-016 CMD-01: hver spiller, hvis del er slut, får "Tithe ended" på bussen og resultatet i browseren. */
   private settle(): void {
+    if (this.tithe.arena) return this.settleArena();
     // Feature-011 EVT-06 Player defeated → Market (Feature-018) og Characters (Feature-039).
     for (const d of this.tithe.defeats.splice(0)) {
       const data: PlayerDefeated = { titheId: this.tithe.id, ...d };
@@ -90,9 +96,30 @@ class Room {
     }
   }
 
+  /**
+   * Feature-045 EVT-04 Arena match ended: når kampen er afgjort, sendes eventet én gang på bussen (Market, Feature-046), og
+   * alle kæmpere – også dem, der faldt og så med – får resultatet.
+   */
+  private settleArena(): void {
+    const t = this.tithe;
+    if (this.arenaSettled || !t.arena?.result) return;
+    this.arenaSettled = true;
+    this.host.publish(envelope(EVENT.arenaMatchEnded, arenaMatchEnded(t)));
+    for (const p of t.players) {
+      const seat = this.seats.get(p.id);
+      if (!seat) continue;
+      seat.ended = true;
+      if (seat.leaveTimer) clearTimeout(seat.leaveTimer);
+      this.send(seat, snapshot(t, p, seat.view));
+      this.send(seat, arenaResult(t, p));
+    }
+    this.host.log(`${t.name} ended: ${t.arena.result.winner ? `side ${t.arena.result.winner} won` : 'draw'}`);
+  }
+
   private broadcast(): void {
     const t = this.tithe;
-    for (const p of playersIn(t)) {
+    // Feature-045 VIEW-01: i arenaen ser en kæmper, der er nede, resten af kampen.
+    for (const p of t.arena && !t.arena.result ? t.players : playersIn(t)) {
       const seat = this.seats.get(p.id);
       if (!seat?.socket) continue;
       if (seat.view.sheetVersion !== p.sheetVersion) {
@@ -118,7 +145,7 @@ class Room {
     seat.leaveTimer = null;
     seat.view = newViewState(this.tithe);
     this.send(seat, { t: 'welcome', name: this.tithe.name, you: userId });
-    if (seat.ended) this.send(seat, results(this.tithe, p));
+    if (seat.ended) this.send(seat, this.tithe.arena ? arenaResult(this.tithe, p) : results(this.tithe, p));
     socket.on('message', (raw) => this.receive(seat, raw.toString()));
     socket.on('close', () => {
       if (seat.socket !== socket) return;
@@ -150,7 +177,7 @@ class Room {
       case 'sheet': {
         if (!validSheetAction(m.action)) return this.send(seat, { t: 'refused', message: 'Invalid request.' });
         const refusal = sheetAction(t, id, m.action);
-        if (refusal) this.send(seat, { t: 'refused', message: refusal === 'inventoryFull' ? MESSAGES.inventoryFull : 'Invalid request.' });
+        if (refusal) this.send(seat, { t: 'refused', message: refusal === 'inventoryFull' ? MESSAGES.inventoryFull : refusal === 'requirements' ? MESSAGES.requirementsNotMet : 'Invalid request.' });
         break;
       }
       case 'party':
@@ -217,11 +244,28 @@ export class Host {
 
   /** Feature-037 EVT-01 Tithe launched → Feature-010 CMD-01 Start the Tithe. Kommer det samme event igen, ignoreres det. */
   launch(data: TitheLaunched): void {
-    if (this.rooms.has(data.titheId)) return;
-    const room = new Room(data, this);
-    this.rooms.set(data.titheId, room);
-    for (const p of data.players) this.tickets.set(p.ticket, { titheId: data.titheId, userId: p.userId });
-    this.log(`Started ${data.name} with ${data.players.length} player(s) and ${room.tithe.rivals.length} NPC rivals`);
+    const room = this.open(
+      { id: data.titheId, name: data.name, reach: data.reach === 'city' ? 'city' : 'mines', ...(data.level ? { level: data.level } : {}), players: data.players },
+      data.players,
+    );
+    if (room) this.log(`Started ${data.name} with ${data.players.length} player(s) and ${room.tithe.rivals.length} NPC rivals`);
+  }
+
+  /** Feature-044 EVT-03 Arena match started → Feature-045 SVC-01 Arena master: CMD-01 Open the arena. */
+  launchArena(data: ArenaMatchStarted): void {
+    const room = this.open(
+      { id: data.matchId, name: data.name, reach: 'arena', players: data.fighters, arena: { format: data.format, stake: data.stake } },
+      data.fighters,
+    );
+    if (room) this.log(`Opened the arena for ${data.name}: ${data.format}, stake ${data.stake}`);
+  }
+
+  private open(setup: RoomSetup, players: { ticket: string; userId: string }[]): Room | null {
+    if (this.rooms.has(setup.id)) return null;
+    const room = new Room(setup, this);
+    this.rooms.set(setup.id, room);
+    for (const p of players) this.tickets.set(p.ticket, { titheId: setup.id, userId: p.userId });
+    return room;
   }
 
   remove(room: Room): void {
@@ -243,7 +287,12 @@ export class Host {
 
   /** Til lobbyen i api'et: de Tithes, der kører, og spillerne, hvis del ikke er slut. */
   running(): { id: string; name: string; players: string[] }[] {
-    return [...this.rooms.values()].map((r) => ({ id: r.tithe.id, name: r.tithe.name, players: playersIn(r.tithe).map((p) => p.id) }));
+    // Feature-044: en kæmper er låst, indtil arenakampen er afgjort – også efter at være faldet.
+    return [...this.rooms.values()].map((r) => ({
+      id: r.tithe.id,
+      name: r.tithe.name,
+      players: (r.tithe.arena ? (r.tithe.arena.result ? [] : r.tithe.players) : playersIn(r.tithe)).map((p) => p.id),
+    }));
   }
 
   /** Sendes på bussen; fejler det, prøves igen, så "Tithe ended" ikke går tabt. */

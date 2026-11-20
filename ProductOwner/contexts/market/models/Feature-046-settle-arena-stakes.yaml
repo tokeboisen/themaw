@@ -1,0 +1,124 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Settle arena stakes
+  bounded_context: Market
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the players: take every fighter's stake when an arena match starts and share the pot among the winners when
+      it ends, so a fight in the arena is worth winning.
+elements:
+  - id: EVT-01
+    type: event
+    name: Arena match started
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Lobby
+      use_case: Arrange an arena match
+      event: EVT-03
+  - id: EVT-02
+    type: event
+    name: Arena match ended
+    col: 1
+    stack: 2
+    stimulus:
+      bounded_context: Tithe
+      use_case: Fight in the arena
+      event: EVT-04
+  - id: SVC-01
+    type: service
+    name: Arena bookkeeper
+    col: 2
+    stack: 1
+    description: Takes the stakes when an arena match starts and pays the winners when it ends.
+  - id: CMD-01
+    type: command
+    name: Take the stakes
+    col: 3
+    stack: 1
+    fields:
+      - name: Fighters
+      - name: Stake
+  - id: CMD-02
+    type: command
+    name: Pay the winners
+    col: 3
+    stack: 2
+    fields:
+      - name: Winners
+      - name: Pot
+  - id: AGG-01
+    type: aggregate
+    name: Wallet
+    col: 4
+    stack: 1
+    description: The character's gold.
+    fields:
+      - name: Gold
+  - id: EVT-03
+    type: event
+    name: Stakes taken
+    col: 5
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Winnings paid
+    col: 5
+    stack: 2
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: EVT-02
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: SVC-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
+  - from: AGG-01
+    to: EVT-04
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      When an arena match starts, the stake is taken from every fighter's wallet. The pot is the stake times the
+      number of fighters.
+  - applies_to:
+      - CMD-02
+    text: >-
+      When the match ends, the winners share the pot equally, rounded down. In a draw every fighter gets the stake
+      back. A fighter who left or lost the connection is down and gets nothing back.
+scenarios:
+  - title: The winner takes the pot
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael and Brann each staked 50 gold in a 1:1 match
+      When EVT-02 "Arena match ended" is recorded with Kael's side as the winner
+      Then EVT-04 "Winnings paid" is recorded
+      And Kael's wallet gets 100 gold
+  - title: Two against one
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael stood alone against Brann and Mira with a stake of 40
+      When EVT-02 "Arena match ended" is recorded with Brann and Mira's side as the winner
+      Then Brann and Mira get 60 gold each
+  - title: A draw
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael and Brann each staked 50 gold
+      When EVT-02 "Arena match ended" is recorded as a draw
+      Then Kael and Brann get 50 gold each

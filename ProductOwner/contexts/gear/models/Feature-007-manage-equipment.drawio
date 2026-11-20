@@ -10,7 +10,7 @@
         <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
           <mxGeometry x="-160" y="-400" width="1000" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;What a character owns and carries: the equipped weapon, armour and ring, the pack, potions and rations, and what was found in the current Tithe until the Tithe is settled." vertex="1">
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;What a character owns and carries: the equipped weapons, armour and rings, the pack, the chest on the Mustering Square, potions and rations, and what was found in the current Tithe until the Tithe is settled." vertex="1">
           <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">

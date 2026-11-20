@@ -78,6 +78,15 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     assert.equal((await get(k.cookie, `/api/characters/${k.id}/wallet`)).gold, 60 + 33 + 690);
   });
 
+  test('F043 scenario "The chest stays out of the Maw": a fall leaves the chest as it was', async () => {
+    const k = await kael('techest');
+    const maul = generateItem(createRng(Math.floor(Math.random() * 1e9)), 3, B, { baseId: 'maul', rarity: 'common' });
+    await pool.query(`insert into gear.items (id, character_id, location, data) values ($1, $2, 'chest', $3)`, [maul.id, k.id, JSON.stringify(maul)]);
+    await ended(k, { kind: 'fell', found: [warAxe()] });
+    const inv = await get(k.cookie, `/api/characters/${k.id}/inventory`);
+    assert.deepEqual(inv.chest.map((i: { id: string }) => i.id), [maul.id]); // the Maul is still in the chest
+  });
+
   test('F009 scenario "Leaving loses what was found"', async () => {
     const k = await kael('te3');
     await ended(k, { kind: 'left', goldFound: 20 });

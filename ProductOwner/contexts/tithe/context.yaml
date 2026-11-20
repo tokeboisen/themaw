@@ -27,6 +27,11 @@ bounded_context:
       use_cases:
         - Fight in the depths
         - Survive the depths
+    - name: Arena
+      description: Fights between players in an oval arena, side against side, with a closing ring.
+      lifecycle: planned
+      use_cases:
+        - Fight in the arena
     - name: Living rivals
       description: NPC rivals who race the players to the bottom and can win the Tithe.
       lifecycle: planned

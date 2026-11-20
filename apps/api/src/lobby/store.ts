@@ -15,6 +15,9 @@ export interface TitheRow {
   status: 'open' | 'launched';
   launched_at: Date | null;
   reach: string;
+  /** Feature-044: en arenakamps format og indsats; null og 0 for en Tithe. */
+  format: string | null;
+  stake: number;
 }
 
 export interface MemberRow {
@@ -25,6 +28,8 @@ export interface MemberRow {
   character_name: string;
   mark: number;
   ticket: string | null;
+  /** Feature-044: siden i en arenakamp. */
+  side: number | null;
 }
 
 /**

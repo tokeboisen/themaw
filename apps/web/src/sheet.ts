@@ -5,7 +5,7 @@ import {
   derivedStats, echoToNextMark, effectiveSkill, emptyEquipment, skillCap, skillXpToNext, type Character, type Item, type SkillId,
   type WeaponStats,
 } from '@maw/rules';
-import type { CharacterView, InventoryView } from './api.ts';
+import type { CharacterView, PackView } from './api.ts';
 import { esc } from './dom.ts';
 import { itemRow } from './items.ts';
 import { showPlus } from './logic.ts';
@@ -14,7 +14,7 @@ const pct = (x: number) => `${Math.round(Math.max(0, Math.min(1, x)) * 100)}%`;
 const one = (x: number) => (Math.round(x * 10) / 10).toString();
 
 /** Reglerne regner på en hel karakter: Characters' egenskaber og skills med Gears udstyr. */
-function asCharacter(c: CharacterView, inv: InventoryView | null): Character {
+export function asCharacter(c: CharacterView, inv: PackView | null): Character {
   return {
     name: c.name, background: c.background, level: c.mark, echo: c.echo, attributes: c.attributes,
     skills: c.skills as Character['skills'], attributePoints: c.attributePoints, skillPoints: c.skillPoints, gold: 0,
@@ -31,7 +31,7 @@ export interface TitheMode {
 const FOUND = 'Found this Tithe – lost if you fall';
 
 /** Feature-007 VIEW-01: en ring med Ring 1 og Ring 2, når begge ringpladser er optaget; ellers Equip. */
-function equipButtons(item: Item, inv: InventoryView): string {
+function equipButtons(item: Item, inv: PackView): string {
   if (item.slot === 'ring' && inv.equipment.ring1 && inv.equipment.ring2) {
     return `<button class="ghost small-btn" data-act="equip" data-id="${item.id}|ring1">Ring 1</button>
       <button class="ghost small-btn" data-act="equip" data-id="${item.id}|ring2">Ring 2</button>`;
@@ -40,12 +40,12 @@ function equipButtons(item: Item, inv: InventoryView): string {
 }
 
 /** Feature-007 VIEW-01 Inventory og Feature-027 VIEW-01: hotbaren nederst. */
-function inventoryHtml(inv: InventoryView | null, selectedKey: string | null, tithe: TitheMode | null): string {
+function inventoryHtml(inv: PackView | null, selectedKey: string | null, tithe: TitheMode | null, ch: Character): string {
   if (!inv) return '<div class="box"><h3>Inventory</h3><p class="hint">The inventory is on its way…</p></div>';
   const equipped = EQUIP_SLOTS.map((slot) => {
     const item = inv.equipment[slot];
     const note = tithe?.found.includes(item?.id ?? '') ? FOUND : '';
-    return item ? itemRow(item, `<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`, note, EQUIP_SLOT_NAMES[slot])
+    return item ? itemRow(item, `<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`, note, EQUIP_SLOT_NAMES[slot], ch)
       : `<li class="item"><div class="muted">${EQUIP_SLOT_NAMES[slot]}: empty</div></li>`;
   }).join('');
   const pack = inv.pack.length
@@ -53,6 +53,8 @@ function inventoryHtml(inv: InventoryView | null, selectedKey: string | null, ti
         item,
         `${equipButtons(item, inv)}${tithe ? `<button class="ghost small-btn" data-act="drop" data-id="${item.id}">Drop</button>` : ''}`,
         tithe?.found.includes(item.id) ? FOUND : '',
+        '',
+        ch,
       )).join('')
     : '<li class="muted">Empty.</li>';
   const weapons = [inv.equipment.melee, inv.equipment.ranged, ...inv.pack].filter((i): i is Item => !!i && i.slot === 'weapon');
@@ -86,7 +88,7 @@ function weights(skill: SkillId): string {
     .join(', ');
 }
 
-export function sheetHtml(c: CharacterView, backgroundName: string, inv: InventoryView | null, selectedKey: string | null, message = '', tithe: TitheMode | null = null): string {
+export function sheetHtml(c: CharacterView, backgroundName: string, inv: PackView | null, selectedKey: string | null, message = '', tithe: TitheMode | null = null): string {
   const ch = asCharacter(c, inv);
   const d = derivedStats(ch, B);
   const need = echoToNextMark(c.mark, B);
@@ -106,7 +108,7 @@ export function sheetHtml(c: CharacterView, backgroundName: string, inv: Invento
     c.attributePoints ? `${c.attributePoints} attribute point${c.attributePoints > 1 ? 's' : ''}` : '',
     c.skillPoints ? `${c.skillPoints} skill point${c.skillPoints > 1 ? 's' : ''} (+${B.skills.levelsPerPoint} levels each)` : '',
   ].filter(Boolean);
-  const damage = (w: WeaponStats) => `${one(w.min * w.damageMult)}–${one(w.max * w.damageMult)} · ${SKILL_NAMES[w.skill]} · ${w.cooldown.toFixed(2)}s · cap ${w.cap}`;
+  const damage = (w: WeaponStats) => `${one(w.min * w.damageMult)}–${one(w.max * w.damageMult)} · ${SKILL_NAMES[w.skill]} · ${w.cooldown.toFixed(2)}s`;
   return `<div class="overlay see-through"><div class="sheet">
     <header class="top"><div><h2>${esc(c.name)} · Mark ${c.mark}</h2><p class="muted">${esc(backgroundName)}</p></div>
       <button class="ghost" data-act="close">Close</button></header>
@@ -140,6 +142,6 @@ export function sheetHtml(c: CharacterView, backgroundName: string, inv: Invento
         <table class="stats">${skillRows}</table>
       </div>
     </div>
-    <div class="cols">${inventoryHtml(inv, selectedKey, tithe)}</div>
+    <div class="cols">${inventoryHtml(inv, selectedKey, tithe, ch)}</div>
   </div></div>`;
 }

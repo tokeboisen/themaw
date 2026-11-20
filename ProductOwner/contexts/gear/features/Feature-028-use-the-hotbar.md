@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-028-use-the-hotbar.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -109,7 +109,7 @@ Scenario: Choosing Echo Bolt
 
 ### Rules
 
-- Pressing a key chooses what Attack (Space) uses. A key with an equipped weapon chooses it. A key with a weapon in the pack draws it: it goes into its slot – melee or ranged – and the weapon that was there goes into the pack. Changing weapon takes 0.3 seconds, in which the candidate cannot strike. (CMD-01)
+- Pressing a key chooses what Attack (Space) uses. A key with an equipped weapon chooses it. A key with a weapon in the pack draws it: it goes into its slot – melee or ranged – and the weapon that was there goes into the pack. Changing weapon takes 0.3 seconds, in which the candidate cannot strike. A weapon whose requirements the character does not meet stays in the pack, and "You do not meet the requirements." is shown over the candidate (Manage equipment). (CMD-01)
 - A key with an Echo Art chooses it without casting it, and the weapons stay equipped. A key with nothing on it does nothing. (CMD-01)
 - Attack (Space) uses what is chosen: it strikes with the chosen weapon, and its blows train that weapon's skill, or it casts the chosen Echo Art at the automatic target (Tithe, Fight in the depths). (EVT-01)
 - A Tithe starts with the melee weapon chosen, or the ranged weapon when there is no melee weapon; with neither, the candidate fights unarmed. Equipping a weapon on the character sheet chooses it. (AGG-01)
@@ -131,7 +131,7 @@ Scenario: Choosing Echo Bolt
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|

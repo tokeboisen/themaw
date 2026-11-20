@@ -1,10 +1,10 @@
 // Det, hver spiller får at se: snapshot, karakterskærm og resultat (Feature-010 VIEW-01, -004/-007/-027 og -016 VIEW-01),
 // og "Tithe ended" til de andre contexts. Kun det, spilleren kan se, kommer med (planen, afsnit 8).
 
-import type { CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
+import type { ArenaEndedMessage, ArenaMatchEnded, ArenaView, CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
 import {
-  BALANCE, chosenKey, crownsPurse, districtAt, echoToNextMark, giftCount, losesFound, sameParty, sealInfoAt, shownDepth, type Item, type Player,
-  type SkillId, type Tithe, type TitheSummary,
+  BALANCE, arenaPayout, arenaRing, chosenKey, crownsPurse, districtAt, echoToNextMark, giftCount, hiddenFrom, losesFound, sameParty, sealInfoAt,
+  shownDepth, type Item, type Player, type SkillId, type Tithe, type TitheSummary,
 } from '@maw/rules';
 
 /** Hvad serveren har sendt til en spiller, så næste snapshot kun bærer det nye. */
@@ -57,7 +57,7 @@ function area(t: Tithe, p: Player): Snapshot['area'] {
   const d = districtAt(t, p.depth, p.x, p.y);
   return {
     reach: t.reach,
-    reachName: B.reaches.find((r) => r.id === t.reach)?.name ?? '',
+    reachName: t.reach === 'arena' ? 'The Arena' : B.reaches.find((r) => r.id === t.reach)?.name ?? '',
     ward: d === null ? null : B.city.wards[d - 1] ?? null,
     floor: t.depths[p.depth]?.floor ?? 1,
   };
@@ -79,7 +79,8 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
   view.reset = false;
   view.depth = p.depth;
 
-  const seen = (e: { x: number; y: number }, extra = 0.5) => (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= (R + extra) ** 2;
+  // Feature-045: arenaen er åben – alt ses, undtagen modstandere, der gemmer sig i en busk.
+  const seen = (e: { x: number; y: number }, extra = 0.5) => t.reach === 'arena' || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 <= (R + extra) ** 2;
   const ents: SnapshotEntity[] = [];
   for (const m of dep.monsters) {
     if (m.dead || !seen(m)) continue;
@@ -101,9 +102,12 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
     ents.push(e);
   }
   for (const o of t.players) {
-    if (o === p || o.end || o.depth !== p.depth || !seen(o)) continue;
+    if (o === p || o.end || o.depth !== p.depth || !seen(o) || hiddenFrom(t, o, p)) continue;
     // Feature-010 VIEW-01: spillere i syne viser deres brugernavn over hovedet.
-    ents.push({ id: o.id, kind: 'player', name: o.userName, x: r2(o.x), y: r2(o.y), r: o.r, hp: Math.ceil(o.hp), maxHp: o.maxHp, flash: o.flash > 0, party: sameParty(o, p) });
+    ents.push({
+      id: o.id, kind: 'player', name: o.userName, x: r2(o.x), y: r2(o.y), r: o.r, hp: Math.ceil(o.hp), maxHp: o.maxHp, flash: o.flash > 0,
+      party: sameParty(o, p), ...(o.side ? { side: o.side } : {}),
+    });
   }
   const gate = map.gate && explored[map.gate.y * map.w + map.gate.x] ? { x: map.gate.x, y: map.gate.y, open: t.gateOpenFor.has(p.id) } : null;
   const msgs = t.messages.slice(view.messages).filter((m) => !m.to || m.to === p.id).map((m) => ({ who: m.who, text: m.text }));
@@ -138,6 +142,7 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
     candidates: candidates(t, p),
     party: party(t, p),
     area: area(t, p),
+    ...(t.arena ? { arena: arenaView(t, p) } : {}),
     interact: p.interact,
     fx: t.fx
       .filter((f) => f.depth === p.depth && (!f.to || f.to === p.id) && (f.x === undefined || f.y === undefined || seen({ x: f.x, y: f.y }, 2)))
@@ -205,4 +210,46 @@ export function results(t: Tithe, p: Player): EndedMessage {
       skills,
     },
   };
+}
+
+/** Feature-045 VIEW-01: siderne, uret, nedtællingen og ringen, når den lukker sig. */
+function arenaView(t: Tithe, p: Player): ArenaView {
+  const A = t.B.arena;
+  const sides = { 1: [] as { name: string; down: boolean }[], 2: [] as { name: string; down: boolean }[] };
+  for (const x of t.players) if (x.side) sides[x.side].push({ name: x.userName, down: !!x.end });
+  return {
+    format: t.arena!.format,
+    stake: t.arena!.stake,
+    you: p.side,
+    timeLeft: Math.max(0, Math.ceil(A.hardLimit - t.time)),
+    countdown: Math.max(0, Math.ceil(A.countdown - t.time)),
+    ring: t.time >= A.shrinkFrom ? (({ cx, cy, rx, ry }) => ({ cx, cy, rx: r2(rx), ry: r2(ry) }))(arenaRing(t.time, t.B)) : null,
+    sides,
+  };
+}
+
+/** Feature-045 EVT-04 Arena match ended: vinderens side og hver kæmpers udfald (Feature-046). */
+export function arenaMatchEnded(t: Tithe): ArenaMatchEnded {
+  const winner = t.arena!.result?.winner ?? null;
+  return {
+    matchId: t.id,
+    name: t.name,
+    stake: t.arena!.stake,
+    winner,
+    fighters: t.players.map((p) => ({
+      userId: p.userId, userName: p.userName, characterId: p.characterId, side: p.side ?? 1,
+      result: winner === null ? 'draw' : p.side === winner ? 'won' : 'lost',
+    })),
+  };
+}
+
+/** Feature-045 VIEW-02 Arena result: potten deles af vinderne (Feature-046); uafgjort giver indsatsen tilbage. */
+export function arenaResult(t: Tithe, p: Player): ArenaEndedMessage {
+  const ended = arenaMatchEnded(t);
+  const me = ended.fighters.find((f) => f.userId === p.userId)!;
+  const winners = ended.fighters.filter((f) => f.result === 'won').length;
+  const payout = arenaPayout(ended.stake, ended.fighters.length, winners, me.result);
+  const sides = { 1: [] as string[], 2: [] as string[] };
+  for (const f of ended.fighters) sides[f.side].push(f.userName);
+  return { t: 'arena-ended', result: me.result, winner: ended.winner, you: me.side, stake: ended.stake, payout, sides };
 }

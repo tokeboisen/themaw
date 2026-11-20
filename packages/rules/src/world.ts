@@ -6,14 +6,15 @@
 import type { Balance, MonsterDef, MonsterTrait, ReachId, RivalDef } from './balance.ts';
 import { GROUND_AREA, generateCity, type StairLink } from './city.ts';
 import {
-  addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, spendAttributePoint, spendSkillPoint, unequipItem,
+  addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, meetsRequirements, spendAttributePoint, spendSkillPoint, unequipItem,
   SKILL_NAMES, type DerivedStats,
 } from './character.ts';
+import { ARENA_SPAWNS, arenaMap, arenaRing, inOval, type ArenaFormat, type ArenaSide } from './arena.ts';
 import {
-  bfs, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, STAIRS, tileAt, type DepthMap, type Room,
+  bfs, BUSH, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, STAIRS, tileAt, type DepthMap, type Room,
 } from './dungeon.ts';
 import { assignHotbarKey, clearHotbarKey, ECHO_ARTS, HOTBAR_KEYS, removeWeaponFromHotbar, type EchoArt, type Hotbar, type HotbarKey } from './gear.ts';
-import { generateItem, isEquipSlot, type ItemOptions } from './items.ts';
+import { generateItem, isEquipSlot, REQUIREMENTS_NOT_MET, type ItemOptions } from './items.ts';
 import type { OutcomeKind, TitheRecord } from './rim.ts';
 import { createRng, type Rng } from './rng.ts';
 import type { Attribute, Character, EquipSlot, Item, Rarity, SkillId, WeaponSlot } from './types.ts';
@@ -41,6 +42,13 @@ const LINES = {
   joined: '{name} joined the party.',
   declined: '{name} declined.',
   depth: 'Depth {d}. The air grows heavier.',
+  // Feature-045: arenaen.
+  arenaStart: 'The sand is raked, the stands are full. Fight in {s} seconds!',
+  arenaFight: 'Fight!',
+  arenaRing: 'The ring closes in! Stay near the middle.',
+  arenaWin: '{names} win the match! The stands roar.',
+  arenaDraw: 'A draw! The crowd demands its money back.',
+  fighterDown: '{name} is down!',
 };
 
 export const RARITY_COLORS: Record<Rarity, string> = { common: '#e8e2d6', magic: '#6aa6ff', rare: '#ffd84a' };
@@ -207,6 +215,10 @@ export interface Player extends Body {
   /** Tælles op, når karakterskærmens indhold ændrer sig, så serveren ved, hvornår den skal sendes igen. */
   sheetVersion: number;
   warnedLoot: Set<string>;
+  /** Feature-045: siden i arenaen; null i en Tithe. */
+  side: ArenaSide | null;
+  /** Feature-045: tid tilbage, hvor kæmperen ses i en busk efter et slag. */
+  revealT: number;
 }
 
 export interface Loot extends Vec {
@@ -336,6 +348,17 @@ export interface Tithe {
   /** Byens distrikter, der er varslet og forseglet (Feature-017). */
   wardsWarned: Set<number>;
   wardsSealed: Set<number>;
+  /** Feature-045: arenakampen; null i en Tithe. */
+  arena: ArenaState | null;
+}
+
+/** Feature-045 AGG-01: formatet, indsatsen og resultatet – vinderens side, eller null ved uafgjort. */
+export interface ArenaState {
+  format: ArenaFormat;
+  stake: number;
+  result: { winner: ArenaSide | null } | null;
+  ringSaid: boolean;
+  countdownSaid: number;
 }
 
 export interface TithePlayerSetup {
@@ -344,6 +367,8 @@ export interface TithePlayerSetup {
   characterId: string;
   character: Character;
   hotbar: Hotbar;
+  /** Feature-044: siden i en arenakamp. */
+  side?: ArenaSide;
 }
 
 export interface TitheSetup {
@@ -354,11 +379,14 @@ export interface TitheSetup {
   level?: number;
   seed: number;
   players: TithePlayerSetup[];
+  /** Feature-044: en arenakamps format og indsats (reach 'arena'). */
+  arena?: { format: ArenaFormat; stake: number };
 }
 
 // --- Oprettelse (Feature-010 Enter the Tithe) ------------------------------------------------------
 
 export function createTithe(setup: TitheSetup, B: Balance): Tithe {
+  if (setup.reach === 'arena') return createArena(setup, B);
   const rng = createRng(setup.seed);
   // Feature-010: Tithens niveau er Mark hos den, der startede den; uden det den højeste Mark blandt spillerne.
   const mark = Math.max(1, setup.level ?? Math.max(1, ...setup.players.map((p) => p.character.level)));
@@ -366,6 +394,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
     id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
     champion: null, closed: false, wardenAlive: true, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: false, mark, nextId: 1,
     invitations: [], defeats: [], reach: setup.reach === 'city' ? 'city' : 'mines', wardsWarned: new Set(), wardsSealed: new Set(),
+    arena: null,
   };
   t.players = setup.players.map((s) => makePlayer(t, s));
   // NPC-rivaler fylder pladserne op til 8, valgt blandt de syv (Feature-010 CMD-01).
@@ -397,6 +426,111 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   return t;
 }
 
+/**
+ * Feature-045 CMD-01 Open the arena: ingen monstre, rivaler eller loot. Hver side er et parti og starter i sin ende af
+ * ovalen; hele arenaen er synlig på kortet.
+ */
+function createArena(setup: TitheSetup, B: Balance): Tithe {
+  const rng = createRng(setup.seed);
+  const t: Tithe = {
+    id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
+    champion: null, closed: false, wardenAlive: false, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: true,
+    mark: Math.max(1, ...setup.players.map((p) => p.character.level)), nextId: 1, invitations: [], defeats: [], reach: 'arena',
+    wardsWarned: new Set(), wardsSealed: new Set(),
+    arena: { format: setup.arena?.format ?? '1v1', stake: setup.arena?.stake ?? 0, result: null, ringSaid: false, countdownSaid: 0 },
+  };
+  const map = arenaMap();
+  t.depths[1] = {
+    level: 1, map, monsters: [], loot: [], caches: [], projectiles: [], toExit: new Int16Array(map.w * map.h), maxExitDist: 1,
+    sealAt: null, warned: false, sealedSaid: false, startRooms: [], warden: false, stairs: [], districts: null, floorDistrict: null, floor: 1,
+  };
+  const placed: Record<ArenaSide, number> = { 1: 0, 2: 0 };
+  t.players = setup.players.map((s, i) => {
+    const p = makePlayer(t, s);
+    const side: ArenaSide = s.side ?? (i % 2 === 0 ? 1 : 2);
+    const spot = ARENA_SPAWNS[side][placed[side]++ % ARENA_SPAWNS[side].length]!;
+    Object.assign(p, { side, partyId: `side-${side}`, x: spot.x, y: spot.y, facing: { x: side === 1 ? 1 : -1, y: 0 } });
+    p.explored[1] = new Uint8Array(map.w * map.h).fill(1);
+    p.revealed = Array.from({ length: map.w * map.h }, (_, k) => k);
+    return p;
+  });
+  say(t, 'Mirrormaster', fmt(LINES.arenaStart, { s: B.arena.countdown }));
+  return t;
+}
+
+/** Feature-045: en arenakamps skridt – kæmperne, projektilerne, ringen og slutningen. */
+function stepArena(t: Tithe, dt: number): void {
+  const A = t.B.arena;
+  const arena = t.arena!;
+  // Nedtællingen: 3 – 2 – 1 – Fight!
+  const left = Math.ceil(A.countdown - t.time);
+  if (left > 0 && left <= 3 && arena.countdownSaid !== left) {
+    arena.countdownSaid = left;
+    say(t, 'Mirrormaster', `${left}…`);
+  } else if (left <= 0 && arena.countdownSaid !== -1) {
+    arena.countdownSaid = -1;
+    say(t, 'Mirrormaster', LINES.arenaFight);
+  }
+  for (const p of playersIn(t)) {
+    p.revealT = Math.max(0, p.revealT - dt);
+    updatePlayer(t, p, dt);
+    p.hunger = t.B.hunger.max; // sulten tærer ikke i arenaen
+  }
+  const dep = t.depths[1]!;
+  updateProjectiles(t, dep, dt);
+  separate(t, dep);
+  // Feature-045 AGG-02: ringen lukker sig; udenfor den taber kæmperen 8 % af max liv i sekundet.
+  if (t.time >= A.shrinkFrom) {
+    if (!arena.ringSaid) {
+      arena.ringSaid = true;
+      say(t, 'Mirrormaster', LINES.arenaRing);
+    }
+    const ring = arenaRing(t.time, t.B);
+    for (const p of playersIn(t)) {
+      if (inOval(p.x, p.y, ring)) continue;
+      p.hp -= p.maxHp * A.ringDamage * dt;
+      p.flash = Math.max(p.flash, 0.05);
+      if (p.hp <= 0) {
+        p.hp = 0;
+        say(t, 'Mirrormaster', fmt(LINES.fighterDown, { name: p.name }));
+        endPlayer(t, p, 'fell', 'the ring');
+      }
+    }
+  }
+  arenaEnd(t);
+}
+
+/**
+ * Feature-045 EVT-04 Arena match ended: når en side ikke har nogen kæmper stående, vinder den anden. Falder begge sider på
+ * én gang, eller når kampen 4 minutter, er den uafgjort. De, der står tilbage, beholder deres plads; Tithen lukkes.
+ */
+function arenaEnd(t: Tithe): void {
+  const arena = t.arena!;
+  if (arena.result || t.time < t.B.arena.countdown) return;
+  const standing = (side: ArenaSide) => t.players.some((p) => p.side === side && !p.end);
+  const one = standing(1);
+  const two = standing(2);
+  let winner: ArenaSide | null | undefined;
+  if (!one && !two) winner = null;
+  else if (!one) winner = 2;
+  else if (!two) winner = 1;
+  else if (t.time >= t.B.arena.hardLimit) winner = null;
+  if (winner === undefined) return;
+  arena.result = { winner };
+  const names = t.players.filter((p) => p.side === winner).map((p) => p.name).join(' and ');
+  say(t, 'Mirrormaster', winner ? fmt(LINES.arenaWin, { names }) : LINES.arenaDraw);
+  for (const p of t.players) p.input = { moveX: 0, moveY: 0, attack: false };
+  t.closed = true;
+}
+
+/** Feature-045: en kæmper i en busk er skjult for den anden side, undtagen tæt på eller lige efter et slag. */
+export function hiddenFrom(t: Tithe, target: Player, viewer: Player): boolean {
+  if (t.reach !== 'arena' || sameParty(target, viewer)) return false;
+  const map = t.depths[target.depth]?.map;
+  if (!map || tileAt(map, Math.floor(target.x), Math.floor(target.y)) !== BUSH || target.revealT > 0) return false;
+  return Math.hypot(target.x - viewer.x, target.y - viewer.y) > t.B.arena.bushSight;
+}
+
 function nid(t: Tithe, prefix: string): string {
   t.nextId += 1;
   return `${prefix}${t.nextId}`;
@@ -418,6 +552,7 @@ function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
     start: { mark: s.character.level, skills: Object.fromEntries(Object.entries(s.character.skills).map(([k, v]) => [k, v.level])) as Record<SkillId, number> },
     mm: { lastDamageAt: 0, lastBoredAt: 0, killTimes: [], lastSponsorAt: -999 },
     explored: {}, revealed: [], interact: null, field: null, fieldAge: 99, sheetVersion: 1, warnedLoot: new Set(),
+    side: null, revealT: 0,
   };
 }
 
@@ -700,7 +835,8 @@ function realRivals(t: Tithe, depth: number): Rival[] {
 }
 
 function graceOver(t: Tithe): boolean {
-  return t.time >= t.B.tithe.graceSeconds;
+  // Feature-045: i arenaen er nådetiden nedtællingen.
+  return t.time >= (t.reach === 'arena' ? t.B.arena.countdown : t.B.tithe.graceSeconds);
 }
 
 /**
@@ -854,7 +990,7 @@ export type PartyRefusal = 'tooLate' | 'invalid';
 export function invitePlayer(t: Tithe, fromId: string, toId: string): PartyRefusal | null {
   const from = t.players.find((x) => x.id === fromId);
   const to = t.players.find((x) => x.id === toId);
-  if (!from || !to || from === to || from.end || to.end) return 'invalid';
+  if (!from || !to || from === to || from.end || to.end || t.reach === 'arena') return 'invalid';
   if (graceOver(t)) return 'tooLate';
   if (sameParty(from, to)) return 'invalid';
   t.invitations = t.invitations.filter((i) => !(i.from === fromId && i.to === toId));
@@ -870,7 +1006,7 @@ export function answerInvitation(t: Tithe, toId: string, fromId: string, accept:
   const invitation = t.invitations.find((i) => i.from === fromId && i.to === toId);
   const from = t.players.find((x) => x.id === fromId);
   const to = t.players.find((x) => x.id === toId);
-  if (!invitation || !from || !to || to.end) return 'invalid';
+  if (!invitation || !from || !to || to.end || t.reach === 'arena') return 'invalid';
   if (graceOver(t)) return 'tooLate';
   t.invitations = t.invitations.filter((i) => i !== invitation);
   if (accept && !from.end) {
@@ -885,7 +1021,7 @@ export function answerInvitation(t: Tithe, toId: string, fromId: string, accept:
 /** Feature-034 CMD-02 Leave party: når som helst; bagefter kan de tidligere medlemmer slå spilleren og omvendt. */
 export function leaveParty(t: Tithe, playerId: string): PartyRefusal | null {
   const p = t.players.find((x) => x.id === playerId);
-  if (!p || p.end) return 'invalid';
+  if (!p || p.end || t.reach === 'arena') return 'invalid';
   if (!t.players.some((x) => x !== p && !x.end && sameParty(x, p))) return null;
   p.partyId = nid(t, 'party');
   return null;
@@ -900,7 +1036,7 @@ export type SheetAction =
   | { action: 'attribute'; attribute: Attribute }
   | { action: 'skill'; skill: SkillId };
 
-export type SheetRefusal = 'inventoryFull' | 'invalid';
+export type SheetRefusal = 'inventoryFull' | 'requirements' | 'invalid';
 
 /** Karakterskærmen under en Tithe: udstyr, drop, hotbar og point (Feature-007, -027, -004). */
 export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRefusal | null {
@@ -910,6 +1046,9 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
   const owns = (id: string) => ch.inventory.some((i) => i.id === id) || Object.values(ch.equipment).some((i) => i?.id === id);
   switch (a.action) {
     case 'equip': {
+      // Feature-007 CMD-01: kun når karakteren opfylder tingens krav.
+      const item = ch.inventory.find((i) => i.id === a.itemId);
+      if (item && !meetsRequirements(ch, item, t.B)) return 'requirements';
       const slot = equipItem(ch, a.itemId, t.B, a.ring === 'ring1' || a.ring === 'ring2' ? a.ring : undefined);
       if (!slot) return 'invalid';
       // Feature-028 AGG-01: et våben, der tages på, vælges til Attack.
@@ -924,6 +1063,7 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
       if (!unequipItem(ch, a.slot, t.B)) return 'inventoryFull';
       break;
     case 'drop': {
+      if (t.reach === 'arena') return 'invalid'; // Feature-045: intet kan droppes i arenaen
       // Feature-007 CMD-03: kun under en Tithe; tingen lander på gulvet ved kandidatens fødder, hvor alle kan
       // samle den op (Feature-006).
       const dep = t.depths[p.depth];
@@ -983,6 +1123,7 @@ export function chosenKey(p: Player): HotbarKey | null {
 export function stepTithe(t: Tithe, dt: number): void {
   if (t.closed) return;
   t.time += dt;
+  if (t.reach === 'arena') return stepArena(t, dt);
   if (t.invitations.length && graceOver(t)) t.invitations = [];
   syncRivalPresence(t);
   for (const p of playersIn(t)) {
@@ -1140,6 +1281,12 @@ function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
     if (p.chosenWeapon === worn) return;
     p.chosenWeapon = worn;
   } else {
+    // Feature-028: et våben, karakteren ikke opfylder kravene til, bliver i pakken.
+    const item = p.ch.inventory.find((i) => i.id === slot.weapon);
+    if (item && !meetsRequirements(p.ch, item, t.B)) {
+      float(t, p.depth, p.x, p.y - 0.6, REQUIREMENTS_NOT_MET, '#ff9b9b', 13, p.id);
+      return;
+    }
     const placed = equipItem(p.ch, slot.weapon, t.B);
     if (placed !== 'melee' && placed !== 'ranged') return;
     p.chosenWeapon = placed;
@@ -1190,7 +1337,8 @@ function claimTithe(t: Tithe, p: Player): void {
 function targetsFor(t: Tithe, p: Player, dep: Depth): Body[] {
   const list: Body[] = dep.monsters.filter((m) => !m.dead);
   for (const r of realRivals(t, dep.level)) if (canStrike(t, p, r)) list.push(r);
-  for (const o of playersOn(t, dep.level)) if (o !== p && canStrike(t, p, o)) list.push(o);
+  // Feature-045: en modstander, der gemmer sig i en busk, kan ikke sigtes på.
+  for (const o of playersOn(t, dep.level)) if (o !== p && canStrike(t, p, o) && !hiddenFrom(t, o, p)) list.push(o);
   return list;
 }
 
@@ -1231,6 +1379,7 @@ function playerAttack(t: Tithe, p: Player, dep: Depth): void {
   const target = pickTarget(t, p, dep, w.ranged ? w.range : w.reach + 1.2);
   const dir = aimAt(p, target, p.facing);
   p.facing = dir;
+  p.revealT = t.B.arena.revealSeconds; // Feature-045: et slag afslører kæmperen i en busk
   p.attackCd = w.cooldown;
   p.stamina -= w.staminaCost;
   if (w.ranged) {
@@ -1255,6 +1404,7 @@ function playerBolt(t: Tithe, p: Player, dep: Depth): void {
   const target = pickTarget(t, p, dep, b.range);
   const dir = aimAt(p, target, p.facing);
   p.facing = dir;
+  p.revealT = t.B.arena.revealSeconds;
   p.boltCd = b.cooldown;
   p.focus -= b.focusCost;
   const roll = rollDamage(t, b.min, b.max, b.damageMult, p.stats.critChance);
@@ -1364,11 +1514,11 @@ function afflict(t: Tithe, m: Monster, p: Player): void {
 
 /** Feature-002 CMD-01: erfaring × udfordring (fjendens niveau / Mark, mellem 0,25 og 1,5). */
 function trainSkill(t: Tithe, p: Player, skill: SkillId, target: Body, amount: number): void {
+  if (t.reach === 'arena') return; // Feature-045: intet fra arenaen beholdes
   const B = t.B;
   const challenge = clamp((target.level || 1) / Math.max(1, p.ch.level), B.skills.challengeMin, B.skills.challengeMax);
-  // Feature-007: et våbens slag træner skill'en højst op til våbnets skill cap; Echo Bolt kun op til Mark'ens loft.
-  const weapon = [p.stats.weapon, p.stats.melee, p.stats.ranged].find((w) => w?.skill === skill);
-  const gained = addSkillXp(p.ch, skill, amount * challenge, B, skill === 'echo' ? Infinity : weapon?.cap ?? B.skills.unarmedCap);
+  // Feature-002: skill'en trænes op til Mark'ens loft; våbnet sætter intet loft (Feature-007).
+  const gained = addSkillXp(p.ch, skill, amount * challenge, B);
   p.sheetVersion += 1;
   if (gained) {
     refreshStats(t, p);
@@ -1378,6 +1528,7 @@ function trainSkill(t: Tithe, p: Player, skill: SkillId, target: Body, amount: n
 
 /** Feature-003 CMD-01 */
 function gainEcho(t: Tithe, p: Player, amount: number): void {
+  if (t.reach === 'arena') return;
   const marks = addEcho(p.ch, amount, t.B);
   p.sheetVersion += 1;
   if (marks) {
@@ -1388,6 +1539,7 @@ function gainEcho(t: Tithe, p: Player, amount: number): void {
 
 /** Feature-017 CMD-01 */
 function addRenown(t: Tithe, p: Player, amount: number): void {
+  if (t.reach === 'arena') return;
   p.record.renown += amount;
   if (amount >= 10) float(t, p.depth, p.x, p.y - 1.4, `+${amount} Renown`, '#d6a2ff', 13, p.id);
 }
@@ -1515,8 +1667,9 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
 
   if (isPlayer(target)) {
     // Feature-013 EVT-10: spilleren falder, og de andre kandidater fortsætter.
-    say(t, 'Mirrormaster', fmt(LINES.playerFell, { name: target.name }));
-    if (p) defeatPlayer(t, dep, p, target);
+    // Feature-045: i arenaen er en kæmper bare nede – intet guld spildes, og intet Echo vindes.
+    say(t, 'Mirrormaster', fmt(t.reach === 'arena' ? LINES.fighterDown : LINES.playerFell, { name: target.name }));
+    if (p && t.reach !== 'arena') defeatPlayer(t, dep, p, target);
     endPlayer(t, target, 'fell', p ? p.userName : killer ? killer.name : 'the Maw');
   }
 }

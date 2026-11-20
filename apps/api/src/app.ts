@@ -7,6 +7,7 @@ import { charactersRoutes } from './characters/routes.ts';
 import type { Pool } from './db.ts';
 import { gearRoutes } from './gear/routes.ts';
 import { useRegistry, type TitheRegistry } from './lobby/registry.ts';
+import { arenaRoutes } from './lobby/arena-routes.ts';
 import { lobbyRoutes, refuseBusy } from './lobby/routes.ts';
 import { busy } from './lobby/store.ts';
 import { marketRoutes } from './market/routes.ts';
@@ -15,7 +16,7 @@ import { patronageRoutes } from './patronage/routes.ts';
 
 const LOCKED = [
   /^\/api\/characters\/[^/]+\/(choose|equip|unequip|attribute-points|skill-points)$/,
-  /^\/api\/characters\/[^/]+\/(hotbar|forge|apothecary|gifts)\//,
+  /^\/api\/characters\/[^/]+\/(hotbar|forge|apothecary|gifts|chest)\//,
 ];
 
 export function buildApp(pool: Pool, bus?: Bus, logger = false, options: { tithes?: TitheRegistry } = {}): FastifyInstance {
@@ -51,6 +52,7 @@ export function buildApp(pool: Pool, bus?: Bus, logger = false, options: { tithe
   marketRoutes(app, pool);
   patronageRoutes(app, pool);
   lobbyRoutes(app, pool);
+  arenaRoutes(app, pool);
   partiesRoutes(app, pool);
   return app;
 }

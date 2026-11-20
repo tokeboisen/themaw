@@ -3,7 +3,7 @@
 // Overført fra prototypen; tilpasses featurenes nuværende versioner i fase 1 og 2.
 
 import type { Balance } from './balance.ts';
-import { emptyEquipment, generateItem, itemBase, sellValue, targetSlot, weaponSlot } from './items.ts';
+import { emptyEquipment, generateItem, itemBase, itemRequirements, sellValue, targetSlot, weaponSlot } from './items.ts';
 import type { Rng } from './rng.ts';
 import type { Attribute, Character, EquipSlot, Item, SkillId, WeaponSlot } from './types.ts';
 
@@ -62,19 +62,18 @@ export function skillCap(ch: Pick<Character, 'level'>, B: Balance): number {
   return Math.min(B.skills.max, B.skills.capBase + B.skills.capPerMark * ch.level);
 }
 
-/** Feature-007: et våbens skill cap – grundtypens plus 10 for magisk og 20 for sjælden; uden våben 20. */
-export function weaponSkillCap(item: Item | null, B: Balance): number {
-  if (!item) return B.skills.unarmedCap;
-  return (itemBase(B, item.baseId).skillCap ?? B.skills.max) + B.skills.weaponCapBonus[item.rarity];
+/** Feature-007: skill'en tæller med sit niveau, attributten med bonus fra det, karakteren har på. */
+export function meetsRequirements(ch: Character, item: Item, B: Balance): boolean {
+  const r = itemRequirements(item, B);
+  if (r.skill && ch.skills[r.skill.id].level < r.skill.level) return false;
+  if (r.attribute && effectiveAttributes(ch)[r.attribute.id] < r.attribute.value) return false;
+  return true;
 }
 
-/**
- * Lægger erfaring til en skill og returnerer, hvor mange niveauer den steg. Skill'en vokser ikke over Mark'ens loft og
- * – for et våbens slag – våbnets skill cap (Feature-002, -007).
- */
-export function addSkillXp(ch: Character, skill: SkillId, amount: number, B: Balance, weaponCap = Infinity): number {
+/** Lægger erfaring til en skill og returnerer, hvor mange niveauer den steg. Skill'en vokser ikke over Mark'ens loft (Feature-002). */
+export function addSkillXp(ch: Character, skill: SkillId, amount: number, B: Balance): number {
   const s = ch.skills[skill];
-  const cap = Math.min(skillCap(ch, B), weaponCap);
+  const cap = skillCap(ch, B);
   if (s.level >= cap || amount <= 0) return 0;
   const intelligence = effectiveAttributes(ch).intelligence;
   const learning = 1 + Math.max(0, intelligence - B.character.startAttribute) * B.skills.learningPerIntelligence;
@@ -197,8 +196,6 @@ export interface WeaponStats {
   cooldown: number;
   effective: number;
   damageMult: number;
-  /** Feature-007: våbnets skill cap; effective tæller højst op til den. */
-  cap: number;
 }
 
 export interface BoltStats {
@@ -240,11 +237,9 @@ function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: Item
   const wb = item ? itemBase(B, item.baseId) : null;
   const unarmed = B.combat.unarmed;
   const skill: SkillId = item?.skill ?? 'blades';
-  const cap = weaponSkillCap(item, B);
-  const effective = Math.min(cap, effectiveSkill(ch, skill, B, bonuses));
+  const effective = effectiveSkill(ch, skill, B, bonuses);
   return {
     skill,
-    cap,
     min: item?.min ?? unarmed.min,
     max: item?.max ?? unarmed.max,
     reach: wb?.reach ?? unarmed.reach,
@@ -317,10 +312,12 @@ export function hasRoom(ch: Character, B: Balance): boolean {
  * Feature-007 CMD-01: tager en ting på fra inventory på dens plads – nærkamps- eller afstandsvåben, rustning eller en
  * ringplads – og det, der sad der, kommer i inventory. Returnerer pladsen, eller null.
  */
+/** Feature-007 CMD-01: tingen tages kun på, når karakteren opfylder dens krav; ellers sker intet (null). */
 export function equipItem(ch: Character, itemId: string, B: Balance, ringSlot?: 'ring1' | 'ring2'): EquipSlot | null {
   const index = ch.inventory.findIndex((i) => i.id === itemId);
   if (index < 0) return null;
   const item = ch.inventory[index]!;
+  if (!meetsRequirements(ch, item, B)) return null;
   const slot = targetSlot(ch.equipment, item, B, item.slot === 'ring' ? ringSlot : undefined);
   const old = ch.equipment[slot];
   ch.equipment[slot] = item;

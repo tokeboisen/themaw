@@ -1,0 +1,150 @@
+<mxfile host="render_drawio.py">
+  <diagram id="use-case" name="Arrange an arena match">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-160" y="-360" width="1800" height="810" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Lobby" vertex="1">
+          <mxGeometry x="-160" y="-400" width="1800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;The Tithes that are open on the server: a player opens a Tithe with a unique name, other players join it and see who is in it, and the player who opened it launches it. NPC rivals fill the places that are left." vertex="1">
+          <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-120" y="-200" width="1720" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Arrange an arena match" vertex="1">
+          <mxGeometry x="-120" y="-240" width="1720" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the players: set up a fight between players in the arena – one against one, two against one or two against two – for a stake of gold, so the Branded can test their builds against each other between Tithes." vertex="1">
+          <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
+        </mxCell>
+        <UserObject id="VIEW-01" label="Arena board&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The open arena matches and the form to open a new one.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
+            <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="VIEW-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#00CC00;strokeColor=#006600;" value="UI View" vertex="1">
+          <mxGeometry x="0" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Open an arena match&lt;/b&gt;&lt;br&gt;Name&lt;br&gt;Format&lt;br&gt;Stake&lt;br&gt;Side" vertex="1">
+          <mxGeometry x="200" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-02" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Join a side&lt;/b&gt;&lt;br&gt;Arena match&lt;br&gt;Side" vertex="1">
+          <mxGeometry x="200" y="250" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="230" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-01" label="&lt;b&gt;Arena match&lt;/b&gt;&lt;br&gt;Name&lt;br&gt;Format&lt;br&gt;Stake&lt;br&gt;Opener&lt;br&gt;&lt;b&gt;Sides (many)&lt;/b&gt;&lt;br&gt;· Number&lt;br&gt;· Places&lt;br&gt;· Players" tooltip="A fight between players in the arena that has been opened but not started yet: its format, stake, opener and the players on each side.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="400" y="0" width="120" height="170" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="400" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Arena match opened" vertex="1">
+          <mxGeometry x="600" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Side joined" vertex="1">
+          <mxGeometry x="600" y="250" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="230" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="VIEW-02" label="Arena match&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The arena match the player waits in, with both sides.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
+            <mxGeometry x="800" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="VIEW-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#00CC00;strokeColor=#006600;" value="UI View" vertex="1">
+          <mxGeometry x="800" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-03" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Start the arena match&lt;/b&gt;&lt;br&gt;Arena match" vertex="1">
+          <mxGeometry x="1000" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="1000" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-04" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Leave the arena match&lt;/b&gt;&lt;br&gt;Arena match" vertex="1">
+          <mxGeometry x="1000" y="250" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="1000" y="230" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-02" label="&lt;b&gt;Arena match&lt;/b&gt;&lt;br&gt;&lt;b&gt;Sides (many)&lt;/b&gt;&lt;br&gt;· Players" tooltip="A fight between players in the arena that has been opened but not started yet: its format, stake, opener and the players on each side.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="1200" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="1200" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-03" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Arena match started" vertex="1">
+          <mxGeometry x="1400" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="1400" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-04" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Arena match left" vertex="1">
+          <mxGeometry x="1400" y="250" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="1400" y="230" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3333;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-02-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6667;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-02" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-01-VIEW-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3333;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-01" target="VIEW-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-EVT-02-VIEW-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6667;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-02" target="VIEW-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-02-CMD-03" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-02" target="CMD-03">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-02-CMD-04" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-02" target="CMD-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-03-AGG-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3333;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-03" target="AGG-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-04-AGG-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6667;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-04" target="AGG-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-02-EVT-03" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-02" target="EVT-03">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-02-EVT-04" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-02" target="EVT-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

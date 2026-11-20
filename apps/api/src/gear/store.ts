@@ -12,6 +12,8 @@ export interface Inventory {
   hotbar: Hotbar;
   equipment: Equipment;
   pack: Item[];
+  /** Feature-043: kisten på Mustering Square; den følger aldrig med i en Tithe. */
+  chest: Item[];
 }
 
 type Db = Pool | Client;
@@ -23,29 +25,36 @@ export async function loadInventory(db: Db, characterId: string, lock = false): 
   );
   const row = inv.rows[0];
   if (!row) return undefined;
-  const items = await db.query<{ location: EquipSlot | 'pack'; data: Item }>(
+  const items = await db.query<{ location: EquipSlot | 'pack' | 'chest'; data: Item }>(
     'select location, data from gear.items where character_id = $1 order by added_at, id',
     [characterId],
   );
   const equipment: Equipment = emptyEquipment();
   const pack: Item[] = [];
+  const chest: Item[] = [];
   for (const item of items.rows) {
     if (item.location === 'pack') pack.push(item.data);
+    else if (item.location === 'chest') chest.push(item.data);
     else equipment[item.location] = item.data;
   }
-  return { characterId, userId: row.user_id, potions: row.potions, rations: row.rations, hotbar: row.hotbar, equipment, pack };
+  return { characterId, userId: row.user_id, potions: row.potions, rations: row.rations, hotbar: row.hotbar, equipment, pack, chest };
 }
 
-/** Pakkens størrelse: 12 + 1 for hver 2 Strength over 10, med bonus fra udstyret (Feature-005 AGG-01). */
-export async function capacity(db: Db, inv: Inventory): Promise<number> {
+/** Karakteren med sit udstyr, som reglerne regner med (Characters' egenskaber og skills, Gears udstyr). */
+export async function characterOf(db: Db, inv: Inventory): Promise<Character | undefined> {
   const core = await characterCore(db, inv.characterId);
-  if (!core) return B.character.baseCapacity;
-  const character: Character = {
+  if (!core) return undefined;
+  return {
     name: core.name, background: core.background, level: core.mark, echo: core.echo, attributes: core.attributes,
     skills: core.skills, attributePoints: core.attributePoints, skillPoints: core.skillPoints, gold: 0,
     potions: inv.potions, rations: inv.rations, equipment: inv.equipment, inventory: inv.pack, tithes: 0, championships: 0,
   };
-  return derivedStats(character, B).capacity;
+}
+
+/** Pakkens størrelse: 12 + 1 for hver 2 Strength over 10, med bonus fra udstyret (Feature-005 AGG-01). */
+export async function capacity(db: Db, inv: Inventory): Promise<number> {
+  const character = await characterOf(db, inv);
+  return character ? derivedStats(character, B).capacity : B.character.baseCapacity;
 }
 
 // --- Forespørgsler fra Market og Patronage --------------------------------------------------------

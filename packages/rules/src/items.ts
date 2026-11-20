@@ -2,7 +2,7 @@
 
 import type { Balance } from './balance.ts';
 import type { Rng } from './rng.ts';
-import type { AffixStat, EquipSlot, Equipment, Item, ItemBase, Rarity, SkillId, Slot, WeaponSlot } from './types.ts';
+import type { AffixStat, Attribute, EquipSlot, Equipment, Item, ItemBase, Rarity, SkillId, Slot, WeaponSlot } from './types.ts';
 
 export const SLOTS: Slot[] = ['weapon', 'armour', 'ring'];
 export const SLOT_NAMES: Record<Slot, string> = { weapon: 'Weapon', armour: 'Armour', ring: 'Ring' };
@@ -134,6 +134,50 @@ export function sellValue(item: Item, B: Balance): number {
   return Math.max(1, Math.floor(item.value * B.items.sellFactor));
 }
 
+/** Feature-007: hvad en ting kræver for at blive taget på; et krav på 0 er udeladt. */
+export interface Requirements {
+  skill?: { id: SkillId; level: number };
+  attribute?: { id: Attribute; value: number };
+}
+
+/**
+ * Feature-007 AGG-01: et våben kræver sin skill og en attribut (Blades og Bows Dexterity, Heavy Weapons Strength),
+ * rustning Strength og ringe intet. Kravet ved item level 1 står på grundtypen; hvert level over 1 lægger 1 til
+ * skill'en og 1 til attributten for hver 2 levels.
+ */
+export function itemRequirements(item: Item, B: Balance): Requirements {
+  if (item.slot === 'ring') return {};
+  const base = itemBase(B, item.baseId);
+  const R = B.items.requirements;
+  const above = Math.max(0, item.ilvl - 1);
+  const out: Requirements = {};
+  if (item.slot === 'weapon' && item.skill && item.skill !== 'echo') {
+    const level = (base.reqSkill ?? 0) + above * R.skillPerLevel;
+    if (level > 0) out.skill = { id: item.skill, level };
+  }
+  const kind = item.slot === 'armour' ? 'armour' : item.skill && item.skill !== 'echo' ? item.skill : null;
+  if (kind) {
+    const value = (base.reqAttribute ?? 0) + Math.floor(above / R.levelsPerAttribute);
+    if (value > 0) out.attribute = { id: R.attribute[kind], value };
+  }
+  return out;
+}
+
+/** Feature-007 CMD-01: beskeden, når karakteren ikke opfylder en tings krav. */
+export const REQUIREMENTS_NOT_MET = 'You do not meet the requirements.';
+
+/** Feature-007: kravene som tekst, fx "Requires Blades 8 · Dexterity 11", eller null uden krav. */
+export function requirementText(r: Requirements): string | null {
+  const parts: string[] = [];
+  if (r.skill) parts.push(`${SKILL_LABELS[r.skill.id]} ${r.skill.level}`);
+  if (r.attribute) parts.push(`${ATTRIBUTE_LABELS[r.attribute.id]} ${r.attribute.value}`);
+  return parts.length ? `Requires ${parts.join(' · ')}` : null;
+}
+
+const ATTRIBUTE_LABELS: Record<Attribute, string> = {
+  strength: 'Strength', dexterity: 'Dexterity', stamina: 'Stamina', constitution: 'Constitution', intelligence: 'Intelligence',
+};
+
 /** Linjer til at vise et stykke udstyr i UI'et. */
 export function describeItem(item: Item, B: Balance): string[] {
   const base = itemBase(B, item.baseId);
@@ -141,10 +185,11 @@ export function describeItem(item: Item, B: Balance): string[] {
   if (item.slot === 'weapon' && item.skill) {
     lines.push(`${item.min}–${item.max} damage · ${SKILL_LABELS[item.skill]}`);
     lines.push(base.range ? `Range ${base.range} · ${base.cooldown}s` : `Reach ${base.reach} · ${base.cooldown}s`);
-    // Feature-007: våbnets skill cap vises på våbnet.
-    lines.push(`Skill cap ${(base.skillCap ?? B.skills.max) + B.skills.weaponCapBonus[item.rarity]}`);
   }
   if (item.slot === 'armour') lines.push(`${item.armour} armour`);
+  // Feature-007: kravene står på tingen.
+  const requires = requirementText(itemRequirements(item, B));
+  if (requires) lines.push(requires);
   for (const a of item.affixes) {
     const def = B.items.affixes[a.stat];
     if (!def) continue;

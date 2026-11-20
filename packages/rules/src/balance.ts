@@ -129,22 +129,22 @@ const BACKGROUNDS: Background[] = [
 ];
 
 const ITEM_BASES: Record<string, ItemBase> = {
-  dagger: { name: 'Dagger', slot: 'weapon', skill: 'blades', min: 3, max: 5, reach: 1.1, cooldown: 0.32, stamina: 4, arc: 80, price: 18, skillCap: 20 },
-  rusty_sword: { name: 'Rusty Sword', slot: 'weapon', skill: 'blades', min: 4, max: 7, reach: 1.3, cooldown: 0.45, stamina: 6, arc: 100, price: 20, skillCap: 20 },
-  short_sword: { name: 'Short Sword', slot: 'weapon', skill: 'blades', min: 6, max: 10, reach: 1.35, cooldown: 0.48, stamina: 7, arc: 100, price: 45, minLevel: 2, skillCap: 35 },
-  pickaxe: { name: 'Pickaxe', slot: 'weapon', skill: 'heavy', min: 7, max: 12, reach: 1.45, cooldown: 0.8, stamina: 12, arc: 140, price: 22, skillCap: 20 },
-  war_axe: { name: 'War Axe', slot: 'weapon', skill: 'heavy', min: 10, max: 16, reach: 1.5, cooldown: 0.85, stamina: 13, arc: 140, price: 55, minLevel: 2, skillCap: 40 },
-  maul: { name: 'Maul', slot: 'weapon', skill: 'heavy', min: 14, max: 22, reach: 1.55, cooldown: 1.05, stamina: 16, arc: 150, price: 80, minLevel: 3, skillCap: 60 },
-  short_bow: { name: 'Short Bow', slot: 'weapon', skill: 'bows', min: 4, max: 8, range: 7, cooldown: 0.6, stamina: 5, price: 25, skillCap: 20 },
-  hunting_bow: { name: 'Hunting Bow', slot: 'weapon', skill: 'bows', min: 6, max: 11, range: 8, cooldown: 0.65, stamina: 6, price: 60, minLevel: 2, skillCap: 40 },
-  fine_dagger: { name: 'Fine Dagger', slot: 'weapon', skill: 'blades', min: 5, max: 8, reach: 1.15, cooldown: 0.3, stamina: 4, arc: 80, price: 90, minLevel: 5, skillCap: 50 },
-  longsword: { name: 'Longsword', slot: 'weapon', skill: 'blades', min: 9, max: 15, reach: 1.45, cooldown: 0.5, stamina: 8, arc: 110, price: 140, minLevel: 6, skillCap: 60 },
-  greataxe: { name: 'Greataxe', slot: 'weapon', skill: 'heavy', min: 18, max: 28, reach: 1.6, cooldown: 1.1, stamina: 18, arc: 150, price: 190, minLevel: 8, skillCap: 80 },
-  longbow: { name: 'Longbow', slot: 'weapon', skill: 'bows', min: 9, max: 15, range: 9, cooldown: 0.7, stamina: 7, price: 150, minLevel: 6, skillCap: 70 },
+  dagger: { name: 'Dagger', slot: 'weapon', skill: 'blades', min: 3, max: 5, reach: 1.1, cooldown: 0.32, stamina: 4, arc: 80, price: 18 },
+  rusty_sword: { name: 'Rusty Sword', slot: 'weapon', skill: 'blades', min: 4, max: 7, reach: 1.3, cooldown: 0.45, stamina: 6, arc: 100, price: 20 },
+  short_sword: { name: 'Short Sword', slot: 'weapon', skill: 'blades', min: 6, max: 10, reach: 1.35, cooldown: 0.48, stamina: 7, arc: 100, price: 45, minLevel: 2, reqSkill: 8, reqAttribute: 11 },
+  pickaxe: { name: 'Pickaxe', slot: 'weapon', skill: 'heavy', min: 7, max: 12, reach: 1.45, cooldown: 0.8, stamina: 12, arc: 140, price: 22 },
+  war_axe: { name: 'War Axe', slot: 'weapon', skill: 'heavy', min: 10, max: 16, reach: 1.5, cooldown: 0.85, stamina: 13, arc: 140, price: 55, minLevel: 2, reqSkill: 10, reqAttribute: 13 },
+  maul: { name: 'Maul', slot: 'weapon', skill: 'heavy', min: 14, max: 22, reach: 1.55, cooldown: 1.05, stamina: 16, arc: 150, price: 80, minLevel: 3, reqSkill: 18, reqAttribute: 16 },
+  short_bow: { name: 'Short Bow', slot: 'weapon', skill: 'bows', min: 4, max: 8, range: 7, cooldown: 0.6, stamina: 5, price: 25 },
+  hunting_bow: { name: 'Hunting Bow', slot: 'weapon', skill: 'bows', min: 6, max: 11, range: 8, cooldown: 0.65, stamina: 6, price: 60, minLevel: 2, reqSkill: 10, reqAttribute: 13 },
+  fine_dagger: { name: 'Fine Dagger', slot: 'weapon', skill: 'blades', min: 5, max: 8, reach: 1.15, cooldown: 0.3, stamina: 4, arc: 80, price: 90, minLevel: 5, reqSkill: 20, reqAttribute: 16 },
+  longsword: { name: 'Longsword', slot: 'weapon', skill: 'blades', min: 9, max: 15, reach: 1.45, cooldown: 0.5, stamina: 8, arc: 110, price: 140, minLevel: 6, reqSkill: 26, reqAttribute: 15 },
+  greataxe: { name: 'Greataxe', slot: 'weapon', skill: 'heavy', min: 18, max: 28, reach: 1.6, cooldown: 1.1, stamina: 18, arc: 150, price: 190, minLevel: 8, reqSkill: 32, reqAttribute: 20 },
+  longbow: { name: 'Longbow', slot: 'weapon', skill: 'bows', min: 9, max: 15, range: 9, cooldown: 0.7, stamina: 7, price: 150, minLevel: 6, reqSkill: 26, reqAttribute: 17 },
   padded_coat: { name: 'Padded Coat', slot: 'armour', armour: 4, price: 12 },
-  leather_jerkin: { name: 'Leather Jerkin', slot: 'armour', armour: 7, price: 25 },
-  mail_shirt: { name: 'Mail Shirt', slot: 'armour', armour: 14, price: 60, minLevel: 2 },
-  scale_coat: { name: 'Scale Coat', slot: 'armour', armour: 22, price: 95, minLevel: 4 },
+  leather_jerkin: { name: 'Leather Jerkin', slot: 'armour', armour: 7, price: 25, reqAttribute: 9 },
+  mail_shirt: { name: 'Mail Shirt', slot: 'armour', armour: 14, price: 60, minLevel: 2, reqAttribute: 13 },
+  scale_coat: { name: 'Scale Coat', slot: 'armour', armour: 22, price: 95, minLevel: 4, reqAttribute: 17 },
   iron_ring: { name: 'Iron Ring', slot: 'ring', price: 30 },
   bone_ring: { name: 'Bone Ring', slot: 'ring', price: 30 },
 };
@@ -209,7 +209,8 @@ const SKILL_WEIGHTS: Record<SkillId, Partial<Record<Attribute, number>>> = {
 };
 
 /** Feature-010: de steder, en Tithe kan være i. */
-export type ReachId = 'mines' | 'city';
+/** Feature-010: en Reach er et sted; arenaen (Feature-045) er ikke på Tithe Board. */
+export type ReachId = 'mines' | 'city' | 'arena';
 
 export const BALANCE = {
   character: {
@@ -252,9 +253,6 @@ export const BALANCE = {
     /** Feature-002: Mark'en sætter loftet over alle skills: 10 + 5 × Mark. */
     capBase: 10,
     capPerMark: 5,
-    /** Feature-007: et magisk våben hæver sin skill cap med 10, et sjældent med 20; uden våben er loftet 20. */
-    weaponCapBonus: { common: 0, magic: 10, rare: 20 },
-    unarmedCap: 20,
     xpPerHit: 1,
     xpPerKill: 3,
     maxHitsPerSwing: 3,
@@ -333,6 +331,15 @@ export const BALANCE = {
     cachesPerDepth: 2,
   },
   items: {
+    /**
+     * Feature-007: krav for at tage udstyr på. Våben kræver deres skill og en attribut, rustning Strength, ringe intet.
+     * Hvert item level over 1 lægger 1 til skill'en og 1 til attributten for hver 2 levels.
+     */
+    requirements: {
+      attribute: { blades: 'dexterity', bows: 'dexterity', heavy: 'strength', armour: 'strength' } as Record<'blades' | 'bows' | 'heavy' | 'armour', Attribute>,
+      skillPerLevel: 1,
+      levelsPerAttribute: 2,
+    },
     sellFactor: 0.3,
     damagePerItemLevel: 0.08,
     armourPerItemLevel: 0.1,
@@ -412,6 +419,27 @@ export const BALANCE = {
   },
   /** Feature-036 og -025: navnet på en Tithe og pladserne i den. */
   lobby: { nameMin: 3, nameMax: 30, maxPlayers: 8 },
+  /** Feature-043: hver karakters kiste på Mustering Square. */
+  chest: { size: 12 },
+  /** Feature-044 Arrange an arena match og -045 Fight in the arena. */
+  arena: {
+    /** Pladserne på Side 1 og Side 2. */
+    formats: { '1v1': [1, 1], '2v1': [2, 1], '2v2': [2, 2] } as Record<'1v1' | '2v1' | '2v2', [number, number]>,
+    stakeMax: 1000,
+    /** Sekunder, hvor ingen kan såres. */
+    countdown: 5,
+    /** Ringen lukker sig fra 2:00 til 3:30, til halvakserne er halveret (den midterste fjerdedel). */
+    shrinkFrom: 120,
+    shrinkTo: 210,
+    minRing: 0.5,
+    /** Udenfor ringen: 8 % af max liv i sekundet. */
+    ringDamage: 0.08,
+    /** Uafgjort ved 4:00. */
+    hardLimit: 240,
+    /** En kæmper i en busk ses af den anden side inden for 2 felter, eller 1,5 sekund efter et slag. */
+    bushSight: 2,
+    revealSeconds: 1.5,
+  },
 };
 
 export type Balance = typeof BALANCE;

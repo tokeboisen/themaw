@@ -74,6 +74,10 @@ export const ROUTES: Route[] = [
   r('Found gear kept', 'Gear', 'Market', 'F018', 'bus'),
   // Lobby → Tithe
   r('Tithe launched', 'Lobby', 'Tithe', 'F010', 'bus'),
+  // Arenaen: kampen starter i tithe-server, og Market tager indsatsen og betaler vinderne
+  r('Arena match started', 'Lobby', 'Tithe', 'F045', 'bus'),
+  r('Arena match started', 'Lobby', 'Market', 'F046', 'bus'),
+  r('Arena match ended', 'Tithe', 'Market', 'F046', 'bus'),
   // Tithe → resten, når en spillers del af Tithen slutter
   r('Tithe ended', 'Tithe', 'Gear', 'F009', 'bus'),
   r('Tithe ended', 'Tithe', 'Market', 'F021', 'bus'),

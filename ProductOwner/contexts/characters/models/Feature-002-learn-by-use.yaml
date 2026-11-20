@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -135,8 +135,8 @@ rules:
       - AGG-01
     text: >-
       The Mark caps every skill at 10 + 5 × Mark (15 at Mark 1, 60 at Mark 10, 100 at Mark 18); skills stop at 100.
-      A blow trains a skill only up to the cap of the Mark and the cap of the weapon that dealt it (Gear, Manage
-      equipment).
+      A blow trains a skill up to the cap of the Mark; the weapon sets no cap of its own, but strong weapons
+      need a skill level before they can be equipped (Gear, Manage equipment).
   - applies_to:
       - EVT-05
     text: >-
@@ -178,3 +178,4 @@ open_questions:
       - AGG-01
     resolution: >-
       Decided 2026-11-20: much slower, in a tabletop pace: 20 + 4 × level + 0.2 × level² experience per level, capped by the Mark and the weapon.
+      The weapon's cap was replaced the same day by requirements on items (Gear, Manage equipment).

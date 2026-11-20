@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 2
 status: draft
 created: '2026-11-19'
 use_case:
@@ -80,7 +80,8 @@ rules:
   - applies_to:
       - EVT-01
     text: >-
-      Everything the character owns goes with it: the inventory (Gear, Stock the inventory), the gold (Market,
+      Everything the character owns goes with it: the inventory (Gear, Stock the inventory), the chest (Gear,
+      Use the chest), the gold (Market,
       Keep the wallet), the Forge's stock (Market, Restock the Forge), the waiting sponsor gifts (Patronage,
       Grant sponsor gifts) and the statistics (Keep player statistics).
   - applies_to:

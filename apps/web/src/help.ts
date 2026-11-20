@@ -14,6 +14,7 @@ const TOPICS: [string, string][] = [
   ['The Mirrormaster', 'Lucan Ilveth runs the show. Kill streaks bring sponsor gifts; a bored crowd brings beasts. Depth 1 is sealed after 4 minutes and depth 2 after 8 – a sealed depth wounds everyone still in it.'],
   ['The Rim', 'Between Tithes you walk the Mustering Square: Hesta Varn\u2019s Forge to the west, Mother Quill\u2019s Apothecary to the east, the Patrons\u2019 Hall to the north – it glows when gifts wait – and the Tithe Board in the middle. Stand at one and press F. The Crown pays a purse after every Tithe.'],
   ['Playing with others', 'Open a Tithe with a name of your own, or join one a friend has opened. The player who opened it launches it, and NPC rivals fill the places that are left. In the first 20 seconds you can invite the other players into your party (O). Party members never hurt each other; anyone else may strike you once the grace is over, and a player who is struck down spills some of their gold.'],
+  ['The Arena', 'At the Arena on the square you fight other players 1:1, 2:1 or 2:2 with your own character, for a stake of gold that the winners share. Rocks and trees block the way and the missiles; in a bush you are hidden until someone comes close or you strike. After two minutes the ring closes in. Nothing else is won or lost: no Echo, no training, and your potions come back.'],
 ];
 
 /** Feature-030 VIEW-01: Bestiary – monstrene i hver Reach med deres levels og kampmåde (Feature-011). */

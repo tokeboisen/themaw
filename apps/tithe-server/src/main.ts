@@ -1,7 +1,7 @@
 // tithe-server: kører Tithes i hukommelsen og taler med browserne over WebSocket (Tithe, Spectacle og partierne i en
 // Tithe). "Tithe launched" fra lobbyen starter en Tithe; "Tithe ended" går tilbage på bussen for hver spiller.
 
-import { EVENT, bindingsFor, queueFor, type TitheLaunched } from '@maw/contracts';
+import { EVENT, bindingsFor, queueFor, type ArenaMatchStarted, type TitheLaunched } from '@maw/contracts';
 import { connectBus } from '@maw/platform';
 import { Host } from './host.ts';
 import { createTitheServer } from './server.ts';
@@ -25,6 +25,8 @@ const host = new Host(bus, log);
 // Feature-037 EVT-01 Tithe launched → Feature-010 SVC-01 Tithe master
 await bus.consume(queueFor('Tithe'), bindingsFor('Tithe'), async (event) => {
   if (event.type === EVENT.titheLaunched) host.launch(event.data as TitheLaunched);
+  // Feature-044 EVT-03 Arena match started → Feature-045 SVC-01 Arena master
+  if (event.type === EVENT.arenaMatchStarted) host.launchArena(event.data as ArenaMatchStarted);
 });
 
 // Feature-042: Mustering Square; api'et fortæller, hvem en session-cookie tilhører.

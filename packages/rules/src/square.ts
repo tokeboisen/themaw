@@ -1,10 +1,11 @@
 // Feature-042 Walk the Mustering Square: pladsen i the Rim, hvor de Branded samles mellem Tithes. Hesta Varns smedje mod
-// vest, Mother Quills apotek mod øst, Patrons' Hall mod nord og Tithe Board i midten. Kortet er fast; tithe-server
+// vest, Mother Quills apotek mod øst, Patrons' Hall mod nord, Tithe Board i midten og karakterens kiste ved husene mod
+// sydvest (Feature-043). Kortet er fast; tithe-server
 // holder spillernes positioner, og webappen tegner pladsen og åbner stederne.
 
 import { FLOOR, ROAD, WALL, moveWithCollision, type Circle, type DepthMap } from './dungeon.ts';
 
-export type SquarePlace = 'forge' | 'apothecary' | 'patrons' | 'board';
+export type SquarePlace = 'forge' | 'apothecary' | 'patrons' | 'board' | 'chest' | 'arena';
 
 export interface SquarePlaceInfo {
   id: SquarePlace;
@@ -23,6 +24,8 @@ export const SQUARE_PLACES: SquarePlaceInfo[] = [
   { id: 'apothecary', name: 'Apothecary', x: 29.5, y: 13 },
   { id: 'patrons', name: "Patrons' Hall", x: 18, y: 5.5 },
   { id: 'board', name: 'Tithe Board', x: 18, y: 14.6 },
+  { id: 'chest', name: 'Chest', x: 10, y: 16.3 },
+  { id: 'arena', name: 'Arena', x: 29, y: 16.3 },
 ];
 
 /** Bygningerne omkring pladsen, til tegningen: x, y, bredde, højde og navnet over døren. */
@@ -34,6 +37,12 @@ export const SQUARE_BUILDINGS = [
 
 /** Tithe Board i midten: et solidt opslag, man går hen til. */
 export const SQUARE_BOARD = { x: 17, y: 12, w: 2, h: 2 } as const;
+
+/** Feature-043: karakterens kiste står op ad husene mod sydvest; man står nord for den. */
+export const SQUARE_CHEST = { x: 9, y: 17, w: 2, h: 1 } as const;
+
+/** Feature-044: porten til arenaen ved husene mod sydøst. */
+export const SQUARE_ARENA = { x: 28, y: 17, w: 2, h: 1 } as const;
 
 /** Hvor en spiller kommer ind på pladsen: ved buen mod syd. */
 export const SQUARE_ENTRY = { x: 18, y: 22.5 } as const;
@@ -62,6 +71,8 @@ export function squareMap(): DepthMap {
   // Buen mod syd og brostenene foran stederne.
   rect(16, 21, 4, 4, ROAD);
   rect(SQUARE_BOARD.x, SQUARE_BOARD.y, SQUARE_BOARD.w, SQUARE_BOARD.h, WALL);
+  rect(SQUARE_CHEST.x, SQUARE_CHEST.y, SQUARE_CHEST.w, SQUARE_CHEST.h, WALL);
+  rect(SQUARE_ARENA.x, SQUARE_ARENA.y, SQUARE_ARENA.w, SQUARE_ARENA.h, WALL);
   for (const p of SQUARE_PLACES) tiles[Math.floor(p.y) * w + Math.floor(p.x)] = FLOOR;
   const room = { x: 1, y: 1, w: w - 2, h: h - 2, cx: 18, cy: 13 };
   cached = {
@@ -77,7 +88,7 @@ export function placeAt(x: number, y: number): SquarePlaceInfo | null {
   return null;
 }
 
-/** Feature-042 CMD-01 Walk the square: et skridt i retningen; mure, boder og tavlen spærrer vejen. */
+/** Feature-042 CMD-01 Walk the square: et skridt i retningen; mure, boder, tavlen og kisten spærrer vejen. */
 export function walkSquare(e: Circle, moveX: number, moveY: number, speed: number, dt: number): void {
   let mx = Math.max(-1, Math.min(1, moveX));
   let my = Math.max(-1, Math.min(1, moveY));

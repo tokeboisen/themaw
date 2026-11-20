@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-030-read-help.drawio
 semantics: event-modeling-semantik.md
-version: 7
+version: 8
 status: draft
 created: 2026-11-19
 ```
@@ -78,7 +78,7 @@ No user stories.
 |---|---|---|---|
 | VIEW-01 | Help | (starting point) | – |
 
-**VIEW-01:** Opened with the Help button or H, in the Rim and during a Tithe, as a see-through overlay like the character sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack with what is chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players (O), help (H) and close or go back (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others. A Bestiary lists the monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
+**VIEW-01:** Opened with the Help button or H, in the Rim and during a Tithe, as a see-through overlay like the character sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack with what is chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players (O), help (H) and close or go back (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear and loot, Hunger and supplies, The Mirrormaster, The Rim, Playing with others and The Arena. A Bestiary lists the monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
 
 ```gherkin
 Scenario: Help during a Tithe
@@ -96,7 +96,7 @@ Scenario: Esc closes what is open
 
 ## 10. Validation and open questions
 
-### Resolved in version 7
+### Resolved in version 8
 
 | # | Question | Resolution |
 |---|---|---|

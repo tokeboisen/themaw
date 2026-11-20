@@ -19,3 +19,8 @@ bounded_context:
         - Join a Tithe
         - Launch the Tithe
         - Walk the Mustering Square
+    - name: Arena matches
+      description: Opening, joining and starting fights between players in the arena for a stake of gold.
+      lifecycle: planned
+      use_cases:
+        - Arrange an arena match

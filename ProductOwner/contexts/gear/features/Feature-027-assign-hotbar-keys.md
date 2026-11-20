@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-027-assign-hotbar-keys.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -116,7 +116,7 @@ As a player I want to clear a number key, so that my hotbar only holds what I us
 - The hotbar has 8 keys, 1–8. A key holds either a weapon the character owns (equipped or in the pack) or an Echo Art the character knows; today the only Echo Art is Echo Bolt. (CMD-01, AGG-01)
 - A weapon or an Echo Art is on at most one key; putting it on another key moves it. (CMD-01)
 - Keys can be assigned in the Rim and during a Tithe (the character sheet is an overlay). (VIEW-01)
-- When a weapon on the hotbar leaves the inventory – sold, dropped or lost in a fall – its key is cleared. (AGG-01)
+- When a weapon on the hotbar leaves the inventory – sold, dropped, put in the chest or lost in a fall – its key is cleared. (AGG-01)
 
 ## 8. Integrations
 
@@ -134,7 +134,7 @@ As a player I want to clear a number key, so that my hotbar only holds what I us
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|

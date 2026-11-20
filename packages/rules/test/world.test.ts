@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BALANCE as B, chosenKey, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, refreshStats, sealInfo, setInput,
+  BALANCE as B, REQUIREMENTS_NOT_MET, chosenKey, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, refreshStats, sealInfo, setInput,
   sheetAction, stepTithe, testing, type Character, type Hotbar, type Monster, type Player, type Rival, type Tithe,
 } from '../src/index.ts';
 
@@ -493,19 +493,46 @@ test('F002 scenario "The Mark caps the skill": nothing is learned above 10 + 5 �
   assert.ok(p.ch.skills.heavy.xp === 0); // nothing is recorded
 });
 
-test('F007: a weapon\'s skill cap limits its damage bonus and how far its blows train', () => {
+test('F007: the weapon sets no cap – a high skill counts in full and keeps training up to the Mark\'s cap', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
   p.ch.level = 10; // Mark-loftet er 60
   p.ch.skills.heavy = { level: 40, xp: 0 };
-  p.ch.equipment.melee!.rarity = 'common';
   refreshStats(t, p);
-  assert.equal(p.stats.weapon.cap, 20); // Pickaxe
-  assert.equal(p.stats.weapon.effective, 20);
+  assert.ok(p.stats.weapon.effective >= 40, String(p.stats.weapon.effective)); // Pickaxe
   const m = monsterNextTo(t, p, 'gnawer', 10);
   testing.damage(t, depth(t, p), p, m, 1, false, { skill: 'heavy', train: true });
-  assert.equal(p.ch.skills.heavy.xp, 0); // 40 er over Pickaxe'ns cap på 20
+  assert.ok(p.ch.skills.heavy.xp > 0);
+});
+
+test('F007 scenario "A weapon Kael is not ready for" during a Tithe', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  p.ch.skills.heavy = { level: 8, xp: 0 };
+  const axe = generateItem(createRng(4), 1, B, { baseId: 'war_axe', rarity: 'common' });
+  p.ch.inventory.push(axe);
+  assert.equal(sheetAction(t, p.id, { action: 'equip', itemId: axe.id }), 'requirements');
+  assert.ok(p.ch.inventory.includes(axe)); // nothing changes
+  p.ch.skills.heavy = { level: 10, xp: 0 };
+  p.ch.attributes.strength = 13;
+  assert.equal(sheetAction(t, p.id, { action: 'equip', itemId: axe.id }), null);
+  assert.equal(p.ch.equipment.melee?.id, axe.id);
+});
+
+test('F028: a hotbar key cannot draw a weapon whose requirements Kael does not meet', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  const bow = generateItem(createRng(5), 1, B, { baseId: 'longbow', rarity: 'common' }); // Bows 26, Dexterity 17
+  p.ch.inventory.push(bow);
+  sheetAction(t, p.id, { action: 'hotbar', key: '3', itemId: bow.id });
+  queueAct(t, p.id, { act: 'hotkey', key: '3' });
+  stepTithe(t, DT);
+  assert.ok(p.ch.inventory.includes(bow)); // stays in the pack
+  assert.equal(p.ch.equipment.ranged, null);
+  assert.ok(t.fx.some((f) => f.type === 'float' && f.text === REQUIREMENTS_NOT_MET && f.to === p.id));
 });
 
 test('F010 and F011: the Tithe\'s level is the Mark of the player who launched it; monsters vary around it', () => {

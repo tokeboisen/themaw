@@ -12,6 +12,9 @@ export const STAIRS = 4;
 export const ROAD = 5;
 export const INDOOR = 6;
 export const RUBBLE = 7;
+// Arenaen (Feature-045): træer spærrer for kæmpere og projektiler; buske skjuler den, der står i dem.
+export const TREE = 8;
+export const BUSH = 9;
 export const MAP_SIZE = 64;
 
 export interface Point {
@@ -160,12 +163,12 @@ export function tileAt(map: DepthMap, x: number, y: number): number {
 
 export function isSolid(map: DepthMap, x: number, y: number): boolean {
   const t = tileAt(map, x, y);
-  return t === WALL || t === RUBBLE || (t === GATE && !map.gateOpen);
+  return t === WALL || t === RUBBLE || t === TREE || (t === GATE && !map.gateOpen);
 }
 
 /** Et felt, man kan stå og gå på, uden at det er en trappe, en udgang eller en port. */
 export function isOpenFloor(t: number): boolean {
-  return t === FLOOR || t === ROAD || t === INDOOR;
+  return t === FLOOR || t === ROAD || t === INDOOR || t === BUSH;
 }
 
 /** Afstand i skridt fra et felt til alle andre (−1 = kan ikke nås). */

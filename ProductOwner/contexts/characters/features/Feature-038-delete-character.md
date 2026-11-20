@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-038-delete-character.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-19
 ```
@@ -108,7 +108,7 @@ Scenario: Keep cancels
 ### Rules
 
 - A character can only be deleted from the character list, not while it is in a lobby or a Tithe. It cannot be undone. (CMD-01)
-- Everything the character owns goes with it: the inventory (Gear, Stock the inventory), the gold (Market, Keep the wallet), the Forge's stock (Market, Restock the Forge), the waiting sponsor gifts (Patronage, Grant sponsor gifts) and the statistics (Keep player statistics). (EVT-01)
+- Everything the character owns goes with it: the inventory (Gear, Stock the inventory), the chest (Gear, Use the chest), the gold (Market, Keep the wallet), the Forge's stock (Market, Restock the Forge), the waiting sponsor gifts (Patronage, Grant sponsor gifts) and the statistics (Keep player statistics). (EVT-01)
 - When the character being played is deleted, the player chooses another character or creates a new one. (EVT-01)
 
 ## 8. Integrations
@@ -127,7 +127,7 @@ Scenario: Keep cancels
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

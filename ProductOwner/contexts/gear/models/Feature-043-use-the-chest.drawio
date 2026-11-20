@@ -1,0 +1,86 @@
+<mxfile host="render_drawio.py">
+  <diagram id="use-case" name="Use the chest">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-160" y="-360" width="1000" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
+          <mxGeometry x="-160" y="-400" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="BOUNDED-CONTEXT-DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;What a character owns and carries: the equipped weapons, armour and rings, the pack, the chest on the Mustering Square, potions and rations, and what was found in the current Tithe until the Tithe is settled." vertex="1">
+          <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
+          <mxGeometry x="-120" y="-200" width="920" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Use the chest" vertex="1">
+          <mxGeometry x="-120" y="-240" width="920" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: keep items safe in a chest on the Mustering Square between Tithes, so the character can save gear for later – a weapon it is not ready for yet, or a spare – without carrying it into the Maw." vertex="1">
+          <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
+        </mxCell>
+        <UserObject id="VIEW-01" label="Chest&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The character's chest on the Mustering Square with room for 12 items, next to the items in the pack.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
+            <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="VIEW-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#00CC00;strokeColor=#006600;" value="UI View" vertex="1">
+          <mxGeometry x="0" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Put item in the chest&lt;/b&gt;&lt;br&gt;Item" vertex="1">
+          <mxGeometry x="200" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-02" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Take item from the chest&lt;/b&gt;&lt;br&gt;Item" vertex="1">
+          <mxGeometry x="200" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="200" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="AGG-01" label="&lt;b&gt;Chest&lt;/b&gt;&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item" tooltip="The items a character keeps in its own chest on the Mustering Square.">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
+            <mxGeometry x="400" y="0" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
+          <mxGeometry x="400" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Item put in the chest" vertex="1">
+          <mxGeometry x="600" y="0" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="-20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Item taken from the chest" vertex="1">
+          <mxGeometry x="600" y="200" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="600" y="180" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-VIEW-01-CMD-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="VIEW-01" target="CMD-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3333;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-02-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6667;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-02" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-02">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

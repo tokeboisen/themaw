@@ -30,7 +30,7 @@ export const HANDLERS: Record<string, Record<string, Handler>> = {
     [EVENT.characterDeleted]: gear.onCharacterDeleted,
     [EVENT.titheEnded]: gear.onTitheEnded,
   },
-  // Feature-018 Keep the wallet og Feature-021 Restock the Forge
+  // Feature-018 Keep the wallet, Feature-021 Restock the Forge og Feature-046 Settle arena stakes
   Market: {
     [EVENT.characterCreated]: market.onCharacterCreated,
     [EVENT.goldGiftAccepted]: market.onGoldReceived,
@@ -39,6 +39,9 @@ export const HANDLERS: Record<string, Record<string, Handler>> = {
     [EVENT.characterDeleted]: market.onCharacterDeleted,
     [EVENT.titheEnded]: market.onTitheEnded,
     [EVENT.playerDefeated]: market.onPlayerDefeated,
+    // Feature-046 Settle arena stakes
+    [EVENT.arenaMatchStarted]: market.onArenaMatchStarted,
+    [EVENT.arenaMatchEnded]: market.onArenaMatchEnded,
   },
   // Feature-022 Pay the Crown's Purse og Feature-023 Grant sponsor gifts
   Patronage: {

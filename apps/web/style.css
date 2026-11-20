@@ -107,6 +107,8 @@ button.plus { width: 26px; height: 22px; padding: 0; border-radius: 4px; border:
 .hidden { display: none !important; }
 .rim-foot { display: flex; justify-content: center; margin-top: 18px; }
 .hint.warn { color: #ff9b6b; }
+/* Feature-007: krav, karakteren ikke opfylder. */
+.unmet { color: #ff8a7a; font-weight: 600; }
 .up { color: #7be07b; }
 kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--panel-2); font: 12px/1.4 ui-monospace, monospace; text-align: center; }
 .scroll-x { overflow-x: auto; }

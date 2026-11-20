@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-042-walk-the-mustering-square.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 3
 status: draft
 created: 2026-11-20
 ```
@@ -41,7 +41,7 @@ For the player: walk the Mustering Square in the Rim between Tithes, meet the ot
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board in the middle and the players on the square. |
+| VIEW-01 | The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board in the middle, the character's chest, the Arena and the players on the square. |
 | AGG-01 | The Mustering Square and the players on it. |
 
 ## 4. Flows
@@ -93,7 +93,7 @@ Scenario: Kael walks to the Forge
 
 - The player is on the square after choosing a character (Characters, Choose character) and after a Tithe, and stays on it while waiting in a lobby; the square shows every player on it. (AGG-01)
 - The Maw Server keeps the players' positions, so everyone sees the same square. Walls, stalls and the board block the way. (CMD-01)
-- The square replaces the Rim's menu: the shops, the Patrons' Hall and the Tithe Board are places on it, and the Patrons' Hall glows when gifts wait. (VIEW-01)
+- The square replaces the Rim's menu: the shops, the Patrons' Hall, the Tithe Board, the chest and the Arena are places on it, and the Patrons' Hall glows when gifts wait. (VIEW-01)
 
 ## 8. Integrations
 
@@ -107,7 +107,7 @@ Scenario: Kael walks to the Forge
 |---|---|---|---|
 | VIEW-01 | Mustering Square | (starting point) | CMD-01 |
 
-**VIEW-01:** The player's character walks the square with WASD or the arrows. Hesta Varn's forge stands to the west, Mother Quill's apothecary to the east, the Patrons' Hall to the north and the Tithe Board in the middle. Standing at one of them shows "<name> – press F", and F opens it as an overlay (Market, Patronage; Open a Tithe). Other players on the square are shown with their user names. The gold and the buttons Character, Characters, Other players, Statistics, Help and Account are at the top.
+**VIEW-01:** The player's character walks the square with WASD or the arrows. Hesta Varn's forge stands to the west, Mother Quill's apothecary to the east, the Patrons' Hall to the north, the Tithe Board in the middle, the chest by the south-west houses and the Arena by the south-east houses. Standing at one of them shows "<name> – press F", and F opens it as an overlay (Market, Patronage, Gear's Use the chest; Open a Tithe, Arrange an arena match). Other players on the square are shown with their user names. The gold and the buttons Character, Characters, Other players, Statistics, Help and Account are at the top.
 
 ```gherkin
 Scenario: Brann sees Kael
@@ -118,7 +118,7 @@ Scenario: Brann sees Kael
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

@@ -1,7 +1,7 @@
 // Feature-018 SVC-01 Banker og Feature-021 SVC-01 Forge keeper.
 
-import type { CharacterCreated, CharacterDeleted, GoldGiftAccepted, PlayerDefeated, TitheEnded } from '@maw/contracts';
-import { BALANCE as B, createRng, forgeStockAt, randomSeed } from '@maw/rules';
+import type { ArenaMatchEnded, ArenaMatchStarted, CharacterCreated, CharacterDeleted, GoldGiftAccepted, PlayerDefeated, TitheEnded } from '@maw/contracts';
+import { BALANCE as B, arenaPayout, createRng, forgeStockAt, randomSeed } from '@maw/rules';
 import type { Client } from '../db.ts';
 
 /** F018: en ny karakter starter med 60 guld. F021: Forge får sit første lager med karakterens Mark. */
@@ -37,4 +37,22 @@ export async function onTitheEnded(client: Client, data: TitheEnded): Promise<vo
 /** Feature-018: en spiller, der slås ned af en anden spiller, taber det guld, der blev spildt på gulvet (fase 4). */
 export async function onPlayerDefeated(client: Client, data: PlayerDefeated): Promise<void> {
   await client.query('update market.wallets set gold = greatest(0, gold - $2) where character_id = $1', [data.characterId, data.gold]);
+}
+
+/** Feature-046 SVC-01 Arena bookkeeper, CMD-01 Take the stakes: indsatsen tages fra hver kæmpers tegnebog. */
+export async function onArenaMatchStarted(client: Client, data: ArenaMatchStarted): Promise<void> {
+  if (data.stake <= 0) return;
+  for (const f of data.fighters) {
+    await client.query('update market.wallets set gold = greatest(0, gold - $2) where character_id = $1', [f.characterId, data.stake]);
+  }
+}
+
+/** Feature-046 CMD-02 Pay the winners: vinderne deler potten; uafgjort giver indsatsen tilbage. */
+export async function onArenaMatchEnded(client: Client, data: ArenaMatchEnded): Promise<void> {
+  if (data.stake <= 0) return;
+  const winners = data.fighters.filter((f) => f.result === 'won').length;
+  for (const f of data.fighters) {
+    const gold = arenaPayout(data.stake, data.fighters.length, winners, f.result);
+    if (gold > 0) await client.query('update market.wallets set gold = gold + $2 where character_id = $1', [f.characterId, gold]);
+  }
 }

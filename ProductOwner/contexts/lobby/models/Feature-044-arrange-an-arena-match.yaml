@@ -1,0 +1,231 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Arrange an arena match
+  bounded_context: Lobby
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the players: set up a fight between players in the arena – one against one, two against one or two against
+      two – for a stake of gold, so the Branded can test their builds against each other between Tithes.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Arena board
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The open arena matches and the form to open a new one.
+    behavior: >-
+      Opened with F at the Arena on the Mustering Square ("Arena – press F") as a see-through overlay like the Tithe
+      Board. It lists the open arena matches with their format, stake and the players on each side, with a Join
+      button for every side that has a free place. Above the list the player opens a match with a name, a format
+      (1:1, 2:1 or 2:2), a stake and a side.
+  - id: CMD-01
+    type: command
+    name: Open an arena match
+    col: 2
+    stack: 1
+    story: As a player I want to open an arena match, so that others can come and fight me for a stake.
+    fields:
+      - name: Name
+      - name: Format
+      - name: Stake
+      - name: Side
+  - id: CMD-02
+    type: command
+    name: Join a side
+    col: 2
+    stack: 2
+    story: As a player I want to join a side in an open arena match, so that I fight in it.
+    fields:
+      - name: Arena match
+      - name: Side
+  - id: AGG-01
+    type: aggregate
+    name: Arena match
+    col: 3
+    stack: 1
+    description: >-
+      A fight between players in the arena that has been opened but not started yet: its format, stake, opener and the
+      players on each side.
+    fields:
+      - name: Name
+      - name: Format
+      - name: Stake
+      - name: Opener
+      - name: Sides
+        attributes:
+          - name: Number
+          - name: Places
+          - name: Players
+        many: true
+  - id: EVT-01
+    type: event
+    name: Arena match opened
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Side joined
+    col: 4
+    stack: 2
+  - id: VIEW-02
+    type: view
+    name: Arena match
+    col: 5
+    stack: 1
+    actors:
+      - Player
+    description: The arena match the player waits in, with both sides.
+    behavior: >-
+      Shows the match's name, format and stake and the players on Side 1 and Side 2 with their characters and Marks;
+      empty places are shown as open. The player who opened the match sees Start, which can be used when every place
+      is filled; everyone sees Leave. The overlay can be closed while waiting; the player stays in the match and walks
+      the square.
+  - id: CMD-03
+    type: command
+    name: Start the arena match
+    col: 6
+    stack: 1
+    story: As the player who opened an arena match I want to start it when both sides are full, so that we fight.
+    fields:
+      - name: Arena match
+  - id: CMD-04
+    type: command
+    name: Leave the arena match
+    col: 6
+    stack: 2
+    story: As a player I want to leave an arena match before it starts, so that I can do something else.
+    fields:
+      - name: Arena match
+  - id: AGG-02
+    type: aggregate
+    name: Arena match
+    col: 7
+    stack: 1
+    description: >-
+      A fight between players in the arena that has been opened but not started yet: its format, stake, opener and the
+      players on each side.
+    fields:
+      - name: Sides
+        attributes:
+          - name: Players
+        many: true
+  - id: EVT-03
+    type: event
+    name: Arena match started
+    col: 8
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Arena match left
+    col: 8
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+  - from: EVT-01
+    to: VIEW-02
+  - from: EVT-02
+    to: VIEW-02
+  - from: VIEW-02
+    to: CMD-03
+  - from: VIEW-02
+    to: CMD-04
+  - from: CMD-03
+    to: AGG-02
+  - from: CMD-04
+    to: AGG-02
+  - from: AGG-02
+    to: EVT-03
+  - from: AGG-02
+    to: EVT-04
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      The formats are 1:1, 2:1 and 2:2. Side 1 has two places in 2:1 and 2:2, Side 2 has two places in 2:2; every
+      other side has one. The opener chooses the side to stand on.
+  - applies_to:
+      - CMD-01
+    text: >-
+      The name is 3–30 characters and unique among the open Tithes and arena matches ("This name is taken."). The
+      stake is 0–1000 gold.
+  - applies_to:
+      - CMD-01
+      - CMD-02
+    text: >-
+      Every fighter needs at least the stake in the wallet to open or join ("Not enough gold."). A player
+      is in one lobby or arena match at a time, and a side with no free place cannot be joined ("That side is full.").
+  - applies_to:
+      - CMD-03
+    text: >-
+      Only the player who opened the match can start it, and only when every place is filled ("Every place must be
+      filled."). The fighters' characters and gear go into the arena as they are (Fight in the arena).
+  - applies_to:
+      - CMD-04
+    text: When the player who opened the match leaves it, the match closes and the others are back at the Arena board.
+  - applies_to:
+      - AGG-01
+    text: >-
+      While a player is in an arena match – waiting or fighting – the character cannot be changed, as in a lobby
+      (Characters, Gear, Market).
+scenarios:
+  - title: Kael opens a match for 50 gold
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael stands at the Arena with 120 gold
+      When the player performs CMD-01 "Open an arena match" with "Sand and Steel", 1:1, a stake of 50 and Side 1
+      Then EVT-01 "Arena match opened" is recorded
+      And VIEW-02 "Arena match" shows Kael on Side 1 and an open place on Side 2
+  - title: Not enough gold
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Brann has 30 gold and "Sand and Steel" has a stake of 50
+      When the player performs CMD-02 "Join a side" with Side 2
+      Then nothing is recorded
+      And "Not enough gold." is shown
+  - title: Starting needs full sides
+    applies_to:
+      - CMD-03
+    gherkin: |-
+      Given Kael opened a 2:2 match and three places are filled
+      When the player performs CMD-03 "Start the arena match"
+      Then nothing is recorded
+      And "Every place must be filled." is shown
+  - title: The match starts
+    applies_to:
+      - CMD-03
+    gherkin: |-
+      Given Brann has joined Side 2 of Kael's 1:1 match
+      When the player performs CMD-03 "Start the arena match"
+      Then EVT-03 "Arena match started" is recorded
+      And Kael and Brann enter the arena
+open_questions:
+  - topic: Arena
+    question: What is at stake in the arena, who fights, how is a match won, and how do players find a match?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: every fighter stakes the same gold and the winners share the pot; the players' own characters
+      with their gear fight; one round, until one side is down; matches are opened and joined at an Arena board on
+      the Mustering Square.

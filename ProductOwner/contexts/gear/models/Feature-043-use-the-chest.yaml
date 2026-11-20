@@ -1,0 +1,136 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Use the chest
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: keep items safe in a chest on the Mustering Square between Tithes, so the character can save
+      gear for later – a weapon it is not ready for yet, or a spare – without carrying it into the Maw.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Chest
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: The character's chest on the Mustering Square with room for 12 items, next to the items in the pack.
+    behavior: >-
+      Opened with F at the chest on the square ("Chest – press F") as a see-through overlay like the shops. It lists
+      the items in the chest with Take and the items in the pack with Put in chest, each with its slot, rarity,
+      damage or armour, affixes and requirements, and shows how many of the 12 places are used.
+  - id: CMD-01
+    type: command
+    name: Put item in the chest
+    col: 2
+    stack: 1
+    story: As a player I want to put an item from my pack in my chest, so that I keep it safe for later.
+    fields:
+      - name: Item
+  - id: CMD-02
+    type: command
+    name: Take item from the chest
+    col: 2
+    stack: 2
+    story: As a player I want to take an item from my chest, so that I can wear it, sell it or carry it.
+    fields:
+      - name: Item
+  - id: AGG-01
+    type: aggregate
+    name: Chest
+    col: 3
+    stack: 1
+    description: The items a character keeps in its own chest on the Mustering Square.
+    fields:
+      - name: Items
+        attributes:
+          - name: Item
+        many: true
+  - id: EVT-01
+    type: event
+    name: Item put in the chest
+    col: 4
+    stack: 1
+  - id: EVT-02
+    type: event
+    name: Item taken from the chest
+    col: 4
+    stack: 2
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-01
+    to: AGG-01
+  - from: CMD-02
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+  - from: AGG-01
+    to: EVT-02
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      A chest holds 12 items. Every character has its own chest; items cannot be moved between characters, and the
+      chest is deleted with the character (Characters, Delete character).
+  - applies_to:
+      - CMD-01
+    text: >-
+      Only items in the pack go into the chest; an equipped item is unequipped first. A full chest refuses with
+      "Your chest is full." A weapon put in the chest leaves its hotbar key (Assign hotbar keys).
+  - applies_to:
+      - CMD-02
+    text: Taking an item needs room in the pack; otherwise "Your inventory is full." is shown.
+  - applies_to:
+      - VIEW-01
+    text: >-
+      The chest stands on the Mustering Square only: it cannot be used in a lobby or a Tithe, and what is in it never
+      goes into the Maw, so it is never lost in a fall.
+scenarios:
+  - title: Kael stores the War Axe
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael stands at the chest with a War Axe in the pack and 3 items in the chest
+      When the player performs CMD-01 "Put item in the chest" with the War Axe
+      Then EVT-01 "Item put in the chest" is recorded
+      And the chest holds 4 of 12 items
+  - title: A full chest
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael's chest holds 12 items
+      When the player performs CMD-01 "Put item in the chest" with a ring
+      Then nothing is recorded
+      And "Your chest is full." is shown
+  - title: Taking needs room in the pack
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael's pack is full and the War Axe is in the chest
+      When the player performs CMD-02 "Take item from the chest" with the War Axe
+      Then nothing is recorded
+      And "Your inventory is full." is shown
+  - title: The chest stays out of the Maw
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael has a Maul in the chest
+      When Kael falls in a Tithe
+      Then the Maul is still in the chest
+open_questions:
+  - topic: Chest
+    question: Is the chest shared by all of a user's characters or one per character?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: one chest per character with room for 12 items.

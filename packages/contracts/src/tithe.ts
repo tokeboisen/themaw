@@ -2,7 +2,7 @@
 // Browseren sender spillerens handlinger; serveren sender et snapshot 20 gange i sekundet med det, spilleren kan se.
 
 import type {
-  Equipment, Hotbar, HotbarKey, Item, OutcomeKind, SheetAction, SkillState, TitheSummary, Character,
+  Equipment, Hotbar, HotbarKey, Item, OutcomeKind, ReachId, SheetAction, SkillState, TitheSummary, Character,
 } from '@maw/rules';
 
 export type ClientMessage =
@@ -44,6 +44,8 @@ export interface SnapshotEntity {
   hostile?: boolean;
   /** En anden spiller i spillerens parti. */
   party?: boolean;
+  /** Feature-045: kæmperens side i arenaen. */
+  side?: 1 | 2;
   /** Feature-011 VIEW-01: monstrets level og om det er en Veteran. */
   level?: number;
   veteran?: boolean;
@@ -116,7 +118,9 @@ export interface Snapshot {
   candidates: CandidateView[];
   party: PartyView;
   /** Hvor spilleren er (Feature-010 VIEW-01, -041): stedet, distriktet i byen og etagen i et hus. */
-  area: { reach: 'mines' | 'city'; reachName: string; ward: string | null; floor: number };
+  area: { reach: ReachId; reachName: string; ward: string | null; floor: number };
+  /** Feature-045 VIEW-01: arenakampen – siderne, uret, nedtællingen og ringen, når den lukker sig. */
+  arena?: ArenaView;
   interact: 'descend' | 'gate' | 'climb' | 'down' | null;
   fx: { type: string; x?: number; y?: number; text?: string; color?: string; size?: number; amount?: number; kind?: string }[];
   msgs: { who: string; text: string }[];
@@ -141,6 +145,28 @@ export interface SheetMessage {
   found: string[];
 }
 
+export interface ArenaView {
+  format: string;
+  stake: number;
+  you: 1 | 2 | null;
+  timeLeft: number;
+  countdown: number;
+  ring: { cx: number; cy: number; rx: number; ry: number } | null;
+  sides: Record<1 | 2, { name: string; down: boolean }[]>;
+}
+
+/** Feature-045 VIEW-02 Arena result. */
+export interface ArenaEndedMessage {
+  t: 'arena-ended';
+  result: 'won' | 'lost' | 'draw';
+  winner: 1 | 2 | null;
+  you: 1 | 2;
+  stake: number;
+  /** Det guld, spilleren får tilbage fra potten (0 ved nederlag). */
+  payout: number;
+  sides: Record<1 | 2, string[]>;
+}
+
 /** Feature-016 VIEW-01 Tithe results. */
 export interface EndedMessage {
   t: 'ended';
@@ -153,5 +179,6 @@ export type ServerMessage =
   | Snapshot
   | SheetMessage
   | EndedMessage
+  | ArenaEndedMessage
   | { t: 'refused'; message: string }
   | { t: 'gone'; reason: string };

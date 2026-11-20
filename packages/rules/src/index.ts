@@ -11,4 +11,5 @@ export * from './rim.ts';
 export * from './gear.ts';
 export * from './city.ts';
 export * from './square.ts';
+export * from './arena.ts';
 export * from './world.ts';

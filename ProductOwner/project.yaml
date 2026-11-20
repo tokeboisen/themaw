@@ -65,6 +65,10 @@ layout:
     use_case: Climb the stairs
     x: 10760
     y: 0
+  - bounded_context: Tithe
+    use_case: Fight in the arena
+    x: 11880
+    y: 0
   - bounded_context: Spectacle
     use_case: Run the show
     x: 0
@@ -129,6 +133,10 @@ layout:
     use_case: Use the hotbar
     x: 7120
     y: 0
+  - bounded_context: Gear
+    use_case: Use the chest
+    x: 8240
+    y: 0
   - bounded_context: Market
     use_case: Trade at the Forge
     x: 1320
@@ -144,6 +152,10 @@ layout:
   - bounded_context: Market
     use_case: Restock the Forge
     x: 3560
+    y: 0
+  - bounded_context: Market
+    use_case: Settle arena stakes
+    x: 4880
     y: 0
   - bounded_context: Patronage
     use_case: Accept sponsor gifts
@@ -192,4 +204,8 @@ layout:
   - bounded_context: Lobby
     use_case: Walk the Mustering Square
     x: 3840
+    y: 0
+  - bounded_context: Lobby
+    use_case: Arrange an arena match
+    x: 4960
     y: 0

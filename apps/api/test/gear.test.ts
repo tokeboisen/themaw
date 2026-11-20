@@ -20,6 +20,24 @@ describe('Gear', { skip: !hasDatabase }, () => {
 
   const inventory = async (cookie: string, id: string) =>
     (await app.inject({ method: 'GET', url: `/api/characters/${id}/inventory`, headers: { cookie } })).json();
+  const post = (cookie: string, url: string, payload: object) => app.inject({ method: 'POST', url, headers: { cookie }, payload });
+
+  /** Giver karakteren skill-niveauer og attributter, så den opfylder en tings krav. */
+  async function meets(id: string, skills: Record<string, number>, attributes: Record<string, number> = {}) {
+    for (const [s, level] of Object.entries(skills)) {
+      await pool.query(`update characters.characters set skills = jsonb_set(skills, $2, $3::jsonb) where id = $1`, [id, `{${s},level}`, String(level)]);
+    }
+    for (const [a, value] of Object.entries(attributes)) {
+      await pool.query(`update characters.characters set attributes = jsonb_set(attributes, $2, $3::jsonb) where id = $1`, [id, `{${a}}`, String(value)]);
+    }
+  }
+
+  /** Lægger ting direkte i kisten (Feature-043). */
+  async function putInChestDirectly(id: string, things: { id: string }[]) {
+    for (const item of things) {
+      await pool.query(`insert into gear.items (id, character_id, location, data) values ($1, $2, 'chest', $3)`, [item.id, id, JSON.stringify(item)]);
+    }
+  }
 
   test('F005 scenario "A new Miner gets the starting kit"', async () => {
     const cookie = await signUp(app, named('g1'));
@@ -66,8 +84,9 @@ describe('Gear', { skip: !hasDatabase }, () => {
   test('F007 scenario "Equipping swaps the weapon"', async () => {
     const cookie = await signUp(app, named('g5'));
     const id = await createCharacter(app, pool, cookie);
-    const [sword] = items(1, { baseId: 'short_sword', rarity: 'common' }, 2);
+    const [sword] = items(1, { baseId: 'short_sword', rarity: 'common' }, 2); // Blades 9 og Dexterity 11
     await putInPack(pool, id, [sword!]);
+    await meets(id, { blades: 9 }, { dexterity: 11 });
     const response = await app.inject({ method: 'POST', url: `/api/characters/${id}/equip`, headers: { cookie }, payload: { itemId: sword!.id } });
     assert.equal(response.statusCode, 200);
     const inv = response.json();
@@ -153,5 +172,85 @@ describe('Gear', { skip: !hasDatabase }, () => {
     const other = await signUp(app, named('g11'));
     assert.equal((await app.inject({ method: 'GET', url: `/api/characters/${id}/inventory`, headers: { cookie: other } })).statusCode, 404);
     assert.equal((await app.inject({ method: 'DELETE', url: `/api/characters/${id}/hotbar/1`, headers: { cookie: other } })).statusCode, 404);
+  });
+
+  test('F007 scenario "A weapon Kael is not ready for"', async () => {
+    const cookie = await signUp(app, named('g20'));
+    const id = await createCharacter(app, pool, cookie); // Miner: Heavy Weapons 10, Strength 13
+    const [maul] = items(1, { baseId: 'maul', rarity: 'common' }, 3); // Heavy Weapons 20, Strength 17
+    await putInPack(pool, id, [maul!]);
+    const response = await post(cookie, `/api/characters/${id}/equip`, { itemId: maul!.id });
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.json().message, MESSAGES.requirementsNotMet);
+    const inv = await inventory(cookie, id);
+    assert.equal(inv.equipment.melee.baseId, 'pickaxe'); // nothing changes
+    assert.deepEqual(inv.pack.map((i: { id: string }) => i.id), [maul!.id]);
+  });
+
+  test('F043 scenario "Kael stores the War Axe"', async () => {
+    const cookie = await signUp(app, named('g21'));
+    const id = await createCharacter(app, pool, cookie);
+    await putInChestDirectly(id, items(3, { slot: 'ring' }));
+    const [axe] = items(1, { baseId: 'war_axe', rarity: 'common' });
+    await putInPack(pool, id, [axe!]);
+    const response = await post(cookie, `/api/characters/${id}/chest/put`, { itemId: axe!.id });
+    assert.equal(response.statusCode, 200);
+    const inv = response.json();
+    assert.equal(inv.chest.length, 4); // the chest holds 4 of 12 items
+    assert.equal(inv.chestSize, 12);
+    assert.ok(inv.chest.some((i: { id: string }) => i.id === axe!.id));
+    assert.deepEqual(inv.pack, []);
+  });
+
+  test('F043 scenario "A full chest"', async () => {
+    const cookie = await signUp(app, named('g22'));
+    const id = await createCharacter(app, pool, cookie);
+    await putInChestDirectly(id, items(12, { slot: 'ring' }));
+    const [ring] = items(1, { slot: 'ring' });
+    await putInPack(pool, id, [ring!]);
+    const response = await post(cookie, `/api/characters/${id}/chest/put`, { itemId: ring!.id });
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.json().message, MESSAGES.chestFull);
+    assert.equal((await inventory(cookie, id)).pack.length, 1);
+  });
+
+  test('F043 scenario "Taking needs room in the pack", and taking it with room', async () => {
+    const cookie = await signUp(app, named('g23'));
+    const id = await createCharacter(app, pool, cookie);
+    const [axe] = items(1, { baseId: 'war_axe', rarity: 'common' });
+    await putInChestDirectly(id, [axe!]);
+    await putInPack(pool, id, items(13, { slot: 'ring' })); // the Miner's pack holds 13
+    const full = await post(cookie, `/api/characters/${id}/chest/take`, { itemId: axe!.id });
+    assert.equal(full.statusCode, 409);
+    assert.equal(full.json().message, MESSAGES.inventoryFull);
+    await pool.query(`delete from gear.items where character_id = $1 and location = 'pack'`, [id]);
+    const taken = await post(cookie, `/api/characters/${id}/chest/take`, { itemId: axe!.id });
+    assert.equal(taken.statusCode, 200);
+    assert.deepEqual(taken.json().pack.map((i: { id: string }) => i.id), [axe!.id]);
+    assert.deepEqual(taken.json().chest, []);
+  });
+
+  test('F043 and F027: a weapon put in the chest leaves its hotbar key; equipped items cannot go in', async () => {
+    const cookie = await signUp(app, named('g24'));
+    const id = await createCharacter(app, pool, cookie);
+    const [bow] = items(1, { baseId: 'short_bow', rarity: 'common' });
+    await putInPack(pool, id, [bow!]);
+    await app.inject({ method: 'PUT', url: `/api/characters/${id}/hotbar/3`, headers: { cookie }, payload: { itemId: bow!.id } });
+    const inv = (await post(cookie, `/api/characters/${id}/chest/put`, { itemId: bow!.id })).json();
+    assert.equal(inv.hotbar['3'], undefined);
+    const pickaxe = inv.equipment.melee;
+    assert.equal((await post(cookie, `/api/characters/${id}/chest/put`, { itemId: pickaxe.id })).statusCode, 400);
+  });
+
+  test('F043: the chest cannot be used in a lobby', async () => {
+    const cookie = await signUp(app, named('g25'));
+    const id = await createCharacter(app, pool, cookie);
+    const [ring] = items(1, { slot: 'ring' });
+    await putInPack(pool, id, [ring!]);
+    const opened = await post(cookie, '/api/tithes', { name: named('Chestlock'), reach: 'mines' });
+    assert.equal(opened.statusCode, 201);
+    const response = await post(cookie, `/api/characters/${id}/chest/put`, { itemId: ring!.id });
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.json().message, MESSAGES.inLobbyOrTithe);
   });
 });

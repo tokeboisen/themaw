@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 3
 status: draft
 created: '2026-11-20'
 use_case:
@@ -23,11 +23,12 @@ elements:
       - Player
     description: >-
       The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board
-      in the middle and the players on the square.
+      in the middle, the character's chest, the Arena and the players on the square.
     behavior: >-
       The player's character walks the square with WASD or the arrows. Hesta Varn's forge stands to the west, Mother
-      Quill's apothecary to the east, the Patrons' Hall to the north and the Tithe Board in the middle. Standing at
-      one of them shows "<name> – press F", and F opens it as an overlay (Market, Patronage; Open a Tithe). Other
+      Quill's apothecary to the east, the Patrons' Hall to the north, the Tithe Board in the middle, the chest
+      by the south-west houses and the Arena by the south-east houses. Standing at one of them shows "<name> – press F", and F opens it as an overlay
+      (Market, Patronage, Gear's Use the chest; Open a Tithe, Arrange an arena match). Other
       players on the square are shown with their user names. The gold and the buttons Character, Characters,
       Other players, Statistics, Help and Account are at the top.
   - id: CMD-01
@@ -79,7 +80,7 @@ rules:
   - applies_to:
       - VIEW-01
     text: >-
-      The square replaces the Rim's menu: the shops, the Patrons' Hall and the Tithe Board are places on it, and the
+      The square replaces the Rim's menu: the shops, the Patrons' Hall, the Tithe Board, the chest and the Arena are places on it, and the
       Patrons' Hall glows when gifts wait.
 scenarios:
   - title: Kael walks to the Forge

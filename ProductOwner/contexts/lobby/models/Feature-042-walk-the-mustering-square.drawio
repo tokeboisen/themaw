@@ -22,7 +22,7 @@
         <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: walk the Mustering Square in the Rim between Tithes, meet the other players there and go to the shops, the Patrons' Hall and the Tithe Board, so the Rim is a place the players share before they go down." vertex="1">
           <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
         </mxCell>
-        <UserObject id="VIEW-01" label="Mustering Square&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board in the middle and the players on the square.">
+        <UserObject id="VIEW-01" label="Mustering Square&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board in the middle, the character's chest, the Arena and the players on the square.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
             <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
           </mxCell>

@@ -2,7 +2,7 @@
 // sender dem tilbage. Smedjen, apoteket, Patrons' Hall og Tithe Board åbnes med F, når man står ved dem.
 
 import type { SquarePlayerView, SquareServerMessage } from '@maw/contracts';
-import { ROAD, SQUARE_BOARD, SQUARE_BUILDINGS, SQUARE_H, SQUARE_PLACES, SQUARE_W, WALL, placeAt, squareMap, type SquarePlace } from '@maw/rules';
+import { ROAD, SQUARE_ARENA, SQUARE_BOARD, SQUARE_BUILDINGS, SQUARE_CHEST, SQUARE_H, SQUARE_PLACES, SQUARE_W, WALL, placeAt, squareMap, type SquarePlace } from '@maw/rules';
 import { esc } from '../dom.ts';
 
 export interface SquareEvents {
@@ -265,6 +265,35 @@ export class SquareView {
     for (let i = 0; i < 4; i++) ctx.fillRect(sx(bd.x) + 6, sy(bd.y) + 9 + i * (tile * 0.35), bd.w * tile - 12, 2);
     label('The Tithe Board', sx(bd.x + bd.w / 2), sy(bd.y) - 6, '#ffd84a');
     label('To the Maw', sx(18), sy(SQUARE_H - 0.6), '#a39581', 12);
+    // Feature-043: karakterens kiste – en trækiste med jernbånd og et messinglås.
+    const ch = SQUARE_CHEST;
+    const [cx, cy, cw, chh] = [sx(ch.x) + 3, sy(ch.y) + 4, ch.w * tile - 6, ch.h * tile - 6];
+    ctx.fillStyle = '#5e3c22';
+    ctx.fillRect(cx, cy, cw, chh);
+    ctx.fillStyle = '#774c26';
+    ctx.fillRect(cx, cy, cw, chh * 0.4);
+    ctx.fillStyle = '#3d4550';
+    ctx.fillRect(cx + cw * 0.2, cy, 3, chh);
+    ctx.fillRect(cx + cw * 0.8 - 3, cy, 3, chh);
+    ctx.fillStyle = '#bf9236';
+    ctx.fillRect(cx + cw / 2 - 3, cy + chh * 0.3, 6, 6);
+    label('Chest', sx(ch.x + ch.w / 2), sy(ch.y) - 4, '#ece4d6', 12);
+    // Feature-044: porten til arenaen – en bue i sand og rødt med to krydsede klinger.
+    const ar = SQUARE_ARENA;
+    const [ax, ay, aw, ah] = [sx(ar.x) + 2, sy(ar.y) + 2, ar.w * tile - 4, ar.h * tile - 4];
+    ctx.fillStyle = '#6b2420';
+    ctx.fillRect(ax, ay, aw, ah);
+    ctx.fillStyle = '#9e8a62';
+    ctx.fillRect(ax + 4, ay + 4, aw - 8, ah - 8);
+    ctx.strokeStyle = '#c3ccd6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ax + aw * 0.3, ay + ah * 0.2);
+    ctx.lineTo(ax + aw * 0.7, ay + ah * 0.8);
+    ctx.moveTo(ax + aw * 0.7, ay + ah * 0.2);
+    ctx.lineTo(ax + aw * 0.3, ay + ah * 0.8);
+    ctx.stroke();
+    label('Arena', sx(ar.x + ar.w / 2), sy(ar.y) - 4, '#ffb09a', 12);
 
     // Spillerne med deres brugernavne.
     const players = this.players(now);

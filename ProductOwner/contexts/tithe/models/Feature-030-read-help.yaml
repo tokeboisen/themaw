@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 7
+version: 8
 status: draft
 created: '2026-11-19'
 use_case:
@@ -27,7 +27,7 @@ elements:
       chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration
       (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players
       (O), help (H) and close or go back (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear
-      and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others. A Bestiary lists the
+      and loot, Hunger and supplies, The Mirrormaster, The Rim, Playing with others and The Arena. A Bestiary lists the
       monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
 flows: []
 rules:

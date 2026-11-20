@@ -1,7 +1,7 @@
 // Tithe-skærmen (Feature-010 VIEW-01 Depth): forbinder til tithe-server med billetten, sender spillerens handlinger og
 // tegner serverens snapshots med lidt udjævning. Browseren regner intet selv; serveren afgør alt (Feature-010 SVC-01).
 
-import type { ClientMessage, EndedMessage, PartyView, ServerMessage, SheetMessage, Snapshot, SnapshotEntity } from '@maw/contracts';
+import type { ArenaEndedMessage, ClientMessage, EndedMessage, PartyView, ServerMessage, SheetMessage, Snapshot, SnapshotEntity } from '@maw/contracts';
 import { BALANCE as B, HOTBAR_KEYS, type HotbarKey, type SheetAction } from '@maw/rules';
 import { esc } from '../dom.ts';
 import { createRenderer, type Frame, type Renderer } from './render.ts';
@@ -11,6 +11,8 @@ export interface GameEvents {
   /** Partiet har ændret sig; invited er sand, når en ny invitation er kommet (Feature-035 VIEW-01 popper op). */
   party(view: PartyView, invited: boolean): void;
   ended(message: EndedMessage): void;
+  /** Feature-045 VIEW-02 Arena result. */
+  arenaEnded(message: ArenaEndedMessage): void;
   refused(message: string): void;
   gone(reason: string): void;
 }
@@ -162,6 +164,8 @@ export class Game {
         return this.events.sheet(m);
       case 'ended':
         return this.events.ended(m);
+      case 'arena-ended':
+        return this.events.arenaEnded(m);
       case 'refused':
         return this.events.refused(m.message);
       case 'welcome':
@@ -244,6 +248,7 @@ export class Game {
       mapW: this.mapW, mapH: this.mapH, tiles: this.tiles, tilesVersion: this.tilesVersion, you, ents, proj: s.proj, loot: s.loot,
       caches: s.caches, gate: s.gate, sealed: !!s.seal?.sealed, radius: B.view.visionRadius,
       party: s.party.members.filter((m) => !m.you && m.x !== null && m.y !== null).map((m) => ({ name: m.name, x: m.x!, y: m.y! })),
+      arena: s.arena ? { you: s.arena.you, ring: s.arena.ring } : null,
     };
   }
 
@@ -254,6 +259,22 @@ export class Game {
     if (f && this.renderer) this.renderer.draw(f, dt);
     this.frame = requestAnimationFrame(this.loop);
   };
+
+  /**
+   * Feature-045 VIEW-01: i arenaen viser HUD'en formatet og indsatsen, nedtællingen eller uret – rødt, når ringen lukker
+   * sig – og kæmperne på hver side.
+   */
+  private arenaHud(root: HTMLElement, s: Snapshot): void {
+    const a = s.arena!;
+    const formats: Record<string, string> = { '1v1': '1:1', '2v1': '2:1', '2v2': '2:2' };
+    root.querySelector('.hud-depth')!.textContent = `The Arena · ${formats[a.format] ?? a.format}${a.stake ? ` · stake ${a.stake} gold` : ''}`;
+    const clock = root.querySelector<HTMLElement>('.hud-seal')!;
+    const mmss = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+    clock.textContent = a.countdown > 0 ? `Fight in ${a.countdown}` : a.ring ? `The ring closes · ${mmss(a.timeLeft)}` : `Time ${mmss(a.timeLeft)}`;
+    clock.classList.toggle('danger', !!a.ring || a.countdown > 0);
+    const side = (n: 1 | 2) => a.sides[n].map((f) => (f.down ? `${f.name} (down)` : f.name)).join(', ');
+    root.querySelector('.hud-renown')!.textContent = `Side 1: ${side(1)} · Side 2: ${side(2)}`;
+  }
 
   private updateHud(s: Snapshot): void {
     const root = this.root;
@@ -274,18 +295,21 @@ export class Game {
     root.querySelector('.hud-effects')!.textContent = y.status.join(' · ');
     // Feature-010 VIEW-01: dybden i minerne; i byen distriktet og etagen (Feature-041).
     const floorName = s.area.floor === 3 ? ' · top floor' : s.area.floor === 2 ? ' · upper floor' : '';
-    root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city'
-      ? `${s.area.reachName} · ${(s.area.ward ?? '').replace(/^./, (c) => c.toUpperCase())}${floorName}`
-      : `${s.area.reachName} · Depth ${s.depth} of ${s.depths}`;
-    const seal = root.querySelector<HTMLElement>('.hud-seal')!;
-    if (!s.seal) seal.textContent = s.area.reach === 'city' ? (s.area.ward === 'the foundry' ? "The Smelter's foundry" : '') : s.depth === s.depths ? "The Foreman's Hall" : '';
-    else if (s.seal.sealed) seal.textContent = 'SEALED – get out!';
+    if (s.arena) this.arenaHud(root, s);
     else {
-      const left = Math.max(0, Math.ceil(s.seal.left));
-      seal.textContent = `Sealed in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+      root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city'
+        ? `${s.area.reachName} · ${(s.area.ward ?? '').replace(/^./, (c) => c.toUpperCase())}${floorName}`
+        : `${s.area.reachName} · Depth ${s.depth} of ${s.depths}`;
+      const seal = root.querySelector<HTMLElement>('.hud-seal')!;
+      if (!s.seal) seal.textContent = s.area.reach === 'city' ? (s.area.ward === 'the foundry' ? "The Smelter's foundry" : '') : s.depth === s.depths ? "The Foreman's Hall" : '';
+      else if (s.seal.sealed) seal.textContent = 'SEALED – get out!';
+      else {
+        const left = Math.max(0, Math.ceil(s.seal.left));
+        seal.textContent = `Sealed in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+      }
+      seal.classList.toggle('danger', !!s.seal && (s.seal.sealed || s.seal.left < 30));
+      root.querySelector('.hud-renown')!.textContent = `Renown ${s.renown} · Gold found ${s.goldFound}`;
     }
-    seal.classList.toggle('danger', !!s.seal && (s.seal.sealed || s.seal.left < 30));
-    root.querySelector('.hud-renown')!.textContent = `Renown ${s.renown} · Gold found ${s.goldFound}`;
     root.querySelector('.hud-potions')!.textContent = String(y.potions);
     root.querySelector('.hud-rations')!.textContent = String(y.rations);
     const prompt = s.interact === 'descend' ? 'Descend – press F' : s.interact === 'gate' ? 'Claim the Tithe – press F'

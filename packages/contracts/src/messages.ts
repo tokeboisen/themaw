@@ -1,5 +1,7 @@
 // UI-tekster, som featurene citerer. Webappen viser dem, og api'et svarer med dem, når en command afvises.
 
+import { REQUIREMENTS_NOT_MET } from '@maw/rules';
+
 export const MESSAGES = {
   /** Feature-031 */
   userNameInvalid: 'Use 3–20 letters, digits or symbols, without spaces.',
@@ -11,7 +13,15 @@ export const MESSAGES = {
   placeAllPoints: 'Place all your points first.',
   /** Feature-007, -019, -024 */
   inventoryFull: 'Your inventory is full.',
-  /** Feature-019, -020 */
+  /** Feature-007 CMD-01 og Feature-028 CMD-01. */
+  requirementsNotMet: REQUIREMENTS_NOT_MET,
+  /** Feature-043 CMD-01. */
+  chestFull: 'Your chest is full.',
+  /** Feature-044 Arrange an arena match (guldet: notEnoughGold). */
+  arenaNameTaken: 'This name is taken.',
+  sideFull: 'That side is full.',
+  placesNotFilled: 'Every place must be filled.',
+  /** Feature-019, -020, -044 */
   notEnoughGold: 'Not enough gold.',
   /** Feature-020 */
   cannotCarryMore: 'You cannot carry more.',

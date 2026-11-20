@@ -1,0 +1,214 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Fight in the arena
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the players: fight other players in an oval arena with rocks, trees and bushes to hide in, side against
+      side, until one side is down – a short, fair test of skill and build where only the stake is won or lost.
+elements:
+  - id: EVT-01
+    type: event
+    name: Arena match started
+    col: 1
+    stack: 1
+    stimulus:
+      bounded_context: Lobby
+      use_case: Arrange an arena match
+      event: EVT-03
+  - id: SVC-01
+    type: service
+    name: Arena master
+    col: 2
+    stack: 1
+    description: Opens the arena when an arena match starts and ends the match when one side is down.
+  - id: CMD-01
+    type: command
+    name: Open the arena
+    col: 3
+    stack: 1
+    fields:
+      - name: Fighters
+        attributes:
+          - name: Player
+          - name: Character
+          - name: Side
+        many: true
+      - name: Stake
+  - id: AGG-01
+    type: aggregate
+    name: Arena
+    col: 4
+    stack: 1
+    description: >-
+      One arena match as it is fought: the oval with its obstacles, the fighters on each side, the closing ring and the
+      clock.
+    fields:
+      - name: Layout
+      - name: Fighters
+        attributes:
+          - name: Name
+          - name: Side
+          - name: Life
+          - name: Down
+        many: true
+      - name: Ring
+      - name: Clock
+  - id: EVT-02
+    type: event
+    name: Arena opened
+    col: 5
+    stack: 1
+  - id: VIEW-01
+    type: view
+    name: Arena
+    col: 6
+    stack: 1
+    actors:
+      - Player
+    description: The arena seen from above with the fighters, the ring and the clock.
+    behavior: >-
+      The arena is drawn like a depth – sand, rocks, trees and bushes, ringed by the stands – with the fighters'
+      names and life over them, Side 1 in blue and Side 2 in red. The HUD is the Tithe's, with the time left and,
+      when it closes, the ring drawn as a glowing line. A countdown "3 – 2 – 1 – Fight!" opens the match. A fighter who
+      is down watches the rest of the match.
+  - id: CMD-02
+    type: command
+    name: Strike an opponent
+    col: 7
+    stack: 1
+    story: As a player I want to strike the other side with my weapons and Echo Arts, so that my side wins the match.
+    fields:
+      - name: Weapon or Echo Art
+  - id: AGG-02
+    type: aggregate
+    name: Arena
+    col: 8
+    stack: 1
+    description: >-
+      One arena match as it is fought: the oval with its obstacles, the fighters on each side, the closing ring and the
+      clock.
+    fields:
+      - name: Fighters
+        attributes:
+          - name: Life
+          - name: Down
+        many: true
+  - id: EVT-03
+    type: event
+    name: Fighter down
+    col: 9
+    stack: 1
+  - id: EVT-04
+    type: event
+    name: Arena match ended
+    col: 9
+    stack: 2
+  - id: VIEW-02
+    type: view
+    name: Arena result
+    col: 10
+    stack: 1
+    actors:
+      - Player
+    description: The end of an arena match for the player.
+    behavior: >-
+      Shown 2.5 seconds after the end: Victory, Defeat or Draw, the fighters of both sides, the stake and the gold
+      the player won or lost, with "Return to the Rim".
+flows:
+  - from: EVT-01
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-02
+  - from: EVT-02
+    to: VIEW-01
+  - from: VIEW-01
+    to: CMD-02
+  - from: CMD-02
+    to: AGG-02
+  - from: AGG-02
+    to: EVT-03
+  - from: AGG-02
+    to: EVT-04
+  - from: EVT-04
+    to: VIEW-02
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      The arena is an oval of sand, 36 × 24 tiles, ringed by the stands. Rocks, trees and bushes are laid out the
+      same on both halves. Rocks and trees block both fighters and missiles; bushes block neither.
+  - applies_to:
+      - AGG-01
+    text: >-
+      A fighter standing in a bush is hidden from the other side unless one of them is within 2 tiles, or the fighter
+      has struck in the last 1.5 seconds. A fighter's own side always sees it.
+  - applies_to:
+      - CMD-01
+    text: >-
+      Each side starts at its end of the oval. The fighters of a side are a party: they never hurt each other. For
+      the first 5 seconds no one can be hurt.
+  - applies_to:
+      - CMD-02
+    text: >-
+      The fighters fight as in a Tithe (Fight in the depths) with their own characters, gear, hotbar, potions and
+      rations. Nothing from the match is kept: no Echo, no skill training, no loot, used potions and rations come back,
+      nothing can be dropped, and hunger does not drain.
+  - applies_to:
+      - AGG-02
+    text: >-
+      After 2 minutes the ring closes in from the stands; at 3½ minutes only the middle quarter is left. Outside the
+      ring a fighter loses 8 % of max life every second.
+  - applies_to:
+      - EVT-04
+    text: >-
+      The match ends when one side has no fighter standing; the other side wins. If both sides fall at the same time,
+      or the match reaches 4 minutes, it is a draw. Leaving the arena, or losing the connection for 60 seconds, counts
+      as down (Leave the Tithe).
+scenarios:
+  - title: Brann goes down
+    applies_to:
+      - EVT-04
+    gherkin: |-
+      Given Kael and Brann fight a 1:1 match with a stake of 50
+      When Kael's blow takes Brann's last life
+      Then EVT-03 "Fighter down" is recorded
+      And EVT-04 "Arena match ended" is recorded with Side 1 as the winner
+  - title: Teammates do not hurt each other
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael and Mira are on Side 1
+      When the player performs CMD-02 "Strike an opponent" and the blow reaches Mira
+      Then Mira takes no damage
+  - title: Hiding in a bush
+    applies_to:
+      - AGG-01
+    gherkin: |-
+      Given Brann stands in a bush 5 tiles from Kael and has not struck for 2 seconds
+      When the player opens VIEW-01 "Arena"
+      Then Kael does not see Brann
+  - title: The ring closes
+    applies_to:
+      - AGG-02
+    gherkin: |-
+      Given the match has lasted 3 minutes and Kael stands by the stands
+      When a second passes
+      Then Kael loses 8 % of max life
+  - title: Nothing but the stake
+    applies_to:
+      - CMD-02
+    gherkin: |-
+      Given Kael drinks a potion and slays Brann in the arena
+      When EVT-04 "Arena match ended" is recorded
+      Then Kael has the same potions, skills and Echo as before the match

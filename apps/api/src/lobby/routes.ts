@@ -8,11 +8,12 @@ import { BALANCE as B } from '@maw/rules';
 import { transaction, type Client, type Pool } from '../db.ts';
 import { INVALID, refuse, requireUser } from '../http.ts';
 import { enqueue } from '../outbox.ts';
+import { arenaView } from './arena-routes.ts';
 import { members, membership, syncRunning, type MemberRow, type TitheRow } from './store.ts';
 import { workingCopy } from './working-copy.ts';
 
 /** Navne sammenlignes uden forskel på store og små bogstaver og uden mellemrum i enderne. */
-const nameKey = (name: string) => name.trim().toLocaleLowerCase('en');
+export const nameKey = (name: string) => name.trim().toLocaleLowerCase('en');
 
 const reachName = (id: string) => B.reaches.find((r) => r.id === id)?.name ?? id;
 
@@ -28,16 +29,19 @@ function lobbyView(tithe: TitheRow, list: MemberRow[], userId: string) {
 }
 
 /** Hvor spilleren er: ingen steder, i en lobby eller i en Tithe (med billetten til WebSocket, planen afsnit 8). */
-async function current(db: Pool | Client, userId: string) {
+export async function current(db: Pool | Client, userId: string) {
   await syncRunning(db);
   const found = await membership(db, userId);
   if (!found) return { state: 'none' as const };
   if (found.tithe.status === 'launched') return { state: 'playing' as const, tithe: { name: found.tithe.name }, ticket: found.member.ticket };
-  return { state: 'lobby' as const, tithe: lobbyView(found.tithe, await members(db, found.tithe.id), userId) };
+  const list = await members(db, found.tithe.id);
+  // Feature-044 VIEW-02 Arena match: en arenakamp vises med sine sider.
+  if (found.tithe.reach === 'arena') return { state: 'lobby' as const, tithe: arenaView(found.tithe, list, userId) };
+  return { state: 'lobby' as const, tithe: lobbyView(found.tithe, list, userId) };
 }
 
 /** Den karakter, brugeren spiller, med det lobbyen viser: brugernavn, navn og Mark (Feature-036 VIEW-02). */
-async function player(db: Client, userId: string) {
+export async function player(db: Client, userId: string) {
   const { rows } = await db.query<{ user_name: string; id: string; name: string; mark: number }>(
     `select u.user_name, c.id, c.name, c.mark from characters.rosters r
      join characters.characters c on c.id = r.active_character_id
@@ -59,7 +63,7 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
     const { rows } = await pool.query<TitheRow & { opener_name: string; players: string[] }>(
       `select t.*, (select user_name from lobby.members where user_id = t.opener_user_id) as opener_name,
               array(select user_name from lobby.members m where m.tithe_id = t.id order by joined_at, user_id) as players
-       from lobby.tithes t where t.status = 'open' order by t.created_at`,
+       from lobby.tithes t where t.status = 'open' and t.reach <> 'arena' order by t.created_at`,
     );
     return reply.send({
       // Feature-036 VIEW-01: tavlen viser Reaches med en kort beskrivelse og de åbne Tithes med deres Reach.
@@ -179,10 +183,12 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
   });
 }
 
-async function join(client: Client, titheId: string, userId: string, me: { user_name: string; id: string; name: string; mark: number }): Promise<void> {
+export async function join(
+  client: Client, titheId: string, userId: string, me: { user_name: string; id: string; name: string; mark: number }, side: number | null = null,
+): Promise<void> {
   await client.query(
-    'insert into lobby.members (user_id, tithe_id, user_name, character_id, character_name, mark) values ($1, $2, $3, $4, $5, $6)',
-    [userId, titheId, me.user_name, me.id, me.name, me.mark],
+    'insert into lobby.members (user_id, tithe_id, user_name, character_id, character_name, mark, side) values ($1, $2, $3, $4, $5, $6, $7)',
+    [userId, titheId, me.user_name, me.id, me.name, me.mark, side],
   );
 }
 

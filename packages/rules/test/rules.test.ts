@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BALANCE as B, acceptGift, addEcho, addSkillXp, buyConsumable, bfs, createCharacter, createRng, derivedStats,
+  BALANCE as B, SQUARE_CHEST, acceptGift, addEcho, addSkillXp, buyConsumable, bfs, createCharacter, createRng, derivedStats, describeItem,
+  itemRequirements, meetsRequirements, placeAt, squareMap,
   echoToNextMark, effectiveSkill, equipItem, finishTithe, generateDepth, generateItem, isSolid, newSave, sellItem,
   skillXpToNext, spendAttributePoint, spendSkillPoint, type TitheResult,
 } from '../src/index.ts';
@@ -100,7 +101,7 @@ test('F007 AGG-01: rarity decides the number of affixes, and rings are never com
 
 test('F007 CMD-01: equipping an item swaps it with the one in the slot', () => {
   const ch = fresh();
-  const sword = generateItem(createRng(3), 1, B, { baseId: 'short_sword', rarity: 'common' });
+  const sword = generateItem(createRng(3), 1, B, { baseId: 'rusty_sword', rarity: 'common' }); // ingen krav ved item level 1
   ch.inventory.push(sword);
   const old = ch.equipment.melee!;
   assert.equal(equipItem(ch, sword.id, B), 'melee');
@@ -236,4 +237,35 @@ test('F004 and F002: a skill point cannot raise a skill above 10 + 5 × Mark', (
   ch.level = 2;
   assert.equal(spendSkillPoint(ch, 'heavy', B), true);
   assert.equal(ch.skills.heavy.level, 17);
+});
+
+test('F007 AGG-01: requirements by type and item level – a weapon needs its skill and an attribute, armour Strength, rings nothing', () => {
+  const item = (baseId: string, ilvl: number) => generateItem(createRng(ilvl), ilvl, B, { baseId, rarity: 'common' });
+  assert.deepEqual(itemRequirements(item('war_axe', 1), B), { skill: { id: 'heavy', level: 10 }, attribute: { id: 'strength', value: 13 } });
+  assert.deepEqual(itemRequirements(item('war_axe', 5), B), { skill: { id: 'heavy', level: 14 }, attribute: { id: 'strength', value: 15 } });
+  assert.deepEqual(itemRequirements(item('longbow', 6), B), { skill: { id: 'bows', level: 31 }, attribute: { id: 'dexterity', value: 19 } });
+  assert.deepEqual(itemRequirements(item('dagger', 1), B), {}); // starting weapons need nothing
+  assert.deepEqual(itemRequirements(item('dagger', 3), B), { skill: { id: 'blades', level: 2 }, attribute: { id: 'dexterity', value: 1 } });
+  assert.deepEqual(itemRequirements(item('scale_coat', 4), B), { attribute: { id: 'strength', value: 18 } });
+  assert.deepEqual(itemRequirements(generateItem(createRng(1), 9, B, { slot: 'ring' }), B), {});
+  assert.ok(describeItem(item('war_axe', 1), B).includes('Requires Heavy Weapons 10 · Strength 13'));
+});
+
+test('F007: the attribute counts with bonuses from what the character wears', () => {
+  const ch = fresh();
+  ch.attributes.strength = 12;
+  ch.skills.heavy = { level: 10, xp: 0 };
+  const axe = generateItem(createRng(4), 1, B, { baseId: 'war_axe', rarity: 'common' }); // Strength 13
+  assert.equal(meetsRequirements(ch, axe, B), false);
+  const ring = generateItem(createRng(6), 1, B, { slot: 'ring' });
+  ring.affixes = [{ stat: 'strength', value: 1 }];
+  ch.equipment.ring1 = ring;
+  assert.equal(meetsRequirements(ch, axe, B), true);
+});
+
+test('F042 and F043: the chest stands on the square, blocks the way and opens with F', () => {
+  const map = squareMap();
+  assert.ok(isSolid(map, SQUARE_CHEST.x, SQUARE_CHEST.y));
+  assert.equal(placeAt(10, 16.3)?.id, 'chest');
+  assert.equal(placeAt(10, 16.3)?.name, 'Chest');
 });

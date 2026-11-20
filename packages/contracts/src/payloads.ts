@@ -1,6 +1,6 @@
 // Indholdet af de events, der går over bussen. Navnene er modellens; routing keys kommer fra event-kataloget.
 
-import type { Character, Equipment, Hotbar, Item, OutcomeKind, ReachId, SkillId, TitheRecord } from '@maw/rules';
+import type { ArenaFormat, ArenaSide, Character, Equipment, Hotbar, Item, OutcomeKind, ReachId, SkillId, TitheRecord } from '@maw/rules';
 import { routingKey } from './events.ts';
 
 export const EVENT = {
@@ -17,6 +17,8 @@ export const EVENT = {
   titheLaunched: routingKey('Lobby', 'Tithe launched'),
   titheEnded: routingKey('Tithe', 'Tithe ended'),
   playerDefeated: routingKey('Tithe', 'Player defeated'),
+  arenaMatchStarted: routingKey('Lobby', 'Arena match started'),
+  arenaMatchEnded: routingKey('Tithe', 'Arena match ended'),
 } as const;
 
 /** Feature-001 EVT-01 */
@@ -99,6 +101,24 @@ export interface TitheLaunched {
   /** Feature-037: Mark hos den spiller, der startede Tithen; den sætter Tithens niveau. */
   level?: number;
   players: TithePlayer[];
+}
+
+/** Feature-044 EVT-03 Arena match started: til tithe-server (Feature-045) og Market (Feature-046). */
+export interface ArenaMatchStarted {
+  matchId: string;
+  name: string;
+  format: ArenaFormat;
+  stake: number;
+  fighters: (TithePlayer & { side: ArenaSide })[];
+}
+
+/** Feature-045 EVT-04 Arena match ended: vinderens side, eller null ved uafgjort, og hver kæmpers udfald (Feature-046). */
+export interface ArenaMatchEnded {
+  matchId: string;
+  name: string;
+  stake: number;
+  winner: ArenaSide | null;
+  fighters: { userId: string; userName: string; characterId: string; side: ArenaSide; result: 'won' | 'lost' | 'draw' }[];
 }
 
 /**
