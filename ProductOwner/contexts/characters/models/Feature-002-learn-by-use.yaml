@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -129,8 +129,14 @@ rules:
   - applies_to:
       - AGG-01
     text: >-
-      A skill needs 4 + 0.8 × its level in experience to go up one level, so later levels need more use. Skills
-      stop at 100. Experience above the threshold carries on.
+      A skill needs 20 + 4 × its level + 0.2 × its level² in experience to go up one level, so later levels need
+      much more use. Experience above the threshold carries on.
+  - applies_to:
+      - AGG-01
+    text: >-
+      The Mark caps every skill at 10 + 5 × Mark (15 at Mark 1, 60 at Mark 10, 100 at Mark 18); skills stop at 100.
+      A blow trains a skill only up to the cap of the Mark and the cap of the weapon that dealt it (Gear, Manage
+      equipment).
   - applies_to:
       - EVT-05
     text: >-
@@ -140,11 +146,19 @@ rules:
       - SVC-01
     text: Blows on other players train like blows on NPC rivals; the challenge uses the other player's Mark.
 scenarios:
+  - title: The Mark caps the skill
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael is Mark 1 with Heavy Weapons 15
+      When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 2 Gnawer
+      Then nothing is recorded
+      And Heavy Weapons stays 15 until Kael is Mark 2
   - title: A blow raises the weapon's skill
     applies_to:
       - SVC-01
     gherkin: |-
-      Given Kael is Mark 1 with Heavy Weapons 10 and 11.5 of the 12 experience to level 11
+      Given Kael is Mark 1 with Heavy Weapons 10 and 79.5 of the 80 experience to level 11
       When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 1 Gnawer
       Then SVC-01 "Skill trainer" performs CMD-01 "Train skill" with Heavy Weapons and 1 experience
       And EVT-04 "Skill trained" is recorded
@@ -156,3 +170,11 @@ scenarios:
       Given Kael is Mark 4
       When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 1 Gnawer
       Then SVC-01 "Skill trainer" performs CMD-01 "Train skill" with Heavy Weapons and 0.25 experience
+open_questions:
+  - topic: Pace
+    question: How fast should skills grow?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: much slower, in a tabletop pace: 20 + 4 × level + 0.2 × level² experience per level, capped by the Mark and the weapon.

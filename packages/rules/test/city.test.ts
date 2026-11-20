@@ -128,15 +128,15 @@ test('F012 in The Broken City: crossing into a district closer to the middle is 
   assert.equal(shownDepth(t, p), 2);
 });
 
-test('F017 and F013 in The Broken City: the outer ring is sealed after 240 seconds, the second ring is not', () => {
+test('F017 and F013 in The Broken City: the outer ring is sealed after 8 minutes, the second ring is not', () => {
   const t = city();
   quiet(t);
   const p = player(t);
   p.mm.lastDamageAt = 1e9;
-  t.time = 209.9;
+  t.time = 449.9;
   stepTithe(t, 0.2);
   assert.ok(t.messages.some((m) => m.text === 'The outer ward grows dull. I will seal it in 30 seconds.'));
-  t.time = 240;
+  t.time = 480;
   stepTithe(t, DT);
   assert.ok(t.messages.some((m) => m.text.startsWith('The outer ward is sealed!')));
   assert.equal(sealInfoAt(t, GROUND_AREA, p.x, p.y)?.sealed, true);
@@ -163,4 +163,12 @@ test('F014 in The Broken City: a rival who reaches the foundry while no player i
   for (let i = 0; i < Math.round((B.tithe.abstractWardenFight + 1) / DT) && !t.champion; i++) stepTithe(t, DT);
   assert.ok(t.rivals.some((r) => r.name === t.champion));
   assert.equal(p.end?.kind, 'rival-champion');
+});
+
+test('F011: The Broken City has its own monsters, by district', () => {
+  const t = city();
+  const types = new Set(Object.values(t.depths).flatMap((d) => d.monsters.map((m) => m.type)));
+  assert.ok([...types].every((x) => B.monsters.types[x]!.home === 'city'), [...types].join(','));
+  assert.ok(types.has('smelter'));
+  assert.ok(types.size >= 6, [...types].join(','));
 });

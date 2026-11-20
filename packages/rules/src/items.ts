@@ -141,6 +141,8 @@ export function describeItem(item: Item, B: Balance): string[] {
   if (item.slot === 'weapon' && item.skill) {
     lines.push(`${item.min}–${item.max} damage · ${SKILL_LABELS[item.skill]}`);
     lines.push(base.range ? `Range ${base.range} · ${base.cooldown}s` : `Reach ${base.reach} · ${base.cooldown}s`);
+    // Feature-007: våbnets skill cap vises på våbnet.
+    lines.push(`Skill cap ${(base.skillCap ?? B.skills.max) + B.skills.weaponCapBonus[item.rarity]}`);
   }
   if (item.slot === 'armour') lines.push(`${item.armour} armour`);
   for (const a of item.affixes) {

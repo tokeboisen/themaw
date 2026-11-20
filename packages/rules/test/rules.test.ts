@@ -216,3 +216,24 @@ test('F007 AGG-01: every equipped item gives its affixes, also the weapon that i
   assert.equal(derivedStats(ch, B, 'melee').weapon.skill, 'heavy');
   assert.equal(derivedStats(ch, B, 'ranged').weapon.skill, 'bows');
 });
+
+test('F003: Marks need 300 × Mark^1.5 Echo and stop at Mark 20', () => {
+  assert.equal(echoToNextMark(1, B), 300);
+  assert.equal(echoToNextMark(2, B), 849);
+  const ch = fresh();
+  ch.level = 20;
+  ch.echo = 0;
+  assert.equal(addEcho(ch, 1e9, B), 0);
+  assert.equal(ch.level, 20);
+});
+
+test('F004 and F002: a skill point cannot raise a skill above 10 + 5 × Mark', () => {
+  const ch = fresh();
+  ch.level = 1;
+  ch.skillPoints = 2;
+  ch.skills.heavy = { level: 15, xp: 0 };
+  assert.equal(spendSkillPoint(ch, 'heavy', B), false);
+  ch.level = 2;
+  assert.equal(spendSkillPoint(ch, 'heavy', B), true);
+  assert.equal(ch.skills.heavy.level, 17);
+});

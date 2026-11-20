@@ -45,6 +45,7 @@ class Room {
         id: data.titheId,
         name: data.name,
         reach: data.reach === 'city' ? 'city' : 'mines',
+        ...(data.level ? { level: data.level } : {}),
         seed: randomSeed(),
         players: data.players.map((p) => ({ userId: p.userId, userName: p.userName, characterId: p.characterId, character: p.character, hotbar: p.hotbar })),
       },

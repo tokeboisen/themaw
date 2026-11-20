@@ -96,6 +96,8 @@ export interface TitheLaunched {
   name: string;
   /** Feature-037: Tithen lægges ud i sin Reach. Mangler den, er det The Old Mines. */
   reach?: ReachId;
+  /** Feature-037: Mark hos den spiller, der startede Tithen; den sætter Tithens niveau. */
+  level?: number;
   players: TithePlayer[];
 }
 

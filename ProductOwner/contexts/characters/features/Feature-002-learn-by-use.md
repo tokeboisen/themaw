@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-002-learn-by-use.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -99,13 +99,14 @@ No user stories.
 - A blow gives 1 experience, and the killing blow 3 more. A swing that hits several enemies trains at most 3 of the hits. (SVC-01, CMD-01)
 - Challenge: the experience is multiplied by the enemy's level divided by the character's Mark, kept between 0.25 and 1.5, so weak enemies teach little and strong ones more. (CMD-01)
 - Intelligence speeds up learning: +2 % experience for each point of Intelligence above 10, items included. (AGG-01)
-- A skill needs 4 + 0.8 × its level in experience to go up one level, so later levels need more use. Skills stop at 100. Experience above the threshold carries on. (AGG-01)
+- A skill needs 20 + 4 × its level + 0.2 × its level² in experience to go up one level, so later levels need much more use. Experience above the threshold carries on. (AGG-01)
+- The Mark caps every skill at 10 + 5 × Mark (15 at Mark 1, 60 at Mark 10, 100 at Mark 18); skills stop at 100. A blow trains a skill only up to the cap of the Mark and the cap of the weapon that dealt it (Gear, Manage equipment). (AGG-01)
 - The effective skill used in combat is the level plus the bonus from its attributes and items (Spend points). Each effective level gives 1.5 % more damage and 0.4 % shorter attack time, at most 35 % shorter. (EVT-05)
 - Blows on other players train like blows on NPC rivals; the challenge uses the other player's Mark. (SVC-01)
 
 ```gherkin
 Scenario: A blow raises the weapon's skill
-  Given Kael is Mark 1 with Heavy Weapons 10 and 11.5 of the 12 experience to level 11
+  Given Kael is Mark 1 with Heavy Weapons 10 and 79.5 of the 80 experience to level 11
   When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 1 Gnawer
   Then SVC-01 "Skill trainer" performs CMD-01 "Train skill" with Heavy Weapons and 1 experience
   And EVT-04 "Skill trained" is recorded
@@ -129,13 +130,21 @@ Scenario: Weak enemies teach little
 |---|---|---|---|
 | – | – | – | – |
 
+```gherkin
+Scenario: The Mark caps the skill
+  Given Kael is Mark 1 with Heavy Weapons 15
+  When EVT-01 "Blow landed" has been recorded for Kael's Pickaxe on a level 2 Gnawer
+  Then nothing is recorded
+  And Heavy Weapons stays 15 until Kael is Mark 2
+```
+
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **Pace:** How fast should skills grow? | Decided 2026-11-20: much slower, in a tabletop pace: 20 + 4 × level + 0.2 × level² experience per level, capped by the Mark and the weapon. |
 
 ### Still open
 

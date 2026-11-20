@@ -127,11 +127,20 @@ describe('Characters', { skip: !hasDatabase }, () => {
   test('F004 scenario "A skill point gives two levels"', async () => {
     const cookie = await signUp(app, named('u11'));
     const kael = (await create(cookie, 'Kael')).json();
-    await pool.query(`update characters.characters set skill_points = 2, skills = jsonb_set(skills, '{heavy,level}', '15') where id = $1`, [kael.id]);
+    // Kael er Mark 2: loftet er 20 (Feature-002), så Heavy Weapons kan gå fra 15 til 17.
+    await pool.query(`update characters.characters set mark = 2, skill_points = 2, skills = jsonb_set(skills, '{heavy,level}', '15') where id = $1`, [kael.id]);
     const response = await app.inject({ method: 'POST', url: `/api/characters/${kael.id}/skill-points`, headers: { cookie }, payload: { skill: 'heavy' } });
     assert.equal(response.statusCode, 200);
     assert.equal(response.json().skills.heavy.level, 17);
     assert.equal(response.json().skillPoints, 1);
+  });
+
+  test('F004 and F002: at the Mark\'s cap a skill point raises nothing', async () => {
+    const cookie = await signUp(app, named('u11b'));
+    const kael = (await create(cookie, 'Kael')).json();
+    await pool.query(`update characters.characters set skill_points = 2, skills = jsonb_set(skills, '{heavy,level}', '15') where id = $1`, [kael.id]);
+    const response = await app.inject({ method: 'POST', url: `/api/characters/${kael.id}/skill-points`, headers: { cookie }, payload: { skill: 'heavy' } });
+    assert.equal(response.statusCode, 409);
   });
 
   test('F004 CMD-01: without points nothing is recorded', async () => {

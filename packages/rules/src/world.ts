@@ -86,6 +86,8 @@ export interface Monster extends Body {
   summonT: number;
   /** Kaldt frem af Mirrormaster eller The Foreman: giver hverken loot eller drabsserie (Feature-011, -017). */
   summoned: boolean;
+  /** Feature-011: en Veteran er 3 levels over området, med bedre loot. */
+  veteran: boolean;
 }
 
 interface RivalWeapon {
@@ -218,7 +220,7 @@ export interface Projectile extends Vec {
   amount: number;
   crit: boolean;
   skill?: SkillId;
-  kind: 'arrow' | 'bolt' | 'spit';
+  kind: 'arrow' | 'bolt' | 'spit' | 'fire';
   faction: 'player' | 'rival' | 'monster';
   owner: Body;
   done: boolean;
@@ -331,6 +333,8 @@ export interface TitheSetup {
   id: string;
   name: string;
   reach?: ReachId;
+  /** Feature-037: Mark hos den spiller, der startede Tithen. */
+  level?: number;
   seed: number;
   players: TithePlayerSetup[];
 }
@@ -339,8 +343,8 @@ export interface TitheSetup {
 
 export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const rng = createRng(setup.seed);
-  const marks = setup.players.map((p) => p.character.level);
-  const mark = Math.max(1, Math.round(marks.reduce((s, m) => s + m, 0) / Math.max(1, marks.length)));
+  // Feature-010: Tithens niveau er Mark hos den, der startede den; uden det den højeste Mark blandt spillerne.
+  const mark = Math.max(1, setup.level ?? Math.max(1, ...setup.players.map((p) => p.character.level)));
   const t: Tithe = {
     id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
     champion: null, closed: false, wardenAlive: true, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: false, mark, nextId: 1,
@@ -422,7 +426,8 @@ function rivalWeapon(def: RivalDef, level: number, B: Balance): RivalWeapon {
 function makeRival(t: Tithe, def: RivalDef): Rival {
   const B = t.B;
   const level = Math.max(1, t.mark + def.levelOffset);
-  const maxHp = B.tithe.rivalHpBase + level * B.tithe.rivalHpPerLevel;
+  // Byens gader har langt flere monstre; rivalerne får et tillæg, så de kan nå frem (Feature-014).
+  const maxHp = Math.round((B.tithe.rivalHpBase + level * B.tithe.rivalHpPerLevel) * (t.reach === 'city' ? B.city.rivalHpFactor : 1));
   return {
     kind: 'rival', id: def.id, name: def.name, color: def.color, def, level, x: 0, y: 0, r: 0.38, hp: maxHp, maxHp,
     armour: B.tithe.rivalArmour, weapon: rivalWeapon(def, level, B), aggressive: t.rng.chance(def.aggression), hostileTo: new Set(),
@@ -454,9 +459,42 @@ function sealAtPos(t: Tithe, area: number, x: number, y: number): number | null 
   return t.depths[area]?.sealAt ?? null;
 }
 
+/** Feature-011: områdets level er Tithens level + 1 for hver dybde eller hvert distrikt efter det første. */
 function monsterLevel(t: Tithe, d: number): number {
+  return Math.max(1, t.mark + (d - 1) * t.B.monsters.levelPerDepth);
+}
+
+/** Et monsters level: områdets −1 til +2, og en gang imellem en Veteran 3 levels over området. */
+function rollLevel(t: Tithe, area: number): { level: number; veteran: boolean } {
   const M = t.B.monsters;
-  return Math.max(1, Math.round(d * M.levelPerDepth + Math.floor((t.mark - 1) * M.followPlayerLevel)));
+  const base = monsterLevel(t, area);
+  if (t.rng.chance(M.veteranChance)) return { level: base + M.veteranLevels, veteran: true };
+  return { level: Math.max(1, base + t.rng.int(M.levelSpread[0], M.levelSpread[1])), veteran: false };
+}
+
+/** Feature-011: et monster fra Tithens Reach, der lever i dybden eller distriktet. */
+function pickMonster(t: Tithe, area: number): string {
+  const types = Object.entries(t.B.monsters.types).filter(([, m]) => !m.warden && m.home === t.reach && m.areas && area >= m.areas[0] && area <= m.areas[1]);
+  const total = types.reduce((s, [, m]) => s + (m.weight ?? 1), 0);
+  let x = t.rng.next() * total;
+  for (const [id, m] of types) {
+    x -= m.weight ?? 1;
+    if (x <= 0) return id;
+  }
+  return types[0]?.[0] ?? (t.reach === 'city' ? 'sewer_rat' : 'gnawer');
+}
+
+/** Et monster af en tilfældig type og level for området. */
+function spawnFor(t: Tithe, area: number, x: number, y: number, type = pickMonster(t, area)): Monster {
+  const { level, veteran } = rollLevel(t, area);
+  const m = makeMonster(t, type, x, y, level);
+  m.veteran = veteran;
+  return m;
+}
+
+/** Den svage flokdyrstype, som Wardens og Mirrormaster kalder frem. */
+function summonType(t: Tithe): string {
+  return t.reach === 'city' ? 'sewer_rat' : 'gnawer';
 }
 
 /** Startrummene i dybde 1: rum omtrent lige langt fra trappen, helst langt væk (Feature-010 AGG-01). */
@@ -506,21 +544,23 @@ function buildCity(t: Tithe): Depth {
   ground.stairs = plan.groundStairs;
   const at = (x: number, y: number) => plan.districts[Math.floor(y) * plan.ground.w + Math.floor(x)] ?? 1;
   ground.monsters = ground.monsters.map((m) => {
-    const level = monsterLevel(t, m.def.warden ? B.city.districts : at(m.x, m.y));
-    if (m.level === level) return m;
-    const again = makeMonster(t, m.type, m.x, m.y, level);
-    again.hp = Math.round(again.maxHp * (m.hp / m.maxHp));
-    return again;
+    if (m.def.warden) {
+      const warden = makeMonster(t, m.type, m.x, m.y, monsterLevel(t, B.city.districts));
+      warden.hp = Math.round(warden.maxHp * t.wardenHpFactor);
+      return warden;
+    }
+    return spawnFor(t, at(m.x, m.y), m.x, m.y);
   });
-  // Bander af Gnawers på vejene i de indre distrikter.
+  // Bander på vejene: samme slags, 2–4 sammen, flest i de indre distrikter.
   const startSet = new Set(ground.startRooms.slice(0, t.players.length));
   for (let i = 0, tries = 0; i < B.city.streetPacks && tries < 500; tries++) {
     const x = t.rng.int(2, plan.ground.w - 3);
     const y = t.rng.int(2, plan.ground.h - 3);
     const d = at(x, y);
-    if (d < 2 || d >= B.city.districts || plan.ground.tiles[y * plan.ground.w + x] !== 5) continue;
+    if (d >= B.city.districts || plan.ground.tiles[y * plan.ground.w + x] !== 5) continue;
     if ([...startSet].some((r) => Math.hypot(r.cx - x, r.cy - y) < 12)) continue;
-    for (let k = 0; k < t.rng.int(2, 3); k++) ground.monsters.push(makeMonster(t, 'gnawer', x + 0.5 + t.rng.range(-1, 1), y + 0.5 + t.rng.range(-1, 1), monsterLevel(t, d)));
+    const type = pickMonster(t, d);
+    for (let k = 0; k < t.rng.int(2, 4); k++) ground.monsters.push(spawnFor(t, d, x + 0.5 + t.rng.range(-1, 1), y + 0.5 + t.rng.range(-1, 1), type));
     i += 1;
   }
   for (const f of plan.floors) {
@@ -531,11 +571,10 @@ function buildCity(t: Tithe): Depth {
       level: f.area, map, monsters: [], loot: [], caches: [], projectiles: [], toExit, maxExitDist: 1, sealAt: null, warned: false,
       sealedSaid: false, startRooms: [room], warden: false, stairs: f.stairs, districts: null, floorDistrict: f.district, floor: f.floor,
     };
-    const level = monsterLevel(t, f.district);
-    for (let i = 0; i < t.rng.int(1, 3); i++) {
+    for (let i = 0; i < t.rng.int(B.city.monstersPerHouse[0] + 1, B.city.monstersPerHouse[1] + 1); i++) {
       const pos = randomFloorInRoom(t.rng, map, room);
       if (Math.hypot(pos.x - map.start.x, pos.y - map.start.y) < 3) continue;
-      dep.monsters.push(makeMonster(t, t.rng.chance(0.3) ? 'brute' : t.rng.chance(0.5) ? 'spitter' : 'gnawer', pos.x + 0.5, pos.y + 0.5, level));
+      dep.monsters.push(spawnFor(t, f.district, pos.x + 0.5, pos.y + 0.5));
     }
     // Feature-041 EVT-01: hver etage har en cache.
     const pos = randomFloorInRoom(t.rng, map, room);
@@ -560,17 +599,6 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
     warden: last, stairs: [], districts: null, floorDistrict: null, floor: 1,
   };
   const level = monsterLevel(t, d);
-  const types = Object.entries(B.monsters.types).filter(([, m]) => !m.warden);
-  const weight = (m: MonsterDef) => (m.weight ?? 0) + ((m.weight ?? 0) < 30 ? (d - 1) * 5 : 0);
-  const totalWeight = types.reduce((s, [, m]) => s + weight(m), 0);
-  const pickType = () => {
-    let x = t.rng.next() * totalWeight;
-    for (const [id, m] of types) {
-      x -= weight(m);
-      if (x <= 0) return id;
-    }
-    return types[0]![0];
-  };
   for (const room of map.rooms) {
     // Ingen monstre i spillernes startrum, Warden-hallen eller startrummet på de dybere dybder.
     if (playerRooms.has(room) || room === map.startRoom || room === map.wardenRoom) continue;
@@ -578,7 +606,21 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
     const count = Math.round(t.rng.int(B.monsters.perRoom[0], B.monsters.perRoom[1]) * size + B.monsters.extraPerDepth * (d - 1));
     for (let i = 0; i < count; i++) {
       const pos = randomFloorInRoom(t.rng, map, room);
-      dep.monsters.push(makeMonster(t, pickType(), pos.x + 0.5, pos.y + 0.5, level));
+      dep.monsters.push(spawnFor(t, d, pos.x + 0.5, pos.y + 0.5));
+    }
+  }
+  // Feature-013: grupper i minernes gange, aldrig tæt på spillernes startrum.
+  if (t.reach !== 'city') {
+    const inRoom = (x: number, y: number) => map.rooms.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+    const groups = B.monsters.corridorGroups + (d - 1);
+    for (let i = 0, tries = 0; i < groups && tries < 400; tries++) {
+      const x = t.rng.int(1, map.w - 2);
+      const y = t.rng.int(1, map.h - 2);
+      if (map.tiles[y * map.w + x] !== 1 || inRoom(x, y)) continue;
+      if ([...playerRooms].some((r) => Math.hypot(r.cx - x, r.cy - y) < 12)) continue;
+      const type = pickMonster(t, d);
+      for (let k = 0; k < t.rng.int(2, 3); k++) dep.monsters.push(spawnFor(t, d, x + 0.5 + t.rng.range(-0.4, 0.4), y + 0.5 + t.rng.range(-0.4, 0.4), type));
+      i += 1;
     }
   }
   if (map.wardenRoom) {
@@ -588,7 +630,7 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
     dep.monsters.push(foreman);
     for (let i = 0; i < 2; i++) {
       const pos = randomFloorInRoom(t.rng, map, wr);
-      dep.monsters.push(makeMonster(t, 'gnawer', pos.x + 0.5, pos.y + 0.5, level));
+      dep.monsters.push(makeMonster(t, summonType(t), pos.x + 0.5, pos.y + 0.5, level));
     }
   }
   const cacheRooms = map.rooms.filter((r) => r !== map.startRoom && r !== map.wardenRoom && !playerRooms.has(r));
@@ -603,12 +645,13 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
 function makeMonster(t: Tithe, type: string, x: number, y: number, level: number): Monster {
   const def = t.B.monsters.types[type]!;
   const M = t.B.monsters;
-  const hp = Math.round(def.hp * (1 + M.hpPerLevel * (level - 1)));
-  const dmg = 1 + M.damagePerLevel * (level - 1);
+  // Feature-011: liv +40 % og skade +30 % pr. level, fra grundværdier, der er 40 % og 25 % højere.
+  const hp = Math.round(def.hp * (def.warden ? 1 : M.hpFactor) * (1 + M.hpPerLevel * (level - 1)));
+  const dmg = (def.warden ? 1 : M.damageFactor) * (1 + M.damagePerLevel * (level - 1));
   return {
     kind: 'monster', id: nid(t, 'm'), type, def, name: def.name, level, x, y, r: def.radius, hp, maxHp: hp,
     min: def.min * dmg, max: def.max * dmg, armour: def.armour ?? 0, attackCd: t.rng.range(0, def.cooldown), windup: 0, aim: null,
-    flash: 0, awake: false, summonT: def.summonEvery ?? 0, facing: { x: 1, y: 0 }, dead: false, summoned: false,
+    flash: 0, awake: false, summonT: def.summonEvery ?? 0, facing: { x: 1, y: 0 }, dead: false, summoned: false, veteran: false,
   };
 }
 
@@ -1257,7 +1300,9 @@ function damage(t: Tithe, dep: Depth, attacker: Body | null, target: Body, amoun
 function trainSkill(t: Tithe, p: Player, skill: SkillId, target: Body, amount: number): void {
   const B = t.B;
   const challenge = clamp((target.level || 1) / Math.max(1, p.ch.level), B.skills.challengeMin, B.skills.challengeMax);
-  const gained = addSkillXp(p.ch, skill, amount * challenge, B);
+  // Feature-007: et våbens slag træner skill'en højst op til våbnets skill cap; Echo Bolt kun op til Mark'ens loft.
+  const weapon = [p.stats.weapon, p.stats.melee, p.stats.ranged].find((w) => w?.skill === skill);
+  const gained = addSkillXp(p.ch, skill, amount * challenge, B, skill === 'echo' ? Infinity : weapon?.cap ?? B.skills.unarmedCap);
   p.sheetVersion += 1;
   if (gained) {
     refreshStats(t, p);
@@ -1357,7 +1402,9 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
       addRenown(t, p, B.renown.perMonsterLevel * target.level);
       // Monstre, som Mirrormaster eller The Foreman kalder frem, giver hverken loot eller drabsserie.
       if (!target.def.warden && !target.summoned) {
-        dropLoot(t, dep, target.x, target.y, target.level, target.def.itemChance !== undefined ? { itemChance: target.def.itemChance } : {});
+        dropLoot(t, dep, target.x, target.y, target.level, target.veteran
+          ? { goldChance: 1, items: 1, rarities: [t.rng.chance(0.3) ? 'rare' : 'magic'], consumableChance: 0.5 }
+          : target.def.itemChance !== undefined ? { itemChance: target.def.itemChance } : {});
         registerKill(t, p, dep);
       }
     }
@@ -1519,10 +1566,10 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
       m.summonT -= dt;
       if (m.summonT <= 0) {
         m.summonT = def.summonEvery ?? 14;
-        const gnawers = dep.monsters.filter((x) => !x.dead && x.type === 'gnawer').length;
+        const gnawers = dep.monsters.filter((x) => !x.dead && x.type === summonType(t)).length;
         for (let i = 0; i < Math.min(3, (def.summonMax ?? 6) - gnawers); i++) {
           const pos = dropSpot(dep, m.x, m.y, t.rng);
-          const g = makeMonster(t, 'gnawer', pos.x, pos.y, m.level);
+          const g = makeMonster(t, summonType(t), pos.x, pos.y, Math.max(1, m.level - 2));
           g.awake = true;
           g.summoned = true;
           dep.monsters.push(g);
@@ -1565,7 +1612,7 @@ function resolveMonsterAttack(t: Tithe, dep: Depth, m: Monster): void {
   const victims = victimsOf(t, dep);
   if (def.ranged) {
     const dir = aimAt(m, m.aim, m.facing);
-    shoot(t, dep, m, dir, { amount: t.rng.range(m.min, m.max), crit: false, speed: def.projectileSpeed ?? 7, range: (def.range ?? 6) + 2, kind: 'spit', faction: 'monster' });
+    shoot(t, dep, m, dir, { amount: t.rng.range(m.min, m.max), crit: false, speed: def.projectileSpeed ?? 7, range: (def.range ?? 6) + 2, kind: def.projectile ?? 'spit', faction: 'monster' });
     return;
   }
   const reach = def.reach ?? 1;
@@ -1927,7 +1974,7 @@ function mirrormaster(t: Tithe, dt: number): void {
     if (t.time - p.mm.lastDamageAt > M.boredAfter && t.time - p.mm.lastBoredAt > M.boredAfter) {
       p.mm.lastBoredAt = t.time;
       say(t, 'Mirrormaster', t.rng.pick(LINES.bored));
-      spawnNear(t, p, 'gnawer', M.boredGnawers);
+      spawnNear(t, p, summonType(t), M.boredGnawers);
     }
   }
 }

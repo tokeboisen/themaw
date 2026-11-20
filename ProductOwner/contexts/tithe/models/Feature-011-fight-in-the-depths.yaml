@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 7
+version: 8
 status: draft
 created: '2026-11-19'
 use_case:
@@ -26,6 +26,8 @@ elements:
     behavior: >-
       A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to
       the player in red). Monsters about to attack show their reach in red, and the Foreman's slam a red circle.
+      Under every monster a small text shows its name and level, e.g. "Goblin · L4", grey when it is easy for the
+      player's Mark, white when even, orange when hard and red when deadly; Veterans are named in gold.
   - id: CMD-01
     type: command
     name: Strike
@@ -176,11 +178,19 @@ rules:
   - applies_to:
       - AGG-01
     text: >-
-      The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar
-      and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam
-      around him, calls Gnawers every 14 seconds, never leaves his hall). The Broken City has the same monsters,
-      and its Warden is The Smelter in the foundry, who fights like The Foreman. A monster's level is the depth
-      + half of the player's Marks above 1.
+      The monsters of The Old Mines: the Gnawer, the Tunnel Goblin, the Kobold Sapper, the Crystal Spitter, the
+      Cave Spider, the Skeleton Miner, the Ghoul, the Rust Ooze, the Tunnel Brute and the Cave Troll, and The
+      Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The
+      monsters of The Broken City: the Sewer Rat, the Feral Hound, the Cutthroat, the Bandit Archer, the Hollow,
+      the Cultist of the Maw, the Gargoyle, the Harpy, the Scrap Golem and the Wraith, and The Smelter in the
+      foundry, who fights like The Foreman. Each fights in its own way – a swarm, a skirmisher, a ranged fighter,
+      a tank or a caster – and some only live in the deeper depths or the inner districts.
+  - applies_to:
+      - AGG-01
+    text: >-
+      A monster's level is the area's level – the Tithe's level + 1 for every depth or district after the first –
+      minus 1 to plus 2; about 8 % are Veterans, 3 levels above the area, with better loot. Life grows by 40 % and
+      damage by 30 % per level.
 scenarios:
   - title: A blow slays a Gnawer
     applies_to:
@@ -233,3 +243,10 @@ open_questions:
     resolution: >-
       Decided 2026-11-19: the defeated player spills 10–20 % of the gold in the wallet on the floor, and the
       one who struck the player down gets a Player kill, shown in the player statistics.
+  - topic: Monster levels
+    question: Which Mark should the monsters match?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: the Mark of the player who launched the Tithe; each monster's level varies around the area's level.

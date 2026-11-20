@@ -151,7 +151,12 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
       }
       await client.query(`update lobby.tithes set status = 'launched', launched_at = now() where id = $1`, [tithe.id]);
       // Feature-037 EVT-01 Tithe launched → Feature-010 SVC-01 Tithe master
-      const data: TitheLaunched = { titheId: tithe.id, name: tithe.name, reach: tithe.reach === 'city' ? 'city' : 'mines', players };
+      // Feature-037: Mark hos den, der startede Tithen, sætter dens niveau (Feature-010, -011).
+      const opener = players.find((x) => x.userId === tithe.opener_user_id);
+      const data: TitheLaunched = {
+        titheId: tithe.id, name: tithe.name, reach: tithe.reach === 'city' ? 'city' : 'mines', players,
+        ...(opener ? { level: opener.character.level } : {}),
+      };
       await enqueue(client, envelope(EVENT.titheLaunched, data));
       return 'ok' as const;
     });

@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-003-earn-marks.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -92,12 +92,12 @@ No user stories.
 ### Rules
 
 - Only the candidate who dealt the killing blow gains the Echo. A monster gives its Echo × its level (Gnawer 3, Crystal Spitter 6, Tunnel Brute 9, The Foreman 120), a defeated NPC rival 12 × the rival's level and a defeated player 12 × the player's Mark. Items with "% Echo gained" add to it. (SVC-01)
-- The next Mark needs 20 × Mark^1.5 Echo (Mark 1 to 2: 20, Mark 2 to 3: 57). Echo above the threshold carries on. (AGG-01)
+- The next Mark needs 300 × Mark^1.5 Echo (Mark 1 to 2: 300, Mark 2 to 3: 849, Mark 10 to 11: 9,487), so a Mark takes one Tithe at first and several later. Echo above the threshold carries on. Mark 20 is the highest. (AGG-01)
 - Each Mark gives 3 attribute points, 2 skill points and 4 more life. The points are spent on the character sheet (Spend points), also during a Tithe. (EVT-04)
 
 ```gherkin
 Scenario: A Mark burns in
-  Given Kael is Mark 1 with 15 Echo
+  Given Kael is Mark 1 with 295 Echo
   When EVT-01 "Monster slain" has been recorded for a level 2 Gnawer slain by Kael
   Then SVC-01 "Echo keeper" performs CMD-01 "Gain Echo" with 6 Echo
   And EVT-04 "Mark earned" is recorded with Mark 2
@@ -118,11 +118,11 @@ Scenario: A Mark burns in
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **Pace:** How fast should Marks come? | Decided 2026-11-20: in a tabletop pace: 300 × Mark^1.5 Echo per Mark, up to Mark 20. |
 
 ### Still open
 

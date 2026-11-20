@@ -44,6 +44,9 @@ export interface SnapshotEntity {
   hostile?: boolean;
   /** En anden spiller i spillerens parti. */
   party?: boolean;
+  /** Feature-011 VIEW-01: monstrets level og om det er en Veteran. */
+  level?: number;
+  veteran?: boolean;
   warden?: boolean;
   /** Et angreb på vej: rækkevidden eller sigtet (Feature-011 VIEW-01). */
   windup?: { reach?: number; aimX?: number; aimY?: number };

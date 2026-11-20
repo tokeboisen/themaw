@@ -187,3 +187,6 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 .sheet.place { max-width: 980px; }
 .board .list { margin-bottom: 12px; }
 @media (max-width: 760px) { .square-top .actions .ghost { padding: 4px 8px; font-size: 12px; } }
+/* Feature-030: Bestiary */
+.bestiary td { vertical-align: top; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1px solid #000; vertical-align: middle; }

@@ -52,23 +52,41 @@ export function createCharacter(name: string, backgroundId: string, rng: Rng, B:
 
 // --- Skills vokser ved brug (Feature-002) ---------------------------------------------------------
 
+/** Feature-002: 20 + 4 × niveau + 0,2 × niveau² erfaring til næste niveau. */
 export function skillXpToNext(level: number, B: Balance): number {
-  return B.skills.xpBase + B.skills.xpPerLevel * level;
+  return B.skills.xpBase + B.skills.xpPerLevel * level + B.skills.xpPerLevelSquared * level * level;
 }
 
-/** Lægger erfaring til en skill og returnerer, hvor mange niveauer den steg. */
-export function addSkillXp(ch: Character, skill: SkillId, amount: number, B: Balance): number {
+/** Feature-002: Mark'en sætter loftet over alle skills: 10 + 5 × Mark, højst 100. */
+export function skillCap(ch: Pick<Character, 'level'>, B: Balance): number {
+  return Math.min(B.skills.max, B.skills.capBase + B.skills.capPerMark * ch.level);
+}
+
+/** Feature-007: et våbens skill cap – grundtypens plus 10 for magisk og 20 for sjælden; uden våben 20. */
+export function weaponSkillCap(item: Item | null, B: Balance): number {
+  if (!item) return B.skills.unarmedCap;
+  return (itemBase(B, item.baseId).skillCap ?? B.skills.max) + B.skills.weaponCapBonus[item.rarity];
+}
+
+/**
+ * Lægger erfaring til en skill og returnerer, hvor mange niveauer den steg. Skill'en vokser ikke over Mark'ens loft og
+ * – for et våbens slag – våbnets skill cap (Feature-002, -007).
+ */
+export function addSkillXp(ch: Character, skill: SkillId, amount: number, B: Balance, weaponCap = Infinity): number {
   const s = ch.skills[skill];
-  if (s.level >= B.skills.max || amount <= 0) return 0;
+  const cap = Math.min(skillCap(ch, B), weaponCap);
+  if (s.level >= cap || amount <= 0) return 0;
   const intelligence = effectiveAttributes(ch).intelligence;
   const learning = 1 + Math.max(0, intelligence - B.character.startAttribute) * B.skills.learningPerIntelligence;
   s.xp += amount * learning;
   let gained = 0;
-  while (s.level < B.skills.max && s.xp >= skillXpToNext(s.level, B)) {
+  while (s.level < cap && s.xp >= skillXpToNext(s.level, B)) {
     s.xp -= skillXpToNext(s.level, B);
     s.level += 1;
     gained += 1;
   }
+  // Ved loftet står erfaringen stille lige under næste niveau, så intet går tabt, når loftet hæves.
+  if (s.level >= cap) s.xp = Math.min(s.xp, skillXpToNext(s.level, B) - 0.01);
   if (s.level >= B.skills.max) s.xp = 0;
   return gained;
 }
@@ -83,7 +101,8 @@ export function echoToNextMark(level: number, B: Balance): number {
 export function addEcho(ch: Character, amount: number, B: Balance): number {
   ch.echo += amount;
   let marks = 0;
-  while (ch.echo >= echoToNextMark(ch.level, B)) {
+  // Feature-003: Mark 20 er den højeste.
+  while (ch.level < B.marks.max && ch.echo >= echoToNextMark(ch.level, B)) {
     ch.echo -= echoToNextMark(ch.level, B);
     ch.level += 1;
     ch.attributePoints += B.marks.attributePoints;
@@ -102,10 +121,12 @@ export function spendAttributePoint(ch: Character, attribute: Attribute): boolea
   return true;
 }
 
+/** Feature-004 CMD-02: et skill-point giver 2 niveauer, højst til Mark'ens loft (Feature-002). */
 export function spendSkillPoint(ch: Character, skill: SkillId, B: Balance): boolean {
   const s = ch.skills[skill];
-  if (ch.skillPoints <= 0 || !s || s.level >= B.skills.max) return false;
-  s.level = Math.min(B.skills.max, s.level + B.skills.levelsPerPoint);
+  const cap = skillCap(ch, B);
+  if (ch.skillPoints <= 0 || !s || s.level >= cap) return false;
+  s.level = Math.min(cap, s.level + B.skills.levelsPerPoint);
   if (s.level >= B.skills.max) s.xp = 0;
   ch.skillPoints -= 1;
   return true;
@@ -176,6 +197,8 @@ export interface WeaponStats {
   cooldown: number;
   effective: number;
   damageMult: number;
+  /** Feature-007: våbnets skill cap; effective tæller højst op til den. */
+  cap: number;
 }
 
 export interface BoltStats {
@@ -217,9 +240,11 @@ function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: Item
   const wb = item ? itemBase(B, item.baseId) : null;
   const unarmed = B.combat.unarmed;
   const skill: SkillId = item?.skill ?? 'blades';
-  const effective = effectiveSkill(ch, skill, B, bonuses);
+  const cap = weaponSkillCap(item, B);
+  const effective = Math.min(cap, effectiveSkill(ch, skill, B, bonuses));
   return {
     skill,
+    cap,
     min: item?.min ?? unarmed.min,
     max: item?.max ?? unarmed.max,
     reach: wb?.reach ?? unarmed.reach,

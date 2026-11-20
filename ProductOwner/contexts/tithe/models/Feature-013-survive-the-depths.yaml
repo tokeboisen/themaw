@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -189,7 +189,9 @@ rules:
   - applies_to:
       - SVC-01
     text: >-
-      Monsters sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls.
+      Monsters are many – 2–5 in every room of the mines, groups in the corridors, and bands in the streets and
+      houses of The Broken City. They sleep until a candidate comes into sight, then hunt the nearest candidate,
+      also around walls.
       Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot
       be hit, for 20 stamina.
   - applies_to:

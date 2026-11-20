@@ -5,7 +5,7 @@ bounded_context: Spectacle
 product: The Maw
 source: models/Feature-017-run-the-show.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -148,7 +148,7 @@ No user stories.
 - Renown: 2 × level for each monster the player slays, 60 for each NPC rival or player the player defeats, 150 for The Foreman, 20 for each new depth and 15 for each sponsor gift. (CMD-01)
 - Three kills by the player within 8 seconds, at most every 30 seconds, make a Noble House – House Morrow, House Vane, House Ashgrave or House Lisle – drop a gift by the player: a magic item (30 %), a potion (25 %), a ration (20 %) or gold (25 %). Kills of monsters called by the Mirrormaster or The Foreman do not count. (CMD-02)
 - After 40 seconds without the player dealing damage, the crowd is bored and the Mirrormaster releases 4 Gnawers 6–11 tiles from the player. They drop nothing. (CMD-03)
-- Depth 1 is sealed 240 seconds after the Tithe starts and depth 2 after 480 seconds; the last depth is never sealed. A candidate who enters a depth with less than 90 seconds left gets 90 seconds. In The Broken City the districts are sealed from the outside in: the outer ring after 240 seconds, the second after 420 and the third after 600; the foundry is never sealed. The Mirrormaster announces the seal 30 seconds before, and the HUD shows the time left. (CMD-04, EVT-10)
+- Depth 1 is sealed 240 seconds after the Tithe starts and depth 2 after 480 seconds; the last depth is never sealed. A candidate who enters a depth with less than 90 seconds left gets 90 seconds. In The Broken City the districts are sealed from the outside in: the outer ring after 8 minutes, the second after 14 and the third after 20; the foundry is never sealed. The Mirrormaster announces the seal 30 seconds before, and the HUD shows the time left. (CMD-04, EVT-10)
 - The Mirrormaster speaks to the whole Tithe in the message log: at the start, about the grace, before and at a seal, when he is bored, about sponsor gifts, when rivals reach a depth or fall, when The Foreman wakes and dies, and when the Tithe has a Champion. (SVC-01)
 
 ```gherkin
@@ -186,11 +186,11 @@ Scenario: Depth 1 is sealed
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **The length of The Broken City:** How long should The Broken City take? | Decided 2026-11-20: twice as long as at first: the districts are sealed after 8, 14 and 20 minutes. |
 
 ### Still open
 

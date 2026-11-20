@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -99,8 +99,9 @@ rules:
       - CMD-01
       - CMD-02
     text: >-
-      One attribute point raises an attribute by 1. One skill point raises a skill by 2 levels, at most to
-      100. Points can only be spent while there are some left, and they never expire.
+      One attribute point raises an attribute by 1. One skill point raises a skill by 2 levels, at most to the
+      Mark's cap of 10 + 5 × Mark (Learn by use). Points can only be spent while there are some left, and they
+      never expire.
   - applies_to:
       - AGG-01
     text: >-
@@ -131,7 +132,7 @@ scenarios:
     applies_to:
       - CMD-02
     gherkin: |-
-      Given Kael has Heavy Weapons 15 and 2 skill points
+      Given Kael is Mark 2 with Heavy Weapons 15 and 2 skill points
       When the player performs CMD-02 "Spend skill point" with Heavy Weapons
       Then EVT-02 "Skill raised" is recorded with Heavy Weapons 17
       And Kael has 1 skill point

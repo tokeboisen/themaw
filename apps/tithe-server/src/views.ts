@@ -83,7 +83,10 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
   const ents: SnapshotEntity[] = [];
   for (const m of dep.monsters) {
     if (m.dead || !seen(m)) continue;
-    const e: SnapshotEntity = { id: m.id, kind: 'monster', type: m.type, name: m.name, x: r2(m.x), y: r2(m.y), r: m.r, hp: Math.ceil(m.hp), maxHp: m.maxHp, flash: m.flash > 0 };
+    const e: SnapshotEntity = {
+      id: m.id, kind: 'monster', type: m.type, name: m.name, x: r2(m.x), y: r2(m.y), r: m.r, hp: Math.ceil(m.hp), maxHp: m.maxHp, flash: m.flash > 0,
+      level: m.level, ...(m.def.color ? { color: m.def.color } : {}), ...(m.veteran ? { veteran: true } : {}),
+    };
     if (m.def.warden) e.warden = true;
     if (m.windup > 0) e.windup = m.def.ranged && m.aim ? { aimX: r2(m.aim.x), aimY: r2(m.aim.y) } : { reach: (m.def.reach ?? 1) + (m.def.warden ? 0 : 0.2) };
     ents.push(e);

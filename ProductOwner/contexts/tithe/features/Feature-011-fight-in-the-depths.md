@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-011-fight-in-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 7
+version: 8
 status: draft
 created: 2026-11-19
 ```
@@ -152,7 +152,8 @@ Scenario: No focus, no bolt
 - A rival that is struck becomes hostile to the player. A defeated rival is dragged back by the Brand and drops gold and perhaps an item. (EVT-03)
 - EVT-02 "Monster slain" is recorded for every monster, The Foreman included. Only the player who slays The Foreman opens the gate (Claim the Tithe); if a rival slays him, the rival claims the Tithe (Rivals race). (EVT-02, EVT-04)
 - A monster slain by the player drops gold (40 %), an item (12 %, Tunnel Brute 30 %) and a potion or a ration (15 %); The Foreman drops gold, a rare and two magic items. Monsters called by the Mirrormaster or The Foreman drop nothing. A cache drops gold, one or two items and perhaps a supply when the candidate walks into it. (EVT-05)
-- The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The Broken City has the same monsters, and its Warden is The Smelter in the foundry, who fights like The Foreman. A monster's level is the depth + half of the player's Marks above 1. (AGG-01)
+- The monsters of The Old Mines: the Gnawer, the Tunnel Goblin, the Kobold Sapper, the Crystal Spitter, the Cave Spider, the Skeleton Miner, the Ghoul, the Rust Ooze, the Tunnel Brute and the Cave Troll, and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The monsters of The Broken City: the Sewer Rat, the Feral Hound, the Cutthroat, the Bandit Archer, the Hollow, the Cultist of the Maw, the Gargoyle, the Harpy, the Scrap Golem and the Wraith, and The Smelter in the foundry, who fights like The Foreman. Each fights in its own way – a swarm, a skirmisher, a ranged fighter, a tank or a caster – and some only live in the deeper depths or the inner districts. (AGG-01)
+- A monster's level is the area's level – the Tithe's level + 1 for every depth or district after the first – minus 1 to plus 2; about 8 % are Veterans, 3 levels above the area, with better loot. Life grows by 40 % and damage by 30 % per level. (AGG-01)
 
 ## 8. Integrations
 
@@ -166,16 +167,17 @@ Scenario: No focus, no bolt
 |---|---|---|---|
 | VIEW-01 | Depth | (starting point) | CMD-01, CMD-02 |
 
-**VIEW-01:** A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to the player in red). Monsters about to attack show their reach in red, and the Foreman's slam a red circle.
+**VIEW-01:** A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to the player in red). Monsters about to attack show their reach in red, and the Foreman's slam a red circle. Under every monster a small text shows its name and level, e.g. "Goblin · L4", grey when it is easy for the player's Mark, white when even, orange when hard and red when deadly; Veterans are named in gold.
 
 ## 10. Validation and open questions
 
-### Resolved in version 7
+### Resolved in version 8
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Players fighting players:** May players strike players outside their party? | Decided 2026-11-19: yes, players in other parties and players without a party; never members of their own party. |
 | 2 | **What a defeated player drops:** Proposal: a player defeated by another player spills 10–20 % of the gold in the wallet on the floor, and the one who struck the player down gets a Player kill, shown in the player statistics. Is it 10–20 % or a fixed 10–20 gold? | Decided 2026-11-19: the defeated player spills 10–20 % of the gold in the wallet on the floor, and the one who struck the player down gets a Player kill, shown in the player statistics. |
+| 3 | **Monster levels:** Which Mark should the monsters match? | Decided 2026-11-20: the Mark of the player who launched the Tithe; each monster's level varies around the area's level. |
 
 ### Still open
 

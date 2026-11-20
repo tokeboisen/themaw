@@ -244,7 +244,13 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         else circle(x, y, (e.windup.reach ?? 1) * tile, 'rgba(255,60,40,0.15)', null);
       }
       if (e.kind === 'monster') {
-        circle(x, y, r, e.flash ? '#fff' : MONSTER_COLORS[e.type ?? ''] ?? '#888', '#000', 1.5);
+        circle(x, y, r, e.flash ? '#fff' : e.color ?? MONSTER_COLORS[e.type ?? ''] ?? '#888', e.veteran ? '#ffd84a' : '#000', e.veteran ? 2.5 : 1.5);
+        // Feature-011 VIEW-01: navn og level under monstret, i en farve efter hvor svært det er for spillerens Mark.
+        if (!e.warden && e.level !== undefined) {
+          const diff = e.level - p.mark;
+          const color = e.veteran ? '#ffd84a' : diff <= -3 ? '#8a8178' : diff <= 2 ? '#e8e2d6' : diff <= 4 ? '#ffa64d' : '#ff5a4a';
+          label(`${e.name} · L${e.level}`, x, y + r + 12, color, 10);
+        }
         if (e.type === 'spitter') circle(x, y, r * 0.4, '#d9b8ff', null);
         if (e.warden) {
           ctx.fillStyle = '#ffd84a';
@@ -256,7 +262,7 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
           ctx.lineTo(x + r * 0.6, y - r * 0.7);
           ctx.closePath();
           ctx.fill();
-          label(e.name, x, y - r - 14, '#ffd84a', 13);
+          label(`${e.name} · L${e.level ?? ''}`, x, y - r - 14, '#ffd84a', 13);
           bar(x, y - r - 10, tile * 2, e.hp / e.maxHp, '#c8423a');
         } else if (e.hp < e.maxHp) bar(x, y - r - 7, tile * 0.7, e.hp / e.maxHp, '#c8423a');
       } else if (e.kind === 'rival') {
@@ -305,6 +311,7 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         ctx.lineTo(x, y);
         ctx.stroke();
       } else if (pj.kind === 'bolt') circle(x, y, tile * 0.13, '#8fc1ff', '#fff', 1);
+      else if (pj.kind === 'fire') circle(x, y, tile * 0.15, '#ff8a3a', '#ffd84a', 1.5);
       else circle(x, y, tile * 0.11, '#b67be8', null);
     }
 

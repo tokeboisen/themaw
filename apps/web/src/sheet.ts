@@ -2,7 +2,7 @@
 
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, ECHO_ARTS, EQUIP_SLOTS, EQUIP_SLOT_NAMES, HOTBAR_KEYS, SKILLS, SKILL_NAMES,
-  derivedStats, echoToNextMark, effectiveSkill, emptyEquipment, skillXpToNext, type Character, type Item, type SkillId,
+  derivedStats, echoToNextMark, effectiveSkill, emptyEquipment, skillCap, skillXpToNext, type Character, type Item, type SkillId,
   type WeaponStats,
 } from '@maw/rules';
 import type { CharacterView, InventoryView } from './api.ts';
@@ -92,19 +92,21 @@ export function sheetHtml(c: CharacterView, backgroundName: string, inv: Invento
   const need = echoToNextMark(c.mark, B);
   const attributeRows = ATTRIBUTES.map((a) => `<tr><td>${ATTRIBUTE_NAMES[a]}</td><td class="num">${c.attributes[a]}</td>
     <td class="num">${showPlus(c.attributePoints) ? `<button class="plus" data-act="spend-attribute" data-id="${a}" aria-label="Raise ${ATTRIBUTE_NAMES[a]}">+</button>` : ''}</td></tr>`).join('');
+  // Feature-002: Mark'en sætter loftet over alle skills; ved loftet kan hverken erfaring eller point løfte dem.
+  const cap = skillCap(ch, B);
   const skillRows = SKILLS.map((s) => {
     const sk = ch.skills[s];
-    const progress = sk.level >= B.skills.max ? 1 : sk.xp / skillXpToNext(sk.level, B);
+    const progress = sk.level >= cap ? 1 : sk.xp / skillXpToNext(sk.level, B);
     return `<tr><td>${SKILL_NAMES[s]}<div class="progress"><i style="width:${pct(progress)}"></i></div>
       <div class="hint">Bonus from ${weights(s)}</div></td>
-      <td class="num">${sk.level}<div class="hint">eff. ${one(effectiveSkill(ch, s, B))}</div></td>
-      <td class="num">${showPlus(c.skillPoints) ? `<button class="plus" data-act="spend-skill" data-id="${s}" aria-label="Raise ${SKILL_NAMES[s]}">+</button>` : ''}</td></tr>`;
+      <td class="num">${sk.level}<span class="hint"> / ${cap}</span><div class="hint">eff. ${one(effectiveSkill(ch, s, B))}${sk.level >= cap ? ' · Mark cap' : ''}</div></td>
+      <td class="num">${showPlus(c.skillPoints) && sk.level < cap ? `<button class="plus" data-act="spend-skill" data-id="${s}" aria-label="Raise ${SKILL_NAMES[s]}">+</button>` : ''}</td></tr>`;
   }).join('');
   const points = [
     c.attributePoints ? `${c.attributePoints} attribute point${c.attributePoints > 1 ? 's' : ''}` : '',
     c.skillPoints ? `${c.skillPoints} skill point${c.skillPoints > 1 ? 's' : ''} (+${B.skills.levelsPerPoint} levels each)` : '',
   ].filter(Boolean);
-  const damage = (w: WeaponStats) => `${one(w.min * w.damageMult)}–${one(w.max * w.damageMult)} · ${SKILL_NAMES[w.skill]} · ${w.cooldown.toFixed(2)}s`;
+  const damage = (w: WeaponStats) => `${one(w.min * w.damageMult)}–${one(w.max * w.damageMult)} · ${SKILL_NAMES[w.skill]} · ${w.cooldown.toFixed(2)}s · cap ${w.cap}`;
   return `<div class="overlay see-through"><div class="sheet">
     <header class="top"><div><h2>${esc(c.name)} · Mark ${c.mark}</h2><p class="muted">${esc(backgroundName)}</p></div>
       <button class="ghost" data-act="close">Close</button></header>
@@ -134,7 +136,7 @@ export function sheetHtml(c: CharacterView, backgroundName: string, inv: Invento
       </div>
       <div class="box">
         <h3>Skills</h3>
-        <p class="hint">Skills grow when you use them. Effective level = level + attribute bonus + items.</p>
+        <p class="hint">Skills grow when you use them, up to ${cap} at Mark ${c.mark}. Effective level = level + attribute bonus + items, at most the weapon's skill cap.</p>
         <table class="stats">${skillRows}</table>
       </div>
     </div>

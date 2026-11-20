@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BALANCE as B, chosenKey, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, sealInfo, setInput,
+  BALANCE as B, chosenKey, createCharacter, createRng, createTithe, generateItem, leaveTithe, playersIn, queueAct, refreshStats, sealInfo, setInput,
   sheetAction, stepTithe, testing, type Character, type Hotbar, type Monster, type Player, type Rival, type Tithe,
 } from '../src/index.ts';
 
@@ -309,7 +309,7 @@ test('F002 scenario "A blow raises the weapon\'s skill"', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
-  p.ch.skills.heavy = { level: 10, xp: 11.5 };
+  p.ch.skills.heavy = { level: 10, xp: 79.5 };
   p.ch.attributes.intelligence = 10; // ingen bonus for Intelligence
   const m = monsterNextTo(t, p);
   testing.damage(t, depth(t, p), p, m, 1, false, { skill: 'heavy', train: true });
@@ -332,7 +332,7 @@ test('F003 scenario "A Mark burns in"', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
-  p.ch.echo = 15;
+  p.ch.echo = 295;
   const m = monsterNextTo(t, p, 'gnawer', 2);
   testing.kill(t, depth(t, p), p, m);
   assert.equal(p.ch.level, 2);
@@ -431,4 +431,43 @@ test('F014: an NPC rival never strikes another NPC rival', () => {
   const hp = b.hp;
   testing.damage(t, t.depths[1]!, a, b, 20, false);
   assert.equal(b.hp, hp);
+});
+
+test('F002 scenario "The Mark caps the skill": nothing is learned above 10 + 5 × Mark', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  p.ch.skills.heavy = { level: 15, xp: 0 };
+  const m = monsterNextTo(t, p, 'gnawer', 2);
+  testing.damage(t, depth(t, p), p, m, 1, false, { skill: 'heavy', train: true });
+  assert.equal(p.ch.skills.heavy.level, 15);
+  assert.ok(p.ch.skills.heavy.xp === 0); // nothing is recorded
+});
+
+test('F007: a weapon\'s skill cap limits its damage bonus and how far its blows train', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  p.ch.level = 10; // Mark-loftet er 60
+  p.ch.skills.heavy = { level: 40, xp: 0 };
+  p.ch.equipment.melee!.rarity = 'common';
+  refreshStats(t, p);
+  assert.equal(p.stats.weapon.cap, 20); // Pickaxe
+  assert.equal(p.stats.weapon.effective, 20);
+  const m = monsterNextTo(t, p, 'gnawer', 10);
+  testing.damage(t, depth(t, p), p, m, 1, false, { skill: 'heavy', train: true });
+  assert.equal(p.ch.skills.heavy.xp, 0); // 40 er over Pickaxe'ns cap på 20
+});
+
+test('F010 and F011: the Tithe\'s level is the Mark of the player who launched it; monsters vary around it', () => {
+  const t = createTithe({
+    id: 'T-level', name: 'Ashfall', seed: 9, level: 5,
+    players: [{ userId: 'u1', userName: 'p1', characterId: 'c1', character: kael(1), hotbar: {} }],
+  }, B);
+  assert.equal(t.mark, 5);
+  const levels = t.depths[1]!.monsters.filter((m) => !m.veteran).map((m) => m.level);
+  assert.ok(levels.length >= 20, `only ${levels.length} monsters`);
+  assert.ok(levels.every((l) => l >= 4 && l <= 7), levels.join(','));
+  assert.ok(new Set(levels).size > 1);
+  assert.ok(t.depths[1]!.monsters.every((m) => m.def.home === 'mines'));
 });

@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 6
 status: draft
 created: '2026-11-19'
 use_case:
@@ -130,7 +130,8 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      An NPC rival's level follows the players' average Mark. Every player enters with the chosen character,
+      The Tithe's level is the Mark of the player who launched it (Lobby, Launch the Tithe); NPC rivals and
+      monsters follow it (Fight in the depths). Every player enters with the chosen character,
       full life, stamina and focus and a full stomach.
   - applies_to:
       - AGG-01

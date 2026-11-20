@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-004-spend-points.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -113,7 +113,7 @@ As a player I want to spend a skill point, so that a skill I rely on gets better
 
 ```gherkin
 Scenario: A skill point gives two levels
-  Given Kael has Heavy Weapons 15 and 2 skill points
+  Given Kael is Mark 2 with Heavy Weapons 15 and 2 skill points
   When the player performs CMD-02 "Spend skill point" with Heavy Weapons
   Then EVT-02 "Skill raised" is recorded with Heavy Weapons 17
   And Kael has 1 skill point
@@ -127,7 +127,7 @@ Scenario: A skill point gives two levels
 
 ### Rules
 
-- One attribute point raises an attribute by 1. One skill point raises a skill by 2 levels, at most to 100. Points can only be spent while there are some left, and they never expire. (CMD-01, CMD-02)
+- One attribute point raises an attribute by 1. One skill point raises a skill by 2 levels, at most to the Mark's cap of 10 + 5 × Mark (Learn by use). Points can only be spent while there are some left, and they never expire. (CMD-01, CMD-02)
 - Skills get a bonus from attributes: the effective skill is the level + the bonus from items + 1.5 × weight × (attribute − 10) for each of the skill's attributes. Weights: Blades Dexterity 70 % and Strength 30 %; Heavy Weapons Strength 80 % and Constitution 20 %; Bows Dexterity 70 % and Strength 30 %; Echo Arts Intelligence 80 % and Stamina 20 %. (AGG-01)
 - Attributes also give: Strength one more place in the pack for every 2 points above 10; Dexterity +0.5 % critical chance per point; Stamina +5 stamina, faster stamina recovery and 2 % slower hunger per point; Constitution +6 life per point; Intelligence +4 focus for Echo Bolts and faster learning (Learn by use). (AGG-01)
 - The sheet never pauses a Tithe: it is a see-through overlay, and the Tithe goes on behind it. (VIEW-01)
@@ -148,7 +148,7 @@ Scenario: A skill point gives two levels
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

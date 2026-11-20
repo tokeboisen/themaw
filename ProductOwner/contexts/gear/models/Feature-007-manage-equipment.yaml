@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -131,7 +131,8 @@ rules:
       - AGG-01
     text: >-
       Weapons have damage, reach or range and attack time, and train their skill: Blades (Dagger, Rusty Sword,
-      Short Sword), Heavy Weapons (Pickaxe, War Axe, Maul) and Bows (Short Bow, Hunting Bow). Armour gives
+      Short Sword, Fine Dagger, Longsword), Heavy Weapons (Pickaxe, War Axe, Maul, Greataxe) and Bows (Short Bow,
+      Hunting Bow, Longbow). Armour gives
       armour, which reduces damage by armour / (armour + 50). A ring only has affixes.
   - applies_to:
       - AGG-01
@@ -139,6 +140,13 @@ rules:
       Rarity decides the affixes: Common none, Magic 1–2, Rare 3. Affixes are + an attribute, + % damage, +
       life, + armour, + the weapon's skill and + % Echo gained. A higher item level gives more damage, armour
       and bigger affixes. Rings are never common.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Every weapon has a skill cap: the wielder's skill counts at most up to it for damage and attack time, and its
+      blows train the skill no higher (Characters, Learn by use). Dagger, Rusty Sword, Pickaxe and Short Bow 20;
+      Short Sword 35; War Axe and Hunting Bow 40; Fine Dagger 50; Maul and Longsword 60; Longbow 70; Greataxe 80.
+      Magic weapons add 10 and rare ones 20. The cap is shown on the weapon.
   - applies_to:
       - AGG-01
     text: >-
@@ -186,3 +194,10 @@ open_questions:
       - AGG-01
     resolution: >-
       Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time.
+  - topic: Weapon caps
+    question: Should weapons limit how much of a skill counts?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: yes: every weapon has a skill cap that limits both its damage bonus and how far its blows train the skill.
