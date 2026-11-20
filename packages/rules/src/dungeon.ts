@@ -207,10 +207,12 @@ export function lineOfSight(map: DepthMap, ax: number, ay: number, bx: number, b
   return true;
 }
 
-export function collides(map: DepthMap, x: number, y: number, r: number): boolean {
+export function collides(map: DepthMap, x: number, y: number, r: number, flying = false): boolean {
   for (let ty = Math.floor(y - r); ty <= Math.floor(y + r); ty++) {
     for (let tx = Math.floor(x - r); tx <= Math.floor(x + r); tx++) {
       if (!isSolid(map, tx, ty)) continue;
+      // Feature-013: Harpies flyver over murbrokker.
+      if (flying && tileAt(map, tx, ty) === RUBBLE) continue;
       const nx = Math.max(tx, Math.min(x, tx + 1));
       const ny = Math.max(ty, Math.min(y, ty + 1));
       if ((x - nx) ** 2 + (y - ny) ** 2 < r * r) return true;
@@ -220,15 +222,15 @@ export function collides(map: DepthMap, x: number, y: number, r: number): boolea
 }
 
 /** Flytter en cirkel og glider langs vægge. Returnerer den strækning, den faktisk flyttede sig. */
-export function moveWithCollision(map: DepthMap, e: Circle, dx: number, dy: number): number {
+export function moveWithCollision(map: DepthMap, e: Circle, dx: number, dy: number, flying = false): number {
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 0.2));
   const sx = dx / steps;
   const sy = dy / steps;
   const ox = e.x;
   const oy = e.y;
   for (let i = 0; i < steps; i++) {
-    if (!collides(map, e.x + sx, e.y, e.r)) e.x += sx;
-    if (!collides(map, e.x, e.y + sy, e.r)) e.y += sy;
+    if (!collides(map, e.x + sx, e.y, e.r, flying)) e.x += sx;
+    if (!collides(map, e.x, e.y + sy, e.r, flying)) e.y += sy;
   }
   return Math.hypot(e.x - ox, e.y - oy);
 }

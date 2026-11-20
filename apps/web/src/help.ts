@@ -23,7 +23,8 @@ function bestiaryHtml(): string {
       .filter((m) => m.home === reach.id)
       .map((m) => {
         const where = m.warden ? 'Warden' : m.areas ? `${reach.id === 'city' ? 'Wards' : 'Depths'} ${m.areas[0]}${m.areas[1] !== m.areas[0] ? `–${m.areas[1]}` : ''}` : '';
-        return `<tr><td><span class="dot" style="background:${m.color ?? '#888'}"></span>${esc(m.name)}</td><td class="muted">${where}</td><td>${esc(m.role ?? '')}</td></tr>`;
+        return `<tr><td><span class="dot" style="background:${m.color ?? '#888'}"></span>${esc(m.name)}</td><td class="muted">${where}</td>
+          <td>${esc(m.role ?? '')}${m.special ? `<div class="hint warn">${esc(m.special)}</div>` : ''}</td></tr>`;
       }).join('');
     return `<h3>${esc(reach.name)}</h3><table class="stats bestiary">${rows}</table>`;
   }).join('') + `<p class="hint">A monster's level is the area's level – the Tithe's level, set by the Mark of the player who launched it,

@@ -81,6 +81,8 @@ export interface YouView {
   chosenKey: HotbarKey | null;
   hotbar: Hotbar;
   starving: boolean;
+  /** Feature-013: "Slowed", "Stunned" og "Corroded", når de gælder. */
+  status: string[];
 }
 
 export interface CandidateView {

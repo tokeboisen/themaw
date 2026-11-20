@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-013-survive-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -135,6 +135,8 @@ No user stories.
 
 - Monsters are many – 2–5 in every room of the mines, groups in the corridors, and bands in the streets and houses of The Broken City. They sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls. Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot be hit, for 20 stamina. (SVC-01)
 - Damage to a candidate is reduced by armour / (armour + 50). (CMD-01)
+- Some monsters harm more than life: the Cave Spider's web and the Harpy's shriek make a player 40 % slower for 2 and 1.5 seconds, the Ghoul's claws stun for 0.6 seconds, the Rust Ooze eats 3 armour for 10 seconds, the Wraith drains 20 stamina and 8 focus, and the Kobold Sapper's fire pots burst over 1.3 tiles. The HUD shows when the player is slowed, stunned or corroded. (CMD-01, SVC-01)
+- Some monsters fight in a way of their own: the Tunnel Goblin flees below 25 % life; the Skeleton Miner takes half damage from arrows; the Cave Troll heals 2 % of its life per second unless an Echo Bolt hit it within 5 seconds; Feral Hounds hit 20 % harder for every other hound within 3 tiles, at most 60 %; the Cutthroat sidesteps a blow 30 % of the time, at most every 3 seconds; a Hollow rises once with 40 % of its life; the Cultist of the Maw heals the monsters within 5 tiles by 15 % every 6 seconds; a Gargoyle stands still until a candidate is within 3 tiles; Harpies fly over rubble; and the Scrap Golem takes double damage from Echo Bolt. (SVC-01)
 - Hunger falls by 0.25 per second, 2 % slower per Stamina above 10. At 0 the candidate starves: stamina recovers at 40 % and life does not recover. Otherwise life recovers 0.3 per second. (SVC-02, CMD-03)
 - A sealed depth – or a sealed district of The Broken City, with the floors of its houses – wounds every candidate in it by 3 % of max life per second until they leave it. (SVC-02)
 - A potion heals 40 % of max life, and a ration restores 45 hunger (Gear, Use consumables). (CMD-02, CMD-03)
@@ -174,11 +176,11 @@ Scenario: A sealed depth collapses
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **Monster traits:** Should the monsters have traits of their own beyond how they fight? | Decided 2026-11-20: yes – slowing, stunning, corroding, draining, area attacks, fleeing, healing, regeneration, resistances and weaknesses, as the rules list them. |
 
 ### Still open
 

@@ -3,7 +3,7 @@
 // Ingen DOM og intet netværk her: tithe-server kalder stepTithe 30 gange i sekundet og sender hver spiller det, den kan se.
 // Partier dannes i de første 20 sekunder (Feature-034, -035), og spillere slår spillere uden for deres parti (Feature-011).
 
-import type { Balance, MonsterDef, ReachId, RivalDef } from './balance.ts';
+import type { Balance, MonsterDef, MonsterTrait, ReachId, RivalDef } from './balance.ts';
 import { GROUND_AREA, generateCity, type StairLink } from './city.ts';
 import {
   addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, spendAttributePoint, spendSkillPoint, unequipItem,
@@ -88,6 +88,13 @@ export interface Monster extends Body {
   summoned: boolean;
   /** Feature-011: en Veteran er 3 levels over området, med bedre loot. */
   veteran: boolean;
+  /** Feature-013: Cave Troll heler ikke før dette tidspunkt (efter en Echo Bolt). */
+  regenStopAt: number;
+  /** Feature-013: Cultist of the Maw heler, når tælleren når 0; Cutthroat springer til side, når den er 0. */
+  healT: number;
+  dodgeCd: number;
+  /** Feature-013: en Hollow, der allerede har rejst sig én gang. */
+  risen: boolean;
 }
 
 interface RivalWeapon {
@@ -177,6 +184,10 @@ export interface Player extends Body {
   dodgeDir: Vec;
   potionCd: number;
   drawT: number;
+  /** Feature-013: langsom, lammet og ætset rustning (sekunder tilbage). */
+  slowT: number;
+  stunT: number;
+  corrodeT: number;
   swing: number;
   swingDir: Vec;
   swingArc: number;
@@ -220,7 +231,9 @@ export interface Projectile extends Vec {
   amount: number;
   crit: boolean;
   skill?: SkillId;
-  kind: 'arrow' | 'bolt' | 'spit' | 'fire';
+  kind: 'arrow' | 'bolt' | 'spit' | 'fire' | 'web';
+  /** Feature-013: Kobold Sapperens ildkrukker springer over et område. */
+  area?: number;
   faction: 'player' | 'rival' | 'monster';
   owner: Body;
   done: boolean;
@@ -276,7 +289,7 @@ export interface Message {
 }
 
 export interface Fx {
-  type: 'float' | 'death' | 'shake' | 'hurt';
+  type: 'float' | 'death' | 'shake' | 'hurt' | 'blast';
   depth: number;
   x?: number;
   y?: number;
@@ -394,7 +407,7 @@ function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
     ch: s.character, hotbar: s.hotbar, chosenArt: null, chosenWeapon, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
-    attackCd: 0, boltCd: 0, dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, drawT: 0,
+    attackCd: 0, boltCd: 0, dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, drawT: 0, slowT: 0, stunT: 0, corrodeT: 0,
     swing: 0, swingDir: { x: 1, y: 0 }, swingArc: 90, swingReach: 1,
     input: { moveX: 0, moveY: 0, attack: false }, acts: [], end: null,
     record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
@@ -652,6 +665,7 @@ function makeMonster(t: Tithe, type: string, x: number, y: number, level: number
     kind: 'monster', id: nid(t, 'm'), type, def, name: def.name, level, x, y, r: def.radius, hp, maxHp: hp,
     min: def.min * dmg, max: def.max * dmg, armour: def.armour ?? 0, attackCd: t.rng.range(0, def.cooldown), windup: 0, aim: null,
     flash: 0, awake: false, summonT: def.summonEvery ?? 0, facing: { x: 1, y: 0 }, dead: false, summoned: false, veteran: false,
+    regenStopAt: 0, healT: t.B.monsters.traits.healEvery, dodgeCd: 0, risen: false,
   };
 }
 
@@ -1006,6 +1020,14 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   p.drawT = Math.max(0, p.drawT - dt);
   p.flash = Math.max(0, p.flash - dt);
   p.swing = Math.max(0, p.swing - dt);
+  p.slowT = Math.max(0, p.slowT - dt);
+  p.corrodeT = Math.max(0, p.corrodeT - dt);
+  // Feature-013: lammet kan spilleren hverken gå, slå eller bruge noget.
+  if (p.stunT > 0) {
+    p.stunT = Math.max(0, p.stunT - dt);
+    p.acts = [];
+    return;
+  }
   const dep = t.depths[p.depth]!;
 
   // Feature-013 SVC-02: sult, udholdenhed, fokus og liv.
@@ -1055,7 +1077,8 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   } else if (len > 0.05) {
     const l = Math.hypot(mx, my);
     p.facing = { x: mx / l, y: my / l };
-    moveWithCollision(dep.map, p, mx * s.moveSpeed * dt, my * s.moveSpeed * dt);
+    const speed = s.moveSpeed * (p.slowT > 0 ? B.monsters.traits.slowFactor : 1);
+    moveWithCollision(dep.map, p, mx * speed * dt, my * speed * dt);
   }
   // Feature-028 EVT-01: Attack bruger det valgte – våbnet i hånden eller den valgte Echo Art.
   if (p.input.attack && p.dodgeT <= 0) {
@@ -1247,6 +1270,7 @@ function meleeHits(dep: Depth, attacker: Body, dir: Vec, reach: number, arcDeg: 
 }
 
 interface Shot {
+  area?: number;
   amount: number;
   crit: boolean;
   speed: number;
@@ -1260,7 +1284,7 @@ function shoot(t: Tithe, dep: Depth, owner: Body, dir: Vec, o: Shot): void {
   dep.projectiles.push({
     id: nid(t, 'p'), x: owner.x + dir.x * 0.4, y: owner.y + dir.y * 0.4, vx: dir.x, vy: dir.y, speed: o.speed, range: o.range,
     traveled: 0, amount: o.amount, crit: o.crit, kind: o.kind, faction: o.faction, owner, done: false,
-    ...(o.skill ? { skill: o.skill } : {}),
+    ...(o.skill ? { skill: o.skill } : {}), ...(o.area ? { area: o.area } : {}),
   });
 }
 
@@ -1270,14 +1294,36 @@ const isPlayer = (b: Body | null | undefined): b is Player => (b as Player | und
 const isRival = (b: Body | null | undefined): b is Rival => (b as Rival | undefined)?.kind === 'rival';
 const isMonster = (b: Body | null | undefined): b is Monster => (b as Monster | undefined)?.kind === 'monster';
 
-function damage(t: Tithe, dep: Depth, attacker: Body | null, target: Body, amount: number, crit: boolean, opts: { skill?: SkillId; train?: boolean } = {}): void {
+const has = (m: Monster, trait: MonsterTrait) => !!m.def.traits?.includes(trait);
+
+function damage(
+  t: Tithe, dep: Depth, attacker: Body | null, target: Body, amount: number, crit: boolean,
+  opts: { skill?: SkillId; train?: boolean; kind?: Projectile['kind'] } = {},
+): void {
   if (target.dead || t.closed) return;
   if (isPlayer(target) && target.end) return;
   if (attacker && !canStrike(t, attacker, target)) return;
   const B = t.B;
+  const T = B.monsters.traits;
+  if (isMonster(target)) {
+    // Feature-013: Cutthroat springer til side; Skeleton Miner tåler pile; Scrap Golem tåler ikke Echo.
+    if (has(target, 'dodges') && target.dodgeCd <= 0 && t.rng.chance(T.dodgeChance)) {
+      target.dodgeCd = T.dodgeCooldown;
+      float(t, dep.level, target.x, target.y - target.r - 0.2, 'Dodge', '#c9c3b8', 12);
+      return;
+    }
+    if (opts.kind === 'arrow' && has(target, 'arrowResistant')) amount *= T.arrowFactor;
+    if (opts.skill === 'echo') {
+      if (has(target, 'echoWeak')) amount *= T.echoWeakFactor;
+      if (has(target, 'regenerates')) target.regenStopAt = t.time + T.regenStopSeconds;
+    }
+  }
   if (isPlayer(target)) {
     if (target.dodgeT > 0) return; // Feature-013: et dodge kan ikke rammes
-    amount *= 1 - target.stats.damageReduction;
+    // Feature-013: Rust Ooze ætser rustningen.
+    const armour = Math.max(0, target.stats.armour - (target.corrodeT > 0 ? T.corrodeArmour : 0));
+    amount *= 1 - armour / (armour + B.combat.armourFactor);
+    if (isMonster(attacker)) afflict(t, attacker, target);
   } else {
     amount *= 1 - target.armour / (target.armour + B.combat.armourFactor);
   }
@@ -1294,6 +1340,18 @@ function damage(t: Tithe, dep: Depth, attacker: Body | null, target: Body, amoun
   if (isRival(target) && isPlayer(attacker)) target.hostileTo.add(attacker.id);
   if (isMonster(target)) target.awake = true;
   if (target.hp <= 0) kill(t, dep, attacker, target, opts);
+}
+
+/** Feature-013: hvad et monsters slag gør ud over skade: langsom, lammet, ætset eller drænet. */
+function afflict(t: Tithe, m: Monster, p: Player): void {
+  const T = t.B.monsters.traits;
+  if (has(m, 'slows')) p.slowT = Math.max(p.slowT, m.def.slow ?? 2);
+  if (has(m, 'stuns')) p.stunT = Math.max(p.stunT, T.stunSeconds);
+  if (has(m, 'corrodes')) p.corrodeT = T.corrodeSeconds;
+  if (has(m, 'drains')) {
+    p.stamina = Math.max(0, p.stamina - T.drainStamina);
+    p.focus = Math.max(0, p.focus - T.drainFocus);
+  }
 }
 
 /** Feature-002 CMD-01: erfaring × udfordring (fjendens niveau / Mark, mellem 0,25 og 1,5). */
@@ -1388,6 +1446,13 @@ function dropLoot(t: Tithe, dep: Depth, x: number, y: number, level: number, opt
 }
 
 function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { skill?: SkillId } = {}): void {
+  // Feature-013: en Hollow rejser sig én gang med 40 % af sit liv.
+  if (isMonster(target) && has(target, 'rises') && !target.risen) {
+    target.risen = true;
+    target.hp = Math.round(target.maxHp * t.B.monsters.traits.riseLife);
+    float(t, dep.level, target.x, target.y - target.r - 0.4, 'Rises!', '#c9c3b8', 13);
+    return;
+  }
   target.dead = true;
   target.hp = 0;
   const B = t.B;
@@ -1487,13 +1552,14 @@ function endPlayer(t: Tithe, p: Player, kind: OutcomeKind, name: string): void {
 // --- Monstre (Feature-013 SVC-01) ---------------------------------------------------------------
 
 function moveToward(dep: Depth, e: Body, x: number, y: number, maxStep: number): number {
+  const flying = isMonster(e) && has(e, 'flies');
   const dx = x - e.x;
   const dy = y - e.y;
   const d = Math.hypot(dx, dy);
   if (d < 1e-4) return 0;
   const step = Math.min(d, maxStep);
   e.facing = { x: dx / d, y: dy / d };
-  return moveWithCollision(dep.map, e, (dx / d) * step, (dy / d) * step);
+  return moveWithCollision(dep.map, e, (dx / d) * step, (dy / d) * step, flying);
 }
 
 // Går et skridt ned ad et afstandskort (mod en spiller eller trappen).
@@ -1537,6 +1603,23 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     const def = m.def;
     m.attackCd = Math.max(0, m.attackCd - dt);
     m.flash = Math.max(0, m.flash - dt);
+    m.dodgeCd = Math.max(0, m.dodgeCd - dt);
+    const T = t.B.monsters.traits;
+    // Feature-013: Cave Troll heler, medmindre en Echo Bolt ramte den for nylig.
+    if (has(m, 'regenerates') && t.time >= m.regenStopAt && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * T.regenPerSecond * dt);
+    // Feature-013: Cultist of the Maw heler monstrene omkring sig.
+    if (has(m, 'heals') && m.awake) {
+      m.healT -= dt;
+      if (m.healT <= 0) {
+        m.healT = T.healEvery;
+        for (const o of dep.monsters) {
+          if (o.dead || o.hp >= o.maxHp || dist(o, m) > T.healRange) continue;
+          const heal = Math.round(Math.min(o.maxHp - o.hp, o.maxHp * T.healShare));
+          o.hp += heal;
+          float(t, dep.level, o.x, o.y - o.r - 0.2, `+${heal}`, '#6f6', 12);
+        }
+      }
+    }
     if (m.windup > 0) {
       m.windup -= dt;
       if (m.windup <= 0) resolveMonsterAttack(t, dep, m);
@@ -1545,7 +1628,8 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     // Nærmeste kandidat inden for aggro. Et sovende monster vågner kun ved synskontakt.
     let target: Body | null = null;
     let best = Infinity;
-    const aggro = def.aggro * (m.awake ? 1.6 : 1);
+    // Feature-013: en Gargoyle står stille, til en kandidat er tæt på.
+    const aggro = !m.awake && has(m, 'ambush') ? T.ambushRange : def.aggro * (m.awake ? 1.6 : 1);
     for (const c of victimsOf(t, dep)) {
       const d = dist(m, c);
       if (d > aggro || d >= best) continue;
@@ -1579,6 +1663,11 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     if (!target) continue;
     m.awake = true;
     const d = dist(m, target);
+    // Feature-013: Tunnel Goblin flygter under 25 % liv.
+    if (has(m, 'flees') && m.hp < m.maxHp * T.fleeBelow) {
+      moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), def.speed * dt);
+      continue;
+    }
     if (def.ranged) {
       const sees = lineOfSight(dep.map, m.x, m.y, target.x, target.y);
       if (d < 2.5) moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), def.speed * dt);
@@ -1612,7 +1701,11 @@ function resolveMonsterAttack(t: Tithe, dep: Depth, m: Monster): void {
   const victims = victimsOf(t, dep);
   if (def.ranged) {
     const dir = aimAt(m, m.aim, m.facing);
-    shoot(t, dep, m, dir, { amount: t.rng.range(m.min, m.max), crit: false, speed: def.projectileSpeed ?? 7, range: (def.range ?? 6) + 2, kind: def.projectile ?? 'spit', faction: 'monster' });
+    const area = has(m, 'area') ? t.B.monsters.traits.areaRadius : undefined;
+    shoot(t, dep, m, dir, {
+      amount: t.rng.range(m.min, m.max), crit: false, speed: def.projectileSpeed ?? 7, range: area ? Math.min(dist(m, m.aim ?? m), (def.range ?? 6) + 2) : (def.range ?? 6) + 2,
+      kind: def.projectile ?? 'spit', faction: 'monster', ...(area ? { area } : {}),
+    });
     return;
   }
   const reach = def.reach ?? 1;
@@ -1623,7 +1716,14 @@ function resolveMonsterAttack(t: Tithe, dep: Depth, m: Monster): void {
   }
   let best: Body | null = null;
   for (const v of victims) if (dist(m, v) <= reach + v.r + 0.35 && (!best || dist(m, v) < dist(m, best))) best = v;
-  if (best) damage(t, dep, m, best, t.rng.range(m.min, m.max), false);
+  // Feature-013: Feral Hounds slår hårdere for hver anden hund tæt på.
+  let mult = 1;
+  if (has(m, 'pack')) {
+    const T = t.B.monsters.traits;
+    const others = dep.monsters.filter((o) => o !== m && !o.dead && o.type === m.type && dist(o, m) <= T.packRange).length;
+    mult += Math.min(T.packMax, others * T.packPerHound);
+  }
+  if (best) damage(t, dep, m, best, t.rng.range(m.min, m.max) * mult, false);
 }
 
 // --- Rivaler (Feature-014 SVC-01) ---------------------------------------------------------------
@@ -1809,6 +1909,12 @@ function updateAbstractRivals(t: Tithe, dt: number): void {
 
 // --- Projektiler, skub og opsamling -------------------------------------------------------------
 
+/** Feature-013: en ildkrukke springer og rammer alle kandidater i området. */
+function burst(t: Tithe, dep: Depth, pr: Projectile): void {
+  t.fx.push({ type: 'blast', depth: dep.level, x: pr.x, y: pr.y, amount: pr.area });
+  for (const v of victimsOf(t, dep)) if (Math.hypot(v.x - pr.x, v.y - pr.y) <= (pr.area ?? 1) + v.r) damage(t, dep, pr.owner, v, pr.amount, false, { kind: pr.kind });
+}
+
 function updateProjectiles(t: Tithe, dep: Depth, dt: number): void {
   for (const pr of dep.projectiles) {
     if (pr.done) continue;
@@ -1818,6 +1924,7 @@ function updateProjectiles(t: Tithe, dep: Depth, dt: number): void {
     pr.traveled += step;
     if (pr.traveled > pr.range || isSolid(dep.map, Math.floor(pr.x), Math.floor(pr.y))) {
       pr.done = true;
+      if (pr.area) burst(t, dep, pr);
       continue;
     }
     let targets: Body[];
@@ -1828,7 +1935,8 @@ function updateProjectiles(t: Tithe, dep: Depth, dt: number): void {
       if (e === pr.owner || e.dead) continue;
       if (Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15) {
         pr.done = true;
-        damage(t, dep, pr.owner, e, pr.amount, pr.crit, pr.skill ? { skill: pr.skill, train: true } : {});
+        if (pr.area) burst(t, dep, pr);
+        else damage(t, dep, pr.owner, e, pr.amount, pr.crit, pr.skill ? { skill: pr.skill, train: true, kind: pr.kind } : { kind: pr.kind });
         break;
       }
     }
@@ -2032,4 +2140,4 @@ function updateInteract(t: Tithe, p: Player): void {
 // --- Til tests ------------------------------------------------------------------------------------
 
 /** Hjælpere, som testene bruger til at stille en situation op. Spillet bruger dem ikke. */
-export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth, claimTithe, climbStairs };
+export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth, claimTithe, climbStairs, resolveMonsterAttack };

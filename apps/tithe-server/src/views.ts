@@ -125,6 +125,7 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
       swingArc: p.swingArc, swingReach: p.swingReach, flash: p.flash > 0, drawing: p.drawT > 0, mark: p.ch.level, echo: Math.floor(p.ch.echo),
       echoNext: echoToNextMark(p.ch.level, t.B), points: p.ch.attributePoints + p.ch.skillPoints, potions: p.ch.potions,
       rations: p.ch.rations, chosenKey: chosenKey(p), hotbar: p.hotbar, starving: p.hunger <= 0,
+      status: [p.slowT > 0 ? 'Slowed' : '', p.stunT > 0 ? 'Stunned' : '', p.corrodeT > 0 ? 'Corroded' : ''].filter(Boolean),
     },
     ents,
     proj: dep.projectiles.filter((x) => seen(x, 1)).map((x) => ({ x: r2(x.x), y: r2(x.y), vx: r2(x.vx), vy: r2(x.vy), kind: x.kind })),

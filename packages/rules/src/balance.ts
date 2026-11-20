@@ -49,9 +49,19 @@ export interface MonsterDef {
   /** Til Bestiary i Help (Feature-030): hvordan det kæmper. */
   role?: string;
   color?: string;
-  /** Afstandsmonstrenes projektil: spyt, pil, Echo eller ild. */
-  projectile?: 'spit' | 'arrow' | 'bolt' | 'fire';
+  /** Afstandsmonstrenes projektil: spyt, pil, Echo, ild eller spind. */
+  projectile?: 'spit' | 'arrow' | 'bolt' | 'fire' | 'web';
+  /** Feature-013: monstrets særpræg, og hvad Bestiary siger om dem. */
+  traits?: MonsterTrait[];
+  special?: string;
+  /** Hvor længe et slag gør spilleren langsom (s). */
+  slow?: number;
 }
+
+/** Feature-013: særprægene. */
+export type MonsterTrait =
+  | 'flees' | 'area' | 'slows' | 'arrowResistant' | 'stuns' | 'corrodes' | 'regenerates' | 'pack' | 'dodges' | 'rises' | 'heals'
+  | 'ambush' | 'flies' | 'echoWeak' | 'drains';
 
 export interface RivalDef {
   id: string;
@@ -157,27 +167,27 @@ const AFFIXES: Record<string, AffixDef> = {
 const MONSTERS: Record<string, MonsterDef> = {
   // The Old Mines
   gnawer: { name: 'Gnawer', home: 'mines', areas: [1, 3], role: 'Fast and weak; hunts in packs.', color: '#8d7b68', hp: 10, min: 2, max: 4, speed: 3.3, radius: 0.3, reach: 0.9, cooldown: 0.9, windup: 0.25, aggro: 7, echo: 3, weight: 40 },
-  goblin: { name: 'Tunnel Goblin', home: 'mines', areas: [1, 2], role: 'A skirmisher with a rusty knife.', color: '#6d8a3e', hp: 14, min: 3, max: 5, speed: 3.0, radius: 0.33, reach: 1.0, cooldown: 1.0, windup: 0.3, aggro: 8, echo: 4, weight: 30 },
-  kobold: { name: 'Kobold Sapper', home: 'mines', areas: [1, 3], role: 'Throws fire pots from afar and keeps its distance.', color: '#b5653a', hp: 12, min: 4, max: 7, speed: 2.4, radius: 0.3, range: 5.5, cooldown: 2.0, windup: 0.45, aggro: 8, echo: 5, projectileSpeed: 6, ranged: true, projectile: 'fire', weight: 18 },
+  goblin: { name: 'Tunnel Goblin', home: 'mines', areas: [1, 2], role: 'A skirmisher with a rusty knife.', color: '#6d8a3e', hp: 14, min: 3, max: 5, speed: 3.0, radius: 0.33, reach: 1.0, cooldown: 1.0, windup: 0.3, aggro: 8, echo: 4, weight: 30, traits: ['flees'], special: 'Flees below 25 % life.' },
+  kobold: { name: 'Kobold Sapper', home: 'mines', areas: [1, 3], role: 'Throws fire pots from afar and keeps its distance.', color: '#b5653a', hp: 12, min: 4, max: 7, speed: 2.4, radius: 0.3, range: 5.5, cooldown: 2.0, windup: 0.45, aggro: 8, echo: 5, projectileSpeed: 6, ranged: true, projectile: 'fire', weight: 18, traits: ['area'], special: 'Fire pots burst over 1.3 tiles.' },
   spitter: { name: 'Crystal Spitter', home: 'mines', areas: [1, 3], role: 'Spits crystal shards from afar and keeps its distance.', color: '#9b6bd1', hp: 16, min: 3, max: 6, speed: 1.9, radius: 0.35, range: 6, cooldown: 1.7, windup: 0.35, aggro: 8, echo: 6, projectileSpeed: 7, ranged: true, projectile: 'spit', weight: 18 },
-  spider: { name: 'Cave Spider', home: 'mines', areas: [2, 3], role: 'Fast; waits in the dark and bites.', color: '#3e3a4d', hp: 18, min: 3, max: 6, speed: 3.6, radius: 0.35, reach: 1.0, cooldown: 1.1, windup: 0.25, aggro: 7, echo: 6, weight: 16 },
-  skeleton: { name: 'Skeleton Miner', home: 'mines', areas: [2, 3], role: 'A slow, armoured dead miner with a pick.', color: '#cfc6b0', hp: 26, min: 5, max: 8, speed: 2.2, radius: 0.4, reach: 1.1, cooldown: 1.3, windup: 0.4, aggro: 7, echo: 7, armour: 4, weight: 16 },
-  ghoul: { name: 'Ghoul', home: 'mines', areas: [2, 3], role: 'Quick claws and a hunger for the living.', color: '#7a8f6e', hp: 28, min: 5, max: 9, speed: 3.0, radius: 0.4, reach: 1.0, cooldown: 1.2, windup: 0.35, aggro: 8, echo: 8, weight: 14 },
-  ooze: { name: 'Rust Ooze', home: 'mines', areas: [2, 3], role: 'Slow and tough; it oozes after you.', color: '#a5552e', hp: 40, min: 4, max: 7, speed: 1.2, radius: 0.5, reach: 0.9, cooldown: 1.6, windup: 0.5, aggro: 5, echo: 8, armour: 2, weight: 10 },
+  spider: { name: 'Cave Spider', home: 'mines', areas: [2, 3], role: 'Shoots webs from the dark and keeps its distance.', color: '#3e3a4d', hp: 18, min: 2, max: 4, speed: 3.4, radius: 0.35, range: 5, cooldown: 1.8, windup: 0.3, aggro: 7, echo: 6, projectileSpeed: 8, ranged: true, projectile: 'web', weight: 16, traits: ['slows'], slow: 2, special: 'Its web slows you for 2 seconds.' },
+  skeleton: { name: 'Skeleton Miner', home: 'mines', areas: [2, 3], role: 'A slow, armoured dead miner with a pick.', color: '#cfc6b0', hp: 26, min: 5, max: 8, speed: 2.2, radius: 0.4, reach: 1.1, cooldown: 1.3, windup: 0.4, aggro: 7, echo: 7, armour: 4, weight: 16, traits: ['arrowResistant'], special: 'Arrows do half damage.' },
+  ghoul: { name: 'Ghoul', home: 'mines', areas: [2, 3], role: 'Quick claws and a hunger for the living.', color: '#7a8f6e', hp: 28, min: 5, max: 9, speed: 3.0, radius: 0.4, reach: 1.0, cooldown: 1.2, windup: 0.35, aggro: 8, echo: 8, weight: 14, traits: ['stuns'], special: 'Its claws stun for 0.6 seconds.' },
+  ooze: { name: 'Rust Ooze', home: 'mines', areas: [2, 3], role: 'Slow and tough; it oozes after you.', color: '#a5552e', hp: 40, min: 4, max: 7, speed: 1.2, radius: 0.5, reach: 0.9, cooldown: 1.6, windup: 0.5, aggro: 5, echo: 8, armour: 2, weight: 10, traits: ['corrodes'], special: 'Eats 3 of your armour for 10 seconds.' },
   brute: { name: 'Tunnel Brute', home: 'mines', areas: [2, 3], role: 'Slow, strong and armoured.', color: '#8a3a2f', hp: 38, min: 6, max: 10, speed: 1.7, radius: 0.5, reach: 1.1, cooldown: 1.5, windup: 0.5, aggro: 6, echo: 9, armour: 6, itemChance: 0.3, weight: 12 },
-  troll: { name: 'Cave Troll', home: 'mines', areas: [3, 3], role: 'Huge, hits hard and takes a lot to bring down.', color: '#4f6b4a', hp: 70, min: 9, max: 15, speed: 2.0, radius: 0.6, reach: 1.4, cooldown: 1.8, windup: 0.6, aggro: 7, echo: 14, armour: 4, itemChance: 0.4, weight: 6 },
+  troll: { name: 'Cave Troll', home: 'mines', areas: [3, 3], role: 'Huge, hits hard and takes a lot to bring down.', color: '#4f6b4a', hp: 70, min: 9, max: 15, speed: 2.0, radius: 0.6, reach: 1.4, cooldown: 1.8, windup: 0.6, aggro: 7, echo: 14, armour: 4, itemChance: 0.4, weight: 6, traits: ['regenerates'], special: 'Heals 2 % of its life per second – unless an Echo Bolt hit it in the last 5 seconds.' },
   foreman: { name: 'The Foreman', home: 'mines', role: 'The Warden of the mines: a slam around him; calls Gnawers.', color: '#b0602d', hp: 300, min: 10, max: 18, speed: 1.5, radius: 0.9, reach: 2.4, cooldown: 2.4, windup: 0.85, aggro: 9, echo: 120, armour: 10, summonEvery: 14, summonMax: 6, warden: true },
   // The Broken City
   sewer_rat: { name: 'Sewer Rat', home: 'city', areas: [1, 2], role: 'Fast and weak; swarms out of the drains.', color: '#7d6f62', hp: 9, min: 2, max: 4, speed: 3.4, radius: 0.3, reach: 0.9, cooldown: 0.9, windup: 0.25, aggro: 7, echo: 3, weight: 34 },
-  hound: { name: 'Feral Hound', home: 'city', areas: [1, 3], role: 'Very fast; runs in packs.', color: '#8b6a45', hp: 16, min: 3, max: 6, speed: 4.0, radius: 0.35, reach: 1.0, cooldown: 0.9, windup: 0.25, aggro: 9, echo: 5, weight: 24 },
-  cutthroat: { name: 'Cutthroat', home: 'city', areas: [1, 3], role: 'A bandit with two blades; quick and nasty.', color: '#6b5b7a', hp: 22, min: 5, max: 8, speed: 3.2, radius: 0.36, reach: 1.1, cooldown: 0.9, windup: 0.3, aggro: 8, echo: 6, weight: 22 },
+  hound: { name: 'Feral Hound', home: 'city', areas: [1, 3], role: 'Very fast; runs in packs.', color: '#8b6a45', hp: 16, min: 3, max: 6, speed: 4.0, radius: 0.35, reach: 1.0, cooldown: 0.9, windup: 0.25, aggro: 9, echo: 5, weight: 24, traits: ['pack'], special: 'Hits 20 % harder for every other hound within 3 tiles.' },
+  cutthroat: { name: 'Cutthroat', home: 'city', areas: [1, 3], role: 'A bandit with two blades; quick and nasty.', color: '#6b5b7a', hp: 22, min: 5, max: 8, speed: 3.2, radius: 0.36, reach: 1.1, cooldown: 0.9, windup: 0.3, aggro: 8, echo: 6, weight: 22, traits: ['dodges'], special: 'Sidesteps a blow now and then.' },
   bandit_archer: { name: 'Bandit Archer', home: 'city', areas: [1, 3], role: 'Shoots from rubble and windows; keeps away.', color: '#5f7a52', hp: 18, min: 4, max: 8, speed: 2.6, radius: 0.34, range: 7, cooldown: 1.6, windup: 0.4, aggro: 9, echo: 6, projectileSpeed: 11, ranged: true, projectile: 'arrow', weight: 18 },
-  hollow: { name: 'Hollow', home: 'city', areas: [1, 3], role: 'The slow dead of the city, in large groups.', color: '#8c8c7a', hp: 30, min: 4, max: 7, speed: 1.6, radius: 0.4, reach: 1.0, cooldown: 1.4, windup: 0.5, aggro: 6, echo: 6, weight: 22 },
-  cultist: { name: 'Cultist of the Maw', home: 'city', areas: [2, 3], role: 'Hurls Echo from afar.', color: '#7a2f5a', hp: 20, min: 5, max: 9, speed: 2.4, radius: 0.35, range: 7, cooldown: 2.0, windup: 0.5, aggro: 8, echo: 8, projectileSpeed: 9, ranged: true, projectile: 'bolt', weight: 14 },
-  gargoyle: { name: 'Gargoyle', home: 'city', areas: [2, 3], role: 'Stone skin; hard to hurt.', color: '#6e6e74', hp: 36, min: 6, max: 10, speed: 2.6, radius: 0.45, reach: 1.1, cooldown: 1.4, windup: 0.45, aggro: 5, echo: 9, armour: 8, weight: 12 },
-  harpy: { name: 'Harpy', home: 'city', areas: [2, 4], role: 'Fast and screeching; dives at you.', color: '#a58a5a', hp: 20, min: 4, max: 7, speed: 3.8, radius: 0.38, reach: 1.0, cooldown: 1.0, windup: 0.3, aggro: 9, echo: 7, weight: 12 },
-  golem: { name: 'Scrap Golem', home: 'city', areas: [3, 4], role: 'A slow, heavily armoured heap of iron from the factories.', color: '#7a6a5a', hp: 60, min: 8, max: 14, speed: 1.4, radius: 0.6, reach: 1.3, cooldown: 1.8, windup: 0.6, aggro: 6, echo: 12, armour: 10, itemChance: 0.35, weight: 10 },
-  wraith: { name: 'Wraith', home: 'city', areas: [3, 4], role: 'A fast shade of the foundry\'s dead.', color: '#5a6b8a', hp: 34, min: 6, max: 11, speed: 3.2, radius: 0.4, reach: 1.1, cooldown: 1.2, windup: 0.35, aggro: 9, echo: 11, weight: 10 },
+  hollow: { name: 'Hollow', home: 'city', areas: [1, 3], role: 'The slow dead of the city, in large groups.', color: '#8c8c7a', hp: 30, min: 4, max: 7, speed: 1.6, radius: 0.4, reach: 1.0, cooldown: 1.4, windup: 0.5, aggro: 6, echo: 6, weight: 22, traits: ['rises'], special: 'Rises once with 40 % of its life.' },
+  cultist: { name: 'Cultist of the Maw', home: 'city', areas: [2, 3], role: 'Hurls Echo from afar.', color: '#7a2f5a', hp: 20, min: 5, max: 9, speed: 2.4, radius: 0.35, range: 7, cooldown: 2.0, windup: 0.5, aggro: 8, echo: 8, projectileSpeed: 9, ranged: true, projectile: 'bolt', weight: 14, traits: ['heals'], special: 'Heals the monsters around it every 6 seconds. Kill it first.' },
+  gargoyle: { name: 'Gargoyle', home: 'city', areas: [2, 3], role: 'Stone skin; hard to hurt.', color: '#6e6e74', hp: 36, min: 6, max: 10, speed: 2.6, radius: 0.45, reach: 1.1, cooldown: 1.4, windup: 0.45, aggro: 5, echo: 9, armour: 8, weight: 12, traits: ['ambush'], special: 'Stands still as a statue until you are within 3 tiles.' },
+  harpy: { name: 'Harpy', home: 'city', areas: [2, 4], role: 'Fast and screeching; dives at you.', color: '#a58a5a', hp: 20, min: 4, max: 7, speed: 3.8, radius: 0.38, reach: 1.0, cooldown: 1.0, windup: 0.3, aggro: 9, echo: 7, weight: 12, traits: ['flies', 'slows'], slow: 1.5, special: 'Flies over rubble; its shriek slows you for 1.5 seconds.' },
+  golem: { name: 'Scrap Golem', home: 'city', areas: [3, 4], role: 'A slow, heavily armoured heap of iron from the factories.', color: '#7a6a5a', hp: 60, min: 8, max: 14, speed: 1.4, radius: 0.6, reach: 1.3, cooldown: 1.8, windup: 0.6, aggro: 6, echo: 12, armour: 10, itemChance: 0.35, weight: 10, traits: ['echoWeak'], special: 'Echo Bolt does double damage.' },
+  wraith: { name: 'Wraith', home: 'city', areas: [3, 4], role: 'A fast shade of the foundry\'s dead.', color: '#5a6b8a', hp: 34, min: 6, max: 11, speed: 3.2, radius: 0.4, reach: 1.1, cooldown: 1.2, windup: 0.35, aggro: 9, echo: 11, weight: 10, traits: ['drains'], special: 'Drains 20 stamina and 8 focus with every blow.' },
   smelter: { name: 'The Smelter', home: 'city', role: 'The Warden of the city: a slam around him; calls rats.', color: '#c4572a', hp: 300, min: 10, max: 18, speed: 1.5, radius: 0.9, reach: 2.4, cooldown: 2.4, windup: 0.85, aggro: 9, echo: 120, armour: 10, summonEvery: 14, summonMax: 6, warden: true },
 };
 
@@ -283,7 +293,32 @@ export const BALANCE = {
     levelSpread: [-1, 2] as [number, number],
     veteranChance: 0.08,
     veteranLevels: 3,
-    /** Feature-013: 2–5 monstre pr. rum i minerne og grupper i gangene. */
+    /** Feature-013: særprægenes tal. */
+  traits: {
+    fleeBelow: 0.25,
+    areaRadius: 1.3,
+    slowFactor: 0.6,
+    stunSeconds: 0.6,
+    corrodeArmour: 3,
+    corrodeSeconds: 10,
+    regenPerSecond: 0.02,
+    regenStopSeconds: 5,
+    packPerHound: 0.2,
+    packMax: 0.6,
+    packRange: 3,
+    dodgeChance: 0.3,
+    dodgeCooldown: 3,
+    riseLife: 0.4,
+    healEvery: 6,
+    healShare: 0.15,
+    healRange: 5,
+    ambushRange: 3,
+    echoWeakFactor: 2,
+    arrowFactor: 0.5,
+    drainStamina: 20,
+    drainFocus: 8,
+  },
+  /** Feature-013: 2–5 monstre pr. rum i minerne og grupper i gangene. */
     perRoom: [2, 5] as [number, number],
     extraPerDepth: 1,
     corridorGroups: 4,

@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 6
 status: draft
 created: '2026-11-19'
 use_case:
@@ -28,7 +28,7 @@ elements:
       (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players
       (O), help (H) and close (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear
       and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others. A Bestiary lists the
-      monsters of each Reach with their levels, how they fight and what they are weak against.
+      monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
 flows: []
 rules:
   - applies_to:

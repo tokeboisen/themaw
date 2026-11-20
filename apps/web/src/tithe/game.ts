@@ -39,6 +39,7 @@ export function hudHtml(): string {
       <div class="hud-left">
         ${bar('hp', 'Life')}${bar('stamina', 'Stamina')}${bar('focus', 'Focus')}${bar('hunger', 'Hunger')}${bar('echo', 'Echo to the next Mark')}
         <button class="hud-points hidden" data-act="sheet">Points to spend</button>
+        <div class="hud-effects"></div>
       </div>
       <div class="hud-center"><div class="hud-depth"></div><div class="hud-seal"></div><div class="hud-renown"></div></div>
       <div class="hud-right">
@@ -196,6 +197,10 @@ export class Game {
       else if (f.type === 'death' && f.x !== undefined && f.y !== undefined) r.puff(f.x, f.y);
       else if (f.type === 'shake') r.shake(f.amount ?? 3);
       else if (f.type === 'hurt') r.shake(2);
+      else if (f.type === 'blast' && f.x !== undefined && f.y !== undefined) {
+        r.blast(f.x, f.y, f.amount ?? 1.3);
+        r.shake(3);
+      }
     }
     if (s.msgs.length) {
       this.log.push(...s.msgs);
@@ -265,6 +270,8 @@ export class Game {
     setBar('hunger', y.hunger, B.hunger.max, y.starving ? 'Starving!' : `Hunger ${Math.floor(y.hunger)}`);
     setBar('echo', y.echo, y.echoNext, `Mark ${y.mark} · Echo ${y.echo} / ${y.echoNext}`);
     root.querySelector('.hud-points')!.classList.toggle('hidden', y.points <= 0);
+    // Feature-013: HUD'en viser, når spilleren er langsom, lammet eller har ætset rustning.
+    root.querySelector('.hud-effects')!.textContent = y.status.join(' · ');
     // Feature-010 VIEW-01: dybden i minerne; i byen distriktet og etagen (Feature-041).
     const floorName = s.area.floor === 3 ? ' · top floor' : s.area.floor === 2 ? ' · upper floor' : '';
     root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city'

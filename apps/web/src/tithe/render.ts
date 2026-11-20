@@ -42,7 +42,7 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
   let H = 0;
   let tile = 40;
   const floaters: Floater[] = [];
-  const puffs: { x: number; y: number; t: number }[] = [];
+  const puffs: { x: number; y: number; t: number; color?: string; size?: number }[] = [];
   let shake = 0;
   let minimapAge = 1;
   let edges: Uint8Array | null = null;
@@ -312,12 +312,14 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         ctx.stroke();
       } else if (pj.kind === 'bolt') circle(x, y, tile * 0.13, '#8fc1ff', '#fff', 1);
       else if (pj.kind === 'fire') circle(x, y, tile * 0.15, '#ff8a3a', '#ffd84a', 1.5);
+      else if (pj.kind === 'web') circle(x, y, tile * 0.13, 'rgba(230,230,240,0.8)', '#9a9aa8', 1);
       else circle(x, y, tile * 0.11, '#b67be8', null);
     }
 
     for (const fl of puffs) {
       fl.t += dt;
-      circle(sx(fl.x), sy(fl.y), tile * (0.3 + fl.t), `rgba(180,140,220,${Math.max(0, 0.4 - fl.t * 0.8)})`, null);
+      const color = fl.color ?? '180,140,220';
+      circle(sx(fl.x), sy(fl.y), tile * ((fl.size ?? 0.3) + fl.t), `rgba(${color},${Math.max(0, 0.45 - fl.t * 0.8)})`, null);
     }
     for (let i = puffs.length - 1; i >= 0; i--) if (puffs[i]!.t > 0.5) puffs.splice(i, 1);
 
@@ -387,6 +389,10 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
     },
     puff(x: number, y: number): void {
       puffs.push({ x, y, t: 0 });
+    },
+    /** Feature-013: en ildkrukke, der springer. */
+    blast(x: number, y: number, radius: number): void {
+      puffs.push({ x, y, t: 0, color: '255,140,60', size: radius * 0.7 });
     },
     shake(amount: number): void {
       shake = Math.max(shake, amount);
