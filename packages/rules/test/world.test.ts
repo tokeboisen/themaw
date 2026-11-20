@@ -400,7 +400,7 @@ test('F028 scenario "Switching back to the melee weapon"', () => {
   assert.equal(p.ch.equipment.ranged?.id, bow.id); // the bow stays equipped
 });
 
-test('F007 CMD-03: dropping during a Tithe removes the item and its hotbar key', () => {
+test('F007 scenario "A dropped item lands on the floor": out of the pack and off the hotbar, onto the floor at Kael\'s feet', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
@@ -410,7 +410,56 @@ test('F007 CMD-03: dropping during a Tithe removes the item and its hotbar key',
   assert.equal(sheetAction(t, p.id, { action: 'drop', itemId: bow.id }), null);
   assert.equal(p.ch.inventory.length, 0);
   assert.equal(p.hotbar['3'], undefined);
+  const onFloor = depth(t, p).loot.find((l) => l.item?.id === bow.id);
+  assert.ok(onFloor);
+  assert.deepEqual([onFloor.x, onFloor.y], [p.x, p.y]);
   assert.equal(sheetAction(t, p.id, { action: 'drop', itemId: bow.id }), 'invalid');
+});
+
+test('F006 scenario "A dropped item is not picked up again at once"', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  const sword = generateItem(createRng(6), 1, B, { baseId: 'short_sword', rarity: 'common' });
+  p.ch.inventory.push(sword);
+  sheetAction(t, p.id, { action: 'drop', itemId: sword.id });
+  for (let i = 0; i < 30; i++) stepTithe(t, DT);
+  assert.equal(p.ch.inventory.length, 0);
+  assert.ok(depth(t, p).loot.some((l) => l.item?.id === sword.id));
+});
+
+test('F006 scenario "An item picked up again keeps its mark": a brought item stays brought', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  const sword = generateItem(createRng(6), 1, B, { baseId: 'short_sword', rarity: 'common' });
+  p.ch.inventory.push(sword); // brought into the Tithe: not marked as found
+  sheetAction(t, p.id, { action: 'drop', itemId: sword.id });
+  const spot = { x: p.x, y: p.y };
+  p.x += 2; // Kael steps away …
+  stepTithe(t, DT);
+  Object.assign(p, spot); // … and walks over it again
+  stepTithe(t, DT);
+  assert.equal(p.ch.inventory.at(-1)?.id, sword.id);
+  assert.equal(p.ch.inventory.at(-1)?.found, undefined);
+  assert.equal(p.record.itemsFound, 0);
+});
+
+test('F006 scenario "Another candidate\'s dropped item is found loot"', () => {
+  const t = tithe(2);
+  quiet(t);
+  const [jory, kael] = [player(t, 0), player(t, 1)];
+  const sword = generateItem(createRng(6), 1, B, { baseId: 'short_sword', rarity: 'common' });
+  jory.ch.inventory.push(sword);
+  sheetAction(t, jory.id, { action: 'drop', itemId: sword.id });
+  const before = kael.ch.inventory.length;
+  Object.assign(kael, { depth: jory.depth, x: jory.x, y: jory.y + 0.2 });
+  jory.x += 3; // Jory moves on
+  stepTithe(t, DT);
+  assert.equal(kael.ch.inventory.length, before + 1);
+  assert.equal(kael.ch.inventory.at(-1)?.found, t.id);
+  assert.equal(kael.record.itemsFound, 1);
+  assert.equal(jory.ch.inventory.some((i) => i.id === sword.id), false);
 });
 
 test('F029 scenario "Kael leaves": the Tithe goes on for the other candidates', () => {

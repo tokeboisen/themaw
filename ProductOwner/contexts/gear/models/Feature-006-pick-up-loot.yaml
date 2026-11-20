@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -94,6 +94,12 @@ rules:
   - applies_to:
       - EVT-03
     text: Gold found is not added to the wallet during the Tithe; it is kept or lost when the Tithe ends.
+  - applies_to:
+      - CMD-01
+    text: >-
+      A dropped item (Manage equipment) is loot like any other. The candidate who dropped it does not pick it up
+      again before stepping away from it. Picked up again by that candidate, it keeps whether it was found in this
+      Tithe or brought; picked up by another candidate, it is found in this Tithe.
 scenarios:
   - title: An item is picked up
     applies_to:
@@ -111,3 +117,37 @@ scenarios:
       When the player performs CMD-01 "Pick up loot" with an item
       Then nothing is recorded
       And "Inventory full" is shown over the item
+  - title: A dropped item is not picked up again at once
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has just dropped a Short Sword at Kael's feet
+      When Kael stays on the spot
+      Then nothing is recorded
+      And the Short Sword stays on the floor
+  - title: An item picked up again keeps its mark
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael brought a Short Sword into the Tithe and dropped it
+      And Kael has stepped away from it
+      When the player performs CMD-01 "Pick up loot" with the Short Sword
+      Then EVT-01 "Item picked up" is recorded
+      And the Short Sword is not marked as found in this Tithe
+  - title: Another candidate's dropped item is found loot
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Jory dropped a Short Sword in the Tithe
+      When the player performs CMD-01 "Pick up loot" with the Short Sword
+      Then EVT-01 "Item picked up" is recorded
+      And the Short Sword is marked as found in this Tithe for Kael
+open_questions:
+  - topic: Dropped items
+    question: Who can pick up an item that a candidate dropped?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-20: dropped items land on the floor; anyone can pick them up, the one who dropped it only
+      after stepping away.

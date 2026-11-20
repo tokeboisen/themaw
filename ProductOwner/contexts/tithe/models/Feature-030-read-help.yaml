@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 6
+version: 7
 status: draft
 created: '2026-11-19'
 use_case:
@@ -26,7 +26,7 @@ elements:
       sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack with what is
       chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration
       (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players
-      (O), help (H) and close (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear
+      (O), help (H) and close or go back (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear
       and loot, Hunger and supplies, The Mirrormaster, The Rim and Playing with others. A Bestiary lists the
       monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
 flows: []
@@ -37,6 +37,12 @@ rules:
   - applies_to:
       - VIEW-01
     text: The key list shows what is actually on the hotbar keys of the character being played.
+  - applies_to:
+      - VIEW-01
+    text: >-
+      Esc always closes what is open on top, also while typing in a field: the character sheet, Help, Other
+      players, the places on the square, the Tithe Board, the lobby (the player stays in it), Account and every
+      confirmation, which then counts as Stay or Keep. On Player statistics Esc goes back like the Back button.
 scenarios:
   - title: Help during a Tithe
     applies_to:
@@ -46,3 +52,19 @@ scenarios:
       When the player opens VIEW-01 "Help"
       Then the shortcut keys and the help topics are shown
       And the Tithe goes on behind the help
+  - title: Esc closes what is open
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael stands on the square with the Forge open
+      When the player presses Esc
+      Then the Forge closes
+      And Kael stands on the square
+open_questions:
+  - topic: Esc
+    question: What should Esc do?
+    status: resolved
+    applies_to:
+      - VIEW-01
+    resolution: >-
+      Decided 2026-11-20: Esc always closes dialogs and overlays.

@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-007-manage-equipment.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -139,6 +139,14 @@ Scenario: Unequipping needs room
 
 As a player I want to drop an item during a Tithe, so that I make room for better loot.
 
+```gherkin
+Scenario: A dropped item lands on the floor
+  Given Kael is in a Tithe with a Short Sword in the pack
+  When the player performs CMD-03 "Drop item" with the Short Sword
+  Then EVT-03 "Item dropped" is recorded
+  And the Short Sword lies on the floor at Kael's feet
+```
+
 ## 7. Automation
 
 | Application Service | Triggered by | Performs | Results in |
@@ -149,7 +157,7 @@ As a player I want to drop an item during a Tithe, so that I make room for bette
 
 - Equipping puts the item in its slot – a melee weapon, a ranged weapon (a bow), armour or a ring – and moves the item that was there into the pack. A character wears a melee weapon, a ranged weapon, armour and two rings at the same time. A ring goes into a free ring slot; when both are taken, the player chooses which ring it replaces. (CMD-01)
 - Unequipping needs room in the pack. A character without a melee weapon fights unarmed in melee: 1–3 damage, trained as Blades. (CMD-02)
-- Dropping is only possible during a Tithe, and the item is gone. In the Rim items are sold instead (Market, Trade at the Forge). (CMD-03)
+- Dropping is only possible during a Tithe. The item lands on the floor at the candidate's feet, where anyone can pick it up again (Pick up loot); left there, it is gone when the Tithe ends. In the Rim items are sold instead (Market, Trade at the Forge). (CMD-03)
 - Weapons have damage, reach or range and attack time, and train their skill: Blades (Dagger, Rusty Sword, Short Sword, Fine Dagger, Longsword), Heavy Weapons (Pickaxe, War Axe, Maul, Greataxe) and Bows (Short Bow, Hunting Bow, Longbow). Armour gives armour, which reduces damage by armour / (armour + 50). A ring only has affixes. (AGG-01)
 - Rarity decides the affixes: Common none, Magic 1–2, Rare 3. Affixes are + an attribute, + % damage, + life, + armour, + the weapon's skill and + % Echo gained. A higher item level gives more damage, armour and bigger affixes. Rings are never common. (AGG-01)
 - Every weapon has a skill cap: the wielder's skill counts at most up to it for damage and attack time, and its blows train the skill no higher (Characters, Learn by use). Dagger, Rusty Sword, Pickaxe and Short Bow 20; Short Sword 35; War Axe and Hunting Bow 40; Fine Dagger 50; Maul and Longsword 60; Longbow 70; Greataxe 80. Magic weapons add 10 and rare ones 20. The cap is shown on the weapon. (AGG-01)
@@ -171,12 +179,13 @@ As a player I want to drop an item during a Tithe, so that I make room for bette
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Equipment slots:** How many weapons and rings can a character wear at the same time? | Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time. |
 | 2 | **Weapon caps:** Should weapons limit how much of a skill counts? | Decided 2026-11-20: yes: every weapon has a skill cap that limits both its damage bonus and how far its blows train the skill. |
+| 3 | **Dropped items:** What happens to an item that is dropped during a Tithe? | Decided 2026-11-20: it lands on the floor at the candidate's feet instead of disappearing, and anyone can pick it up. |
 
 ### Still open
 

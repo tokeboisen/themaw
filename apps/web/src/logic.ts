@@ -25,5 +25,15 @@ export function showPlus(points: number): boolean {
   return points > 0;
 }
 
+/**
+ * Feature-030 VIEW-01: Esc lukker altid det, der er åbent ovenpå – også mens der skrives i et felt – og går tilbage
+ * fra Player statistics som Back-knappen. Svaret er handlingen, Esc udløser, eller null.
+ */
+export function escapeAction(screen: Screen, overlayOpen: boolean, statisticsBack: string): string | null {
+  if (overlayOpen) return 'close';
+  if (screen === 'statistics') return statisticsBack;
+  return null;
+}
+
 /** Feature-016 VIEW-01: resultatet vises 2,5 sekunder efter slutningen. */
 export const RESULTS_DELAY_MS = 2500;

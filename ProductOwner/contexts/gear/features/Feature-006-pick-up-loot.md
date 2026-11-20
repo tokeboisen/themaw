@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-006-pick-up-loot.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -93,6 +93,25 @@ Scenario: A full pack leaves the item on the floor
   When the player performs CMD-01 "Pick up loot" with an item
   Then nothing is recorded
   And "Inventory full" is shown over the item
+
+Scenario: A dropped item is not picked up again at once
+  Given Kael has just dropped a Short Sword at Kael's feet
+  When Kael stays on the spot
+  Then nothing is recorded
+  And the Short Sword stays on the floor
+
+Scenario: An item picked up again keeps its mark
+  Given Kael brought a Short Sword into the Tithe and dropped it
+  And Kael has stepped away from it
+  When the player performs CMD-01 "Pick up loot" with the Short Sword
+  Then EVT-01 "Item picked up" is recorded
+  And the Short Sword is not marked as found in this Tithe
+
+Scenario: Another candidate's dropped item is found loot
+  Given Jory dropped a Short Sword in the Tithe
+  When the player performs CMD-01 "Pick up loot" with the Short Sword
+  Then EVT-01 "Item picked up" is recorded
+  And the Short Sword is marked as found in this Tithe for Kael
 ```
 
 ## 7. Automation
@@ -106,6 +125,7 @@ Scenario: A full pack leaves the item on the floor
 - Loot is picked up by walking over it; there is no button. An item needs room in the pack; with a full pack the item stays on the floor and "Inventory full" is shown over it. Potions and rations stop at 9. (CMD-01)
 - Items and gold picked up during a Tithe are marked as found in that Tithe until it ends (Settle found gear): a fall loses them. (AGG-01)
 - Gold found is not added to the wallet during the Tithe; it is kept or lost when the Tithe ends. (EVT-03)
+- A dropped item (Manage equipment) is loot like any other. The candidate who dropped it does not pick it up again before stepping away from it. Picked up again by that candidate, it keeps whether it was found in this Tithe or brought; picked up by another candidate, it is found in this Tithe. (CMD-01)
 
 ## 8. Integrations
 
@@ -123,11 +143,11 @@ Scenario: A full pack leaves the item on the floor
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **Dropped items:** Who can pick up an item that a candidate dropped? | Decided 2026-11-20: dropped items land on the floor; anyone can pick them up, the one who dropped it only after stepping away. |
 
 ### Still open
 

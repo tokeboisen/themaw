@@ -15,7 +15,7 @@ import { $, esc, onAction } from './dom.ts';
 import { helpHtml } from './help.ts';
 import { lobbyHtml, tithesHtml } from './lobby.ts';
 import { othersHtml } from './others.ts';
-import { RESULTS_DELAY_MS, deleteConfirmation, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
+import { RESULTS_DELAY_MS, deleteConfirmation, escapeAction, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
 import { resultsHtml } from './results.ts';
 import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
 import { sheetHtml } from './sheet.ts';
@@ -689,7 +689,15 @@ onAction(overlay, (action, id) => void act(action, id));
 
 window.addEventListener('keydown', (event) => {
   const typing = (event.target as HTMLElement).tagName === 'INPUT';
-  if (event.key === 'Escape' && state.overlay) return void act('close', undefined);
+  if (event.key === 'Escape') {
+    // Feature-030: Esc lukker altid det, der er åbent, og går tilbage fra Player statistics.
+    const action = escapeAction(state.screen, state.overlay !== null, state.stats.back);
+    if (action) {
+      event.preventDefault();
+      void act(action, undefined);
+    }
+    return;
+  }
   if (typing || event.ctrlKey || event.metaKey || event.altKey) return;
   const playing = state.screen === 'rim' || state.screen === 'tithe';
   // F004 VIEW-01: karakterskærmen åbnes med C; F030 VIEW-01: Help med H, i the Rim og under en Tithe.

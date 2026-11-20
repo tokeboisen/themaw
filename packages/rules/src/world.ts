@@ -214,6 +214,10 @@ export interface Loot extends Vec {
   kind: 'item' | 'gold' | 'potion' | 'ration';
   item?: Item;
   amount?: number;
+  /** Feature-006: kandidaten, der droppede tingen (Feature-007 CMD-03). */
+  droppedBy?: string;
+  /** Feature-006: den, der droppede tingen, samler den først op igen efter at have trådt væk fra den. */
+  waitFor?: string;
 }
 
 export interface Cache extends Vec {
@@ -920,10 +924,14 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
       if (!unequipItem(ch, a.slot, t.B)) return 'inventoryFull';
       break;
     case 'drop': {
-      // Feature-007 CMD-03: kun under en Tithe, og tingen er væk.
+      // Feature-007 CMD-03: kun under en Tithe; tingen lander på gulvet ved kandidatens fødder, hvor alle kan
+      // samle den op (Feature-006).
+      const dep = t.depths[p.depth];
+      if (!dep) return 'invalid';
       const item = dropItem(ch, a.itemId);
       if (!item) return 'invalid';
       p.hotbar = removeWeaponFromHotbar(p.hotbar, item.id);
+      dep.loot.push({ id: nid(t, 'l'), kind: 'item', item, x: p.x, y: p.y, droppedBy: p.id, waitFor: p.id });
       break;
     }
     case 'hotbar': {
@@ -1967,6 +1975,9 @@ function separate(t: Tithe, dep: Depth): void {
   }
 }
 
+/** Feature-006 CMD-01: så tæt på skal kandidaten være for at samle noget op. */
+const PICKUP_RANGE = 0.7;
+
 /** Feature-006 CMD-01: loot samles op ved at gå over det; en fuld pakke lader tingen ligge. */
 function pickups(t: Tithe, dep: Depth): void {
   const max = t.B.character.maxConsumables;
@@ -1974,7 +1985,12 @@ function pickups(t: Tithe, dep: Depth): void {
     const ch = p.ch;
     for (const l of dep.loot) {
       if (l.id === '') continue; // taget af en anden spiller i samme skridt
-      if (Math.hypot(l.x - p.x, l.y - p.y) > 0.7) continue;
+      if (l.waitFor === p.id) {
+        // Feature-006: den, der droppede tingen, skal først træde væk fra den.
+        if (Math.hypot(l.x - p.x, l.y - p.y) > PICKUP_RANGE + 0.3) delete l.waitFor;
+        continue;
+      }
+      if (Math.hypot(l.x - p.x, l.y - p.y) > PICKUP_RANGE) continue;
       if (l.kind === 'gold') {
         // Feature-006 EVT-03: guldet kommer først i tegnebogen, når Tithen slutter.
         p.record.goldFound += l.amount ?? 0;
@@ -1990,9 +2006,12 @@ function pickups(t: Tithe, dep: Depth): void {
         }
       } else if (l.item) {
         if (ch.inventory.length < p.stats.capacity) {
-          l.item.found = t.id;
+          // Feature-006: samlet op igen af den, der droppede den, beholder tingen sit mærke (fundet eller medbragt).
+          if (l.droppedBy !== p.id) {
+            l.item.found = t.id;
+            p.record.itemsFound += 1;
+          }
           ch.inventory.push(l.item);
-          p.record.itemsFound += 1;
           p.sheetVersion += 1;
           float(t, dep.level, l.x, l.y - 0.3, l.item.name, RARITY_COLORS[l.item.rarity], 14);
           l.id = '';

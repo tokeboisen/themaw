@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -125,8 +125,9 @@ rules:
   - applies_to:
       - CMD-03
     text: >-
-      Dropping is only possible during a Tithe, and the item is gone. In the Rim items are sold instead (Market,
-      Trade at the Forge).
+      Dropping is only possible during a Tithe. The item lands on the floor at the candidate's feet, where anyone
+      can pick it up again (Pick up loot); left there, it is gone when the Tithe ends. In the Rim items are sold
+      instead (Market, Trade at the Forge).
   - applies_to:
       - AGG-01
     text: >-
@@ -186,6 +187,14 @@ scenarios:
       When the player performs CMD-01 "Equip item" with the Cruel Bone Ring
       Then EVT-01 "Item equipped" is recorded
       And Kael wears both rings
+  - title: A dropped item lands on the floor
+    applies_to:
+      - CMD-03
+    gherkin: |-
+      Given Kael is in a Tithe with a Short Sword in the pack
+      When the player performs CMD-03 "Drop item" with the Short Sword
+      Then EVT-03 "Item dropped" is recorded
+      And the Short Sword lies on the floor at Kael's feet
 open_questions:
   - topic: Equipment slots
     question: How many weapons and rings can a character wear at the same time?
@@ -201,3 +210,11 @@ open_questions:
       - AGG-01
     resolution: >-
       Decided 2026-11-20: yes: every weapon has a skill cap that limits both its damage bonus and how far its blows train the skill.
+  - topic: Dropped items
+    question: What happens to an item that is dropped during a Tithe?
+    status: resolved
+    applies_to:
+      - CMD-03
+    resolution: >-
+      Decided 2026-11-20: it lands on the floor at the candidate's feet instead of disappearing, and anyone can
+      pick it up.
