@@ -1,0 +1,232 @@
+<!doctype html>
+<!--
+  Galleri til sprites (art/Grafikregler-karakterer.md afsnit 8): viser hvert ark animeret i de 8 retninger
+  og figuren gående på minernes gulv. Åbnes direkte i browseren; arkene læses fra apps/web/assets.
+  Nye ark tilføjes i SHEETS nedenfor. UI'et er på engelsk som resten af spillet.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite gallery</title>
+<style>
+  :root { --bg: #16110f; --panel: #221a17; --line: #3a2f2a; --text: #e8e2d6; --muted: #a09284; --accent: #e6c66e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
+    padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 8px 0 0; font-size: 16px; }
+  h2 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--accent); }
+  label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+  select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+  main { display: grid; gap: 16px; padding: 16px; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-x: auto; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  figure { margin: 0; }
+  figcaption { margin-top: 4px; font-size: 12px; color: var(--muted); text-align: center; }
+  canvas { display: block; image-rendering: pixelated; }
+  .note { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+  .error { color: #c4604a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Maw · sprite gallery</h1>
+  <label>Scale <select id="scale"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+  <label><input type="checkbox" id="shadow" checked> Shadow</label>
+  <label><input type="checkbox" id="foot"> Foot point</label>
+  <label><input type="checkbox" id="grid"> Frame grid</label>
+</header>
+<main id="main">
+  <section>
+    <h2>In the mines</h2>
+    <canvas id="stage"></canvas>
+    <p class="note">The figure walks on the mine floor; one tile is 32 px. The shadow under the feet is drawn by the game, not by the sprite.</p>
+  </section>
+</main>
+<script>
+  const SHEETS = [
+    { name: 'Miner · idle', src: '../apps/web/assets/characters/body/miner/idle.png', frames: 4, fps: 6 },
+    { name: 'Miner · walk', src: '../apps/web/assets/characters/body/miner/walk.png', frames: 6, fps: 10 },
+  ];
+  const DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const NAMES = { N: 'North', NE: 'North-east', E: 'East', SE: 'South-east', S: 'South', SW: 'South-west', W: 'West', NW: 'North-west' };
+  const SIZE = 64;
+  const FOOT = { x: 32, y: 48 };
+  const TILE = 32;
+  const FLOOR = ['#2b2620', '#29241f'];
+
+  const $ = (id) => document.getElementById(id);
+  const opt = { scale: 2, shadow: true, foot: false, grid: false };
+  const read = () => Object.assign(opt, { scale: +$('scale').value, shadow: $('shadow').checked, foot: $('foot').checked, grid: $('grid').checked });
+  for (const id of ['scale', 'shadow', 'foot', 'grid']) $(id).addEventListener('change', () => { read(); layout(); });
+
+  function load(sheet) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ ...sheet, img });
+      img.onerror = () => resolve({ ...sheet, img: null });
+      img.src = `${sheet.src}?t=${Date.now()}`; // altid den nyeste version af arket
+    });
+  }
+
+  function floor(ctx, w, h, s, ox = 0, oy = 0) {
+    const t = TILE * s;
+    for (let y = -1; y * t < h; y++) {
+      for (let x = -1; x * t < w; x++) {
+        ctx.fillStyle = FLOOR[(x + y + 64) % 2];
+        ctx.fillRect(x * t + (ox % t), y * t + (oy % t), t, t);
+      }
+    }
+  }
+
+  /** Tegner ét billede, så fodpunktet lander på (px, py). */
+  function figure(ctx, sheet, dir, frame, px, py, s) {
+    if (opt.shadow) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(px, py, 12 * s, 5 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const row = DIRS.indexOf(dir);
+    ctx.drawImage(sheet.img, frame * SIZE, row * SIZE, SIZE, SIZE, px - FOOT.x * s, py - FOOT.y * s, SIZE * s, SIZE * s);
+    if (opt.foot) {
+      ctx.fillStyle = '#e6c66e';
+      ctx.fillRect(px - 3 * s, py, 6 * s, Math.max(1, s / 2));
+      ctx.fillRect(px - Math.max(1, s / 4), py - 3 * s, Math.max(1, s / 2), 6 * s);
+    }
+    if (opt.grid) {
+      ctx.strokeStyle = 'rgba(230, 198, 110, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px - FOOT.x * s + 0.5, py - FOOT.y * s + 0.5, SIZE * s - 1, SIZE * s - 1);
+    }
+  }
+
+  let sheets = [];
+  let cells = [];
+
+  function layout() {
+    for (const el of document.querySelectorAll('section.sheet')) el.remove();
+    cells = [];
+    const s = opt.scale;
+    for (const sheet of sheets) {
+      const sec = document.createElement('section');
+      sec.className = 'sheet';
+      sec.innerHTML = `<h2>${sheet.name}</h2>`;
+      if (!sheet.img) {
+        sec.innerHTML += `<p class="error">Could not load ${sheet.src}</p>`;
+        $('main').append(sec);
+        continue;
+      }
+      const row = document.createElement('div');
+      row.className = 'row';
+      for (const dir of DIRS) {
+        const fig = document.createElement('figure');
+        const c = document.createElement('canvas');
+        c.width = SIZE * s;
+        c.height = SIZE * s;
+        fig.append(c);
+        fig.insertAdjacentHTML('beforeend', `<figcaption>${NAMES[dir]}</figcaption>`);
+        row.append(fig);
+        cells.push({ c, sheet, dir });
+      }
+      const fig = document.createElement('figure');
+      const raw = document.createElement('canvas');
+      raw.width = sheet.img.width * s;
+      raw.height = sheet.img.height * s;
+      const ctx = raw.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      floor(ctx, raw.width, raw.height, s);
+      ctx.drawImage(sheet.img, 0, 0, raw.width, raw.height);
+      ctx.strokeStyle = 'rgba(230, 198, 110, 0.35)';
+      for (let x = 0; x <= sheet.img.width; x += SIZE) ctx.strokeRect(x * s + 0.5, 0.5, 0, raw.height);
+      for (let y = 0; y <= sheet.img.height; y += SIZE) ctx.strokeRect(0.5, y * s + 0.5, raw.width, 0);
+      fig.append(raw);
+      fig.insertAdjacentHTML('beforeend', `<figcaption>Sheet ${sheet.img.width} × ${sheet.img.height}: rows ${DIRS.join(', ')} · ${sheet.frames} frames · ${sheet.fps} fps</figcaption>`);
+      row.append(fig);
+      sec.append(row);
+      $('main').append(sec);
+    }
+    const stage = $('stage');
+    stage.width = Math.max(4 * TILE * s, Math.min(window.innerWidth - 60, 10 * TILE * s));
+    stage.height = 5 * TILE * s;
+    // Banen er en ottekant midt på scenen, så figuren går i alle 8 retninger.
+    PATH = octagon(stage.width / (TILE * s) / 2, 2.7, 1.8);
+    Object.assign(walker, { leg: 0, t: 0, x: PATH[0][0], y: PATH[0][1] });
+  }
+  window.addEventListener('resize', layout);
+
+  /** Hjørnerne ligger ved 22,5° + 45° · k, så siderne går i de 8 retninger. */
+  function octagon(cx, cy, r) {
+    return Array.from({ length: 8 }, (_, k) => {
+      const a = ((22.5 + 45 * k) * Math.PI) / 180;
+      return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    });
+  }
+
+  // Figuren går rundt på gulvet og står stille et øjeblik i hvert hjørne.
+  let PATH = octagon(5, 2.7, 1.8);
+  const SPEED = 3; // felter pr. sekund
+  const PAUSE = 0.8;
+  const walker = { leg: 0, t: 0, x: PATH[0][0], y: PATH[0][1], dir: 'E', moving: false };
+
+  function stepWalker(dt) {
+    const [ax, ay] = PATH[walker.leg];
+    const [bx, by] = PATH[(walker.leg + 1) % PATH.length];
+    const len = Math.hypot(bx - ax, by - ay);
+    walker.t += dt;
+    const walkTime = len / SPEED;
+    if (walker.t < walkTime) {
+      const k = walker.t / walkTime;
+      walker.x = ax + (bx - ax) * k;
+      walker.y = ay + (by - ay) * k;
+      // Kompasretningen: 0° er nord (op), 90° er øst.
+      const angle = (Math.atan2(bx - ax, ay - by) * 180) / Math.PI;
+      walker.dir = DIRS[((Math.round(angle / 45) % 8) + 8) % 8];
+      walker.moving = true;
+    } else if (walker.t < walkTime + PAUSE) {
+      walker.x = bx;
+      walker.y = by;
+      walker.moving = false;
+    } else {
+      walker.leg = (walker.leg + 1) % PATH.length;
+      walker.t = 0;
+    }
+  }
+
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    const time = now / 1000;
+    const s = opt.scale;
+    for (const { c, sheet, dir } of cells) {
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      floor(ctx, c.width, c.height, s);
+      figure(ctx, sheet, dir, Math.floor(time * sheet.fps) % sheet.frames, FOOT.x * s, FOOT.y * s, s);
+    }
+    const idle = sheets.find((x) => x.name.endsWith('idle') && x.img);
+    const walk = sheets.find((x) => x.name.endsWith('walk') && x.img);
+    if (idle && walk) {
+      stepWalker(dt);
+      const stage = $('stage');
+      const ctx = stage.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      floor(ctx, stage.width, stage.height, s);
+      const sheet = walker.moving ? walk : idle;
+      const frame = Math.floor(time * sheet.fps) % sheet.frames;
+      figure(ctx, sheet, walker.dir, frame, Math.round(walker.x * TILE * s), Math.round(walker.y * TILE * s), s);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  Promise.all(SHEETS.map(load)).then((loaded) => {
+    sheets = loaded;
+    read();
+    layout();
+    requestAnimationFrame(tick);
+  });
+</script>
+</body>
+</html>

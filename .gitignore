@@ -9,3 +9,6 @@ deploy/.env
 # Diverse
 *.log
 .DS_Store
+
+# Python-værktøjerne i art/
+__pycache__/
