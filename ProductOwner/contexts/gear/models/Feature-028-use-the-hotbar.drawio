@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-160" y="-360" width="1000" height="580" as="geometry" />
+          <mxGeometry x="-160" y="-360" width="1000" height="590" as="geometry" />
         </mxCell>
         <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
           <mxGeometry x="-160" y="-400" width="1000" height="40" as="geometry" />
@@ -14,7 +14,7 @@
           <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-120" y="-200" width="920" height="380" as="geometry" />
+          <mxGeometry x="-120" y="-200" width="920" height="390" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Use the hotbar" vertex="1">
           <mxGeometry x="-120" y="-240" width="920" height="40" as="geometry" />
@@ -36,9 +36,9 @@
         <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
           <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Weapon&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;Chosen key" tooltip="Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Melee weapon&lt;br&gt;· Ranged weapon&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;Chosen key" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
-            <mxGeometry x="400" y="0" width="120" height="140" as="geometry" />
+            <mxGeometry x="400" y="0" width="120" height="150" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">

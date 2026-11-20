@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MESSAGES, routingKey } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
-  ATTRIBUTES, BALANCE as B, SKILLS, backgroundById, creationProblems, itemBase, newCharacter, spendAttributePoint,
+  ATTRIBUTES, BALANCE as B, SKILLS, backgroundById, emptyEquipment, creationProblems, itemBase, newCharacter, spendAttributePoint,
   spendSkillPoint, type Attribute, type Character, type SkillId,
 } from '@maw/rules';
 import { transaction, type Client, type Pool } from '../db.ts';
@@ -45,7 +45,7 @@ function asCharacter(row: CharacterRow): Character {
   return {
     name: row.name, background: row.background, level: row.mark, echo: row.echo, attributes: row.attributes, skills: row.skills,
     attributePoints: row.attribute_points, skillPoints: row.skill_points, gold: 0, potions: 0, rations: 0,
-    equipment: { weapon: null, armour: null, ring: null }, inventory: [], tithes: 0, championships: 0,
+    equipment: emptyEquipment(), inventory: [], tithes: 0, championships: 0,
   };
 }
 

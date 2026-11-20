@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 6
 status: draft
 created: '2026-11-19'
 use_case:
@@ -10,7 +10,7 @@ use_case:
   purpose:
     derived: false
     text: >-
-      For the player: strike monsters, rivals and other players with the weapon in hand or an Echo Art, so
+      For the player: strike monsters, rivals and other players with the chosen weapon or an Echo Art, so
       the candidate survives, earns Echo and Renown and finds loot.
 elements:
   - id: VIEW-01

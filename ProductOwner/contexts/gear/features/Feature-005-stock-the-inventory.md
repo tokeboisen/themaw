@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-005-stock-the-inventory.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -61,7 +61,7 @@ For the player: the starting kit, bought items and supplies and accepted item gi
 | ID | Description |
 |---|---|
 | SVC-01 | Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and the end of a Tithe. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -112,9 +112,11 @@ For the player: the starting kit, bought items and supplies and accepted item gi
 | Field |
 |---|
 | Equipment |
-| Equipment › Weapon |
+| Equipment › Melee weapon |
+| Equipment › Ranged weapon |
 | Equipment › Armour |
-| Equipment › Ring |
+| Equipment › Ring 1 |
+| Equipment › Ring 2 |
 | Items (many) |
 | Items › Item |
 | Items › Slot |
@@ -146,7 +148,7 @@ No user stories.
 
 ### Rules
 
-- A new character gets the background's weapon (Miner Pickaxe, Poacher Short Bow, Temple Acolyte Dagger, Street Runner Rusty Sword) and a Padded Coat, both common and equipped, 2 potions and 3 rations, and a hotbar with the weapon on key 1 and Echo Bolt on key 2. (SVC-01, CMD-01, CMD-03)
+- A new character gets the background's weapon (Miner Pickaxe, Poacher Short Bow, Temple Acolyte Dagger, Street Runner Rusty Sword) and a Padded Coat, both common and equipped – the Short Bow as the ranged weapon, the others as the melee weapon – 2 potions and 3 rations, and a hotbar with the weapon on key 1 and Echo Bolt on key 2. (SVC-01, CMD-01, CMD-03)
 - A bought item and an accepted item gift go into the pack. The pack holds 12 items plus 1 for every 2 points of Strength above 10; the Forge and the Patrons' Hall check that there is room first. (CMD-01, AGG-01)
 - A sold item leaves the pack. Only items in the pack can be sold, never equipped ones. (CMD-02)
 - A character carries at most 9 potions and 9 rations. (CMD-03)
@@ -181,7 +183,7 @@ Scenario: A bought item lands in the pack
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|

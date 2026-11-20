@@ -5,17 +5,17 @@
 
 import type { Balance, MonsterDef, RivalDef } from './balance.ts';
 import {
-  addEcho, addSkillXp, derivedStats, dropItem, equipItem, spendAttributePoint, spendSkillPoint, unequipItem, SKILL_NAMES,
-  type DerivedStats,
+  addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, spendAttributePoint, spendSkillPoint, unequipItem,
+  SKILL_NAMES, type DerivedStats,
 } from './character.ts';
 import {
   bfs, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, tileAt, type DepthMap, type Room,
 } from './dungeon.ts';
 import { assignHotbarKey, clearHotbarKey, ECHO_ARTS, HOTBAR_KEYS, removeWeaponFromHotbar, type EchoArt, type Hotbar, type HotbarKey } from './gear.ts';
-import { generateItem, type ItemOptions } from './items.ts';
+import { generateItem, isEquipSlot, type ItemOptions } from './items.ts';
 import type { OutcomeKind, TitheRecord } from './rim.ts';
 import { createRng, type Rng } from './rng.ts';
-import type { Attribute, Character, Item, Rarity, SkillId, Slot } from './types.ts';
+import type { Attribute, Character, EquipSlot, Item, Rarity, SkillId, WeaponSlot } from './types.ts';
 
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const;
 
@@ -151,8 +151,10 @@ export interface Player extends Body {
   /** Arbejdskopien af karakteren (planen, afsnit 5). */
   ch: Character;
   hotbar: Hotbar;
-  /** Den Echo Art, hotbaren har valgt til Attack; null er våbnet i hånden (Feature-028 AGG-01). */
+  /** Den Echo Art, hotbaren har valgt til Attack; null er det valgte våben (Feature-028 AGG-01). */
   chosenArt: EchoArt | null;
+  /** Det våben, Attack bruger, når ingen Echo Art er valgt: nærkamp eller afstand (Feature-028). */
+  chosenWeapon: WeaponSlot;
   stats: DerivedStats;
   depth: number;
   stamina: number;
@@ -357,10 +359,12 @@ function nid(t: Tithe, prefix: string): string {
 }
 
 function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
-  const stats = derivedStats(s.character, t.B);
+  // Feature-028 AGG-01: en Tithe starter med nærkampsvåbnet valgt, ellers afstandsvåbnet.
+  const chosenWeapon = defaultWeapon(s.character);
+  const stats = derivedStats(s.character, t.B, chosenWeapon);
   return {
     kind: 'player', id: s.userId, partyId: s.userId, userId: s.userId, userName: s.userName, characterId: s.characterId, name: s.character.name,
-    ch: s.character, hotbar: s.hotbar, chosenArt: null, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
+    ch: s.character, hotbar: s.hotbar, chosenArt: null, chosenWeapon, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
     attackCd: 0, boltCd: 0, dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, drawT: 0,
@@ -560,7 +564,9 @@ function hostile(r: Rival, p: Player): boolean {
 
 export function refreshStats(t: Tithe, p: Player): void {
   const old = p.stats;
-  p.stats = derivedStats(p.ch, t.B);
+  // Er afstandsvåbnet væk, bruger Attack igen nærkampsvåbnet (eller de bare næver).
+  if (p.chosenWeapon === 'ranged' && !p.ch.equipment.ranged) p.chosenWeapon = 'melee';
+  p.stats = derivedStats(p.ch, t.B, p.chosenWeapon);
   p.maxHp = p.stats.maxHp;
   p.armour = p.stats.armour;
   p.level = p.ch.level;
@@ -711,8 +717,8 @@ export function leaveParty(t: Tithe, playerId: string): PartyRefusal | null {
 }
 
 export type SheetAction =
-  | { action: 'equip'; itemId: string }
-  | { action: 'unequip'; slot: Slot }
+  | { action: 'equip'; itemId: string; ring?: 'ring1' | 'ring2' }
+  | { action: 'unequip'; slot: EquipSlot }
   | { action: 'drop'; itemId: string }
   | { action: 'hotbar'; key: HotbarKey; itemId?: string; echoArt?: EchoArt }
   | { action: 'clear'; key: HotbarKey }
@@ -728,13 +734,18 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
   const ch = p.ch;
   const owns = (id: string) => ch.inventory.some((i) => i.id === id) || Object.values(ch.equipment).some((i) => i?.id === id);
   switch (a.action) {
-    case 'equip':
-      if (!equipItem(ch, a.itemId)) return 'invalid';
+    case 'equip': {
+      const slot = equipItem(ch, a.itemId, t.B, a.ring === 'ring1' || a.ring === 'ring2' ? a.ring : undefined);
+      if (!slot) return 'invalid';
       // Feature-028 AGG-01: et våben, der tages på, vælges til Attack.
-      if (ch.equipment.weapon?.id === a.itemId) p.chosenArt = null;
+      if (slot === 'melee' || slot === 'ranged') {
+        p.chosenWeapon = slot;
+        p.chosenArt = null;
+      }
       break;
+    }
     case 'unequip':
-      if (!['weapon', 'armour', 'ring'].includes(a.slot) || !ch.equipment[a.slot]) return 'invalid';
+      if (!isEquipSlot(a.slot) || !ch.equipment[a.slot]) return 'invalid';
       if (!unequipItem(ch, a.slot, t.B)) return 'inventoryFull';
       break;
     case 'drop': {
@@ -750,7 +761,7 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
         if (!ECHO_ARTS.includes(a.echoArt)) return 'invalid';
         p.hotbar = assignHotbarKey(p.hotbar, a.key, { echoArt: a.echoArt });
       } else {
-        const item = [...ch.inventory, ch.equipment.weapon].find((i) => i?.id === a.itemId);
+        const item = [...ch.inventory, ch.equipment.melee, ch.equipment.ranged].find((i) => i?.id === a.itemId);
         if (!item || item.slot !== 'weapon' || !owns(item.id)) return 'invalid';
         p.hotbar = assignHotbarKey(p.hotbar, a.key, { weapon: item.id });
       }
@@ -784,7 +795,7 @@ export function chosenKey(p: Player): HotbarKey | null {
     const slot = p.hotbar[k];
     if (!slot) return false;
     if (p.chosenArt) return 'echoArt' in slot && slot.echoArt === p.chosenArt;
-    return 'weapon' in slot && slot.weapon === p.ch.equipment.weapon?.id;
+    return 'weapon' in slot && slot.weapon === p.ch.equipment[p.chosenWeapon]?.id;
   }) ?? null;
 }
 
@@ -918,8 +929,9 @@ function eatRation(t: Tithe, p: Player): void {
 }
 
 /**
- * Feature-028 CMD-01 Choose hotbar key: tasten vælger, hvad Attack bruger. Et våben trækkes; en Echo Art vælges uden at
- * blive kastet, og våbnet bliver i hånden. En tom tast gør intet.
+ * Feature-028 CMD-01 Choose hotbar key: tasten vælger, hvad Attack bruger. Et våben, der er taget på, vælges; et våben
+ * i pakken trækkes til sin plads – nærkamp eller afstand. At skifte våben tager 0,3 sekunder. En Echo Art vælges uden
+ * at blive kastet. En tom tast gør intet.
  */
 function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   const slot = p.hotbar[key];
@@ -928,12 +940,17 @@ function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
     p.chosenArt = slot.echoArt;
     return;
   }
-  if (p.ch.equipment.weapon?.id === slot.weapon) {
-    p.chosenArt = null;
-    return;
-  }
-  if (!equipItem(p.ch, slot.weapon)) return;
+  const eq = p.ch.equipment;
+  const worn: WeaponSlot | null = eq.melee?.id === slot.weapon ? 'melee' : eq.ranged?.id === slot.weapon ? 'ranged' : null;
   p.chosenArt = null;
+  if (worn) {
+    if (p.chosenWeapon === worn) return;
+    p.chosenWeapon = worn;
+  } else {
+    const placed = equipItem(p.ch, slot.weapon, t.B);
+    if (placed !== 'melee' && placed !== 'ranged') return;
+    p.chosenWeapon = placed;
+  }
   p.drawT = t.B.combat.drawTime;
   refreshStats(t, p);
 }

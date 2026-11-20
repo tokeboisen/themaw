@@ -118,7 +118,7 @@ export const api = {
   spendSkillPoint: (id: string, skill: string) => call<CharacterView>('POST', `/api/characters/${id}/skill-points`, { skill }),
   // Gear (F007, F027)
   inventory: (id: string) => call<InventoryView>('GET', `/api/characters/${id}/inventory`),
-  equip: (id: string, itemId: string) => call<InventoryView>('POST', `/api/characters/${id}/equip`, { itemId }),
+  equip: (id: string, itemId: string, ring?: 'ring1' | 'ring2') => call<InventoryView>('POST', `/api/characters/${id}/equip`, ring ? { itemId, ring } : { itemId }),
   unequip: (id: string, slot: string) => call<InventoryView>('POST', `/api/characters/${id}/unequip`, { slot }),
   assignHotbar: (id: string, key: string, target: { itemId: string } | { echoArt: string }) =>
     call<InventoryView>('PUT', `/api/characters/${id}/hotbar/${key}`, target),

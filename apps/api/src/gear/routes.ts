@@ -2,12 +2,11 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MESSAGES } from '@maw/contracts';
-import { assignHotbarKey, clearHotbarKey, isEchoArt, isHotbarKey, type HotbarSlot, type Slot } from '@maw/rules';
+import { BALANCE as B, assignHotbarKey, clearHotbarKey, isEchoArt, isEquipSlot, isHotbarKey, targetSlot, type HotbarSlot } from '@maw/rules';
 import { transaction, type Pool } from '../db.ts';
 import { INVALID, refuse, requireUser } from '../http.ts';
 import { capacity, loadInventory, type Inventory } from './store.ts';
 
-const SLOTS: Slot[] = ['weapon', 'armour', 'ring'];
 
 async function view(pool: Pool, inv: Inventory) {
   return { equipment: inv.equipment, pack: inv.pack, potions: inv.potions, rations: inv.rations, hotbar: inv.hotbar, capacity: await capacity(pool, inv) };
@@ -35,17 +34,20 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
     return reply.send(await view(pool, inv));
   });
 
-  // Feature-007 CMD-01 Equip item: tingen kommer på sin plads, og det, der sad der, kommer i pakken.
+  // Feature-007 CMD-01 Equip item: tingen kommer på sin plads – nærkamps- eller afstandsvåben, rustning eller en
+  // ringplads – og det, der sad der, kommer i pakken. Er begge ringpladser optaget, vælger spilleren ring 1 eller 2.
   app.post('/api/characters/:id/equip', async (request: Req, reply) => {
     const itemId = request.body?.itemId;
-    if (typeof itemId !== 'string') return refuse(reply, 400, INVALID);
+    const ring = request.body?.ring;
+    if (typeof itemId !== 'string' || (ring !== undefined && ring !== 'ring1' && ring !== 'ring2')) return refuse(reply, 400, INVALID);
     const result = await transaction(pool, async (client) => {
       const inv = await owned(request, reply, true, client);
       if (!inv) return null;
       const item = inv.pack.find((i) => i.id === itemId);
       if (!item) return 'invalid' as const;
-      await client.query(`update gear.items set location = 'pack', added_at = now() where character_id = $1 and location = $2`, [inv.characterId, item.slot]);
-      await client.query(`update gear.items set location = $3 where character_id = $1 and id = $2`, [inv.characterId, item.id, item.slot]);
+      const slot = targetSlot(inv.equipment, item, B, item.slot === 'ring' ? ring : undefined);
+      await client.query(`update gear.items set location = 'pack', added_at = now() where character_id = $1 and location = $2`, [inv.characterId, slot]);
+      await client.query(`update gear.items set location = $3 where character_id = $1 and id = $2`, [inv.characterId, item.id, slot]);
       return loadInventory(client, inv.characterId);
     });
     if (result === null) return reply;
@@ -56,11 +58,11 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
   // Feature-007 CMD-02 Unequip item: kræver plads i pakken.
   app.post('/api/characters/:id/unequip', async (request: Req, reply) => {
     const slot = request.body?.slot;
-    if (!SLOTS.includes(slot as Slot)) return refuse(reply, 400, INVALID);
+    if (!isEquipSlot(slot)) return refuse(reply, 400, INVALID);
     const result = await transaction(pool, async (client) => {
       const inv = await owned(request, reply, true, client);
       if (!inv) return null;
-      if (!inv.equipment[slot as Slot]) return 'invalid' as const;
+      if (!inv.equipment[slot]) return 'invalid' as const;
       if (inv.pack.length >= (await capacity(client, inv))) return 'full' as const;
       await client.query(`update gear.items set location = 'pack', added_at = now() where character_id = $1 and location = $2`, [inv.characterId, slot]);
       return loadInventory(client, inv.characterId);
@@ -81,7 +83,7 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
       if (!inv) return null;
       let slot: HotbarSlot;
       if (typeof itemId === 'string') {
-        const weapon = [inv.equipment.weapon, ...inv.pack].find((i) => i?.id === itemId && i.slot === 'weapon');
+        const weapon = [inv.equipment.melee, inv.equipment.ranged, ...inv.pack].find((i) => i?.id === itemId && i.slot === 'weapon');
         if (!weapon) return 'invalid' as const;
         slot = { weapon: weapon.id };
       } else if (isEchoArt(echoArt)) {

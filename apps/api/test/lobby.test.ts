@@ -103,7 +103,7 @@ describe('Lobby', { skip: !hasDatabase }, () => {
     const event = await launchedEvent(name);
     assert.equal(event.players.length, 2);
     assert.deepEqual(event.players.map((p) => p.character.name).sort(), ['Brann', 'Kael']);
-    assert.ok(event.players.every((p) => p.character.equipment.weapon && p.hotbar['1'] && p.ticket));
+    assert.ok(event.players.every((p) => p.character.equipment.melee && p.hotbar['1'] && p.ticket));
     assert.equal(event.players.find((p) => p.character.name === 'Kael')!.character.gold, 60);
     // The Tithe no longer shows in the list
     assert.ok(!(await get(kael.cookie, '/api/tithes')).tithes.some((t: { name: string }) => t.name === name));

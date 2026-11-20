@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -103,14 +103,17 @@ elements:
     col: 4
     stack: 3
     description: >-
-      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
       - name: Equipment
         attributes:
-          - name: Weapon
+          - name: Melee weapon
+          - name: Ranged weapon
           - name: Armour
-          - name: Ring
+          - name: Ring 1
+          - name: Ring 2
       - name: Items
         attributes:
           - name: Item
@@ -209,8 +212,9 @@ rules:
       - CMD-03
     text: >-
       A new character gets the background's weapon (Miner Pickaxe, Poacher Short Bow, Temple Acolyte Dagger,
-      Street Runner Rusty Sword) and a Padded Coat, both common and equipped, 2 potions and 3 rations, and
-      a hotbar with the weapon on key 1 and Echo Bolt on key 2.
+      Street Runner Rusty Sword) and a Padded Coat, both common and equipped – the Short Bow as the ranged weapon,
+      the others as the melee weapon – 2 potions and 3 rations, and a hotbar with the weapon on key 1 and Echo Bolt
+      on key 2.
   - applies_to:
       - CMD-01
       - AGG-01

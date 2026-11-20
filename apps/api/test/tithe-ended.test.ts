@@ -60,11 +60,11 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
 
   test('F009 scenario "A fall loses what was found", and F022 scenario "A fall halves the purse" (55 gold)', async () => {
     const k = await kael('te1');
-    const pickaxe = (await get(k.cookie, `/api/characters/${k.id}/inventory`)).equipment.weapon;
+    const pickaxe = (await get(k.cookie, `/api/characters/${k.id}/inventory`)).equipment.melee;
     await ended(k, { kind: 'fell', found: [warAxe()], goldFound: 33, maxDepth: 2, renown: 100 });
     const inv = await get(k.cookie, `/api/characters/${k.id}/inventory`);
     assert.deepEqual(inv.pack, []);
-    assert.equal(inv.equipment.weapon.id, pickaxe.id); // Kael still has the Pickaxe
+    assert.equal(inv.equipment.melee.id, pickaxe.id); // Kael still has the Pickaxe
     assert.equal((await get(k.cookie, `/api/characters/${k.id}/wallet`)).gold, 60 + 55); // no found gold, half purse
   });
 
@@ -101,6 +101,26 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     await enqueue(pool, envelope(EVENT.titheEnded, data));
     await deliverAll(pool);
     assert.equal((await get(k.cookie, `/api/characters/${k.id}/inventory`)).hotbar['3'], undefined);
+  });
+
+  test('F009: a Tithe that started before two weapons and two rings keeps its gear on the new slots', async () => {
+    const k = await kael('te11');
+    const inv = await get(k.cookie, `/api/characters/${k.id}/inventory`);
+    const c = await get(k.cookie, `/api/characters/${k.id}`);
+    const [ring] = (await import('./helpers.ts')).items(1, { slot: 'ring' });
+    const old = { weapon: inv.equipment.melee, armour: inv.equipment.armour, ring: ring! };
+    const data = {
+      titheId: randomUUID(), titheName: 'Ashfall', characterId: k.id, userId: k.userId, outcome: { kind: 'champion', name: 'Kael' }, seconds: 30,
+      record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
+      start: { mark: 1, skills: { blades: 1, heavy: 10, bows: 1, echo: 1 } },
+      character: { level: 1, echo: 0, attributes: c.attributes, skills: c.skills, attributePoints: 0, skillPoints: 0 },
+      gear: { equipment: old, pack: [], potions: 2, rations: 3, hotbar: inv.hotbar },
+    } as unknown as TitheEnded;
+    await enqueue(pool, envelope(EVENT.titheEnded, data));
+    await deliverAll(pool);
+    const after = await get(k.cookie, `/api/characters/${k.id}/inventory`);
+    assert.equal(after.equipment.melee.id, inv.equipment.melee.id);
+    assert.equal(after.equipment.ring1.id, ring!.id);
   });
 
   test('F023 scenario "Renown brings gifts": a rare item, 64 gold and a magic item at Mark 3 and 324 Renown', async () => {

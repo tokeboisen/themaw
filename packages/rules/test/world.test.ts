@@ -20,7 +20,7 @@ function tithe(players = 1, seed = 7): Tithe {
     seed,
     players: Array.from({ length: players }, (_, i) => {
       const character = kael(i + 1);
-      const hotbar: Hotbar = { '1': { weapon: character.equipment.weapon!.id }, '2': { echoArt: 'Echo Bolt' } };
+      const hotbar: Hotbar = { '1': { weapon: character.equipment.melee!.id }, '2': { echoArt: 'Echo Bolt' } };
       return { userId: `u${i + 1}`, userName: `player${i + 1}`, characterId: `c${i + 1}`, character, hotbar };
     }),
   }, B);
@@ -125,11 +125,11 @@ test('F028 scenario "Choosing Echo Bolt"', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
-  const pickaxe = p.ch.equipment.weapon!;
+  const pickaxe = p.ch.equipment.melee!;
   queueAct(t, p.id, { act: 'hotkey', key: '2' });
   stepTithe(t, DT);
   assert.equal(depth(t, p).projectiles.length, 0); // no Echo Bolt is cast
-  assert.equal(p.ch.equipment.weapon?.id, pickaxe.id); // Kael still holds the Pickaxe
+  assert.equal(p.ch.equipment.melee?.id, pickaxe.id); // Kael still wears the Pickaxe
   assert.equal(chosenKey(p), '2');
   setInput(t, p.id, { moveX: 0, moveY: 0, attack: true });
   stepTithe(t, DT);
@@ -372,17 +372,32 @@ test('F028 scenario "Drawing the bow"', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
-  const pickaxe = p.ch.equipment.weapon!;
+  const pickaxe = p.ch.equipment.melee!;
   const bow = generateItem(createRng(5), 1, B, { baseId: 'short_bow', rarity: 'common' });
   p.ch.inventory.push(bow);
   assert.equal(sheetAction(t, p.id, { action: 'hotbar', key: '3', itemId: bow.id }), null);
   queueAct(t, p.id, { act: 'hotkey', key: '3' });
   stepTithe(t, DT);
-  assert.equal(p.ch.equipment.weapon?.id, bow.id);
-  assert.ok(p.ch.inventory.some((i) => i.id === pickaxe.id));
+  assert.equal(p.ch.equipment.ranged?.id, bow.id); // the Short Bow is the ranged weapon …
+  assert.equal(p.ch.equipment.melee?.id, pickaxe.id); // … and the Pickaxe is still the melee weapon
   assert.equal(p.stats.weapon.skill, 'bows'); // Attack shoots the Short Bow, and its arrows train Bows
   assert.equal(chosenKey(p), '3');
   assert.ok(p.drawT > 0); // cannot strike while drawing
+});
+
+test('F028 scenario "Switching back to the melee weapon"', () => {
+  const t = tithe(1);
+  quiet(t);
+  const p = player(t);
+  const bow = generateItem(createRng(5), 1, B, { baseId: 'short_bow', rarity: 'common' });
+  p.ch.inventory.push(bow);
+  sheetAction(t, p.id, { action: 'equip', itemId: bow.id }); // Equipping a weapon chooses it
+  assert.equal(p.stats.weapon.skill, 'bows');
+  queueAct(t, p.id, { act: 'hotkey', key: '1' });
+  stepTithe(t, DT);
+  assert.equal(chosenKey(p), '1');
+  assert.equal(p.stats.weapon.skill, 'heavy'); // Attack strikes with the Pickaxe
+  assert.equal(p.ch.equipment.ranged?.id, bow.id); // the bow stays equipped
 });
 
 test('F007 CMD-03: dropping during a Tithe removes the item and its hotbar key', () => {

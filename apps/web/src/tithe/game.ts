@@ -281,7 +281,7 @@ export class Game {
     const promptEl = root.querySelector<HTMLElement>('.hud-prompt')!;
     if (promptEl.textContent !== prompt) promptEl.innerHTML = prompt ? `<button class="primary" data-act="game-act" data-id="interact">${prompt}</button>` : '';
     // Feature-028 VIEW-01: hotbaren nederst med tasterne 1–8; den valgte tast er fremhævet.
-    const weapons = new Map([...(this.sheet ? [this.sheet.inventory.equipment.weapon, ...this.sheet.inventory.pack] : [])].filter((i) => !!i).map((i) => [i!.id, i!.name]));
+    const weapons = new Map([...(this.sheet ? [this.sheet.inventory.equipment.melee, this.sheet.inventory.equipment.ranged, ...this.sheet.inventory.pack] : [])].filter((i) => !!i).map((i) => [i!.id, i!.name]));
     const hotbar = HOTBAR_KEYS.map((k) => {
       const slot = y.hotbar[k];
       const name = !slot ? '' : 'echoArt' in slot ? slot.echoArt : weapons.get(slot.weapon) ?? 'Weapon';

@@ -3,12 +3,14 @@
 import { EVENT, type CharacterCreated, type CharacterDeleted, type ConsumableBought, type FoundGearKept, type ItemBought, type ItemGiftAccepted, type ItemSold, type TitheEnded } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
-  BALANCE as B, backgroundById, createRng, losesFound, randomSeed, removeWeaponFromHotbar, settleFoundGear, startingKit, type Character, type Item,
+  BALANCE as B, EQUIP_SLOTS, backgroundById, createRng, losesFound, normalizeEquipment, randomSeed, removeWeaponFromHotbar,
+  settleFoundGear, startingKit,
+  weaponSlot, type Character, type EquipSlot, type Item,
 } from '@maw/rules';
 import type { Client } from '../db.ts';
 import { enqueue } from '../outbox.ts';
 
-async function addItem(client: Client, characterId: string, item: Item, location: 'pack' | 'weapon' | 'armour' | 'ring' = 'pack') {
+async function addItem(client: Client, characterId: string, item: Item, location: 'pack' | EquipSlot = 'pack') {
   await client.query(
     'insert into gear.items (id, character_id, location, data) values ($1, $2, $3, $4) on conflict (id) do nothing',
     [item.id, characterId, location, JSON.stringify(item)],
@@ -26,7 +28,8 @@ export async function onCharacterCreated(client: Client, data: CharacterCreated)
     [data.characterId, data.userId, kit.potions, kit.rations, JSON.stringify(kit.hotbar)],
   );
   if (inserted.rowCount === 0) return;
-  await addItem(client, data.characterId, kit.weapon, 'weapon');
+  // Feature-005: Poacherens Short Bow er afstandsvåbnet, de andre baggrundes våben nærkampsvåbnet.
+  await addItem(client, data.characterId, kit.weapon, weaponSlot(kit.weapon, B));
   await addItem(client, data.characterId, kit.armour, 'armour');
 }
 
@@ -65,7 +68,8 @@ export async function onTitheEnded(client: Client, data: TitheEnded): Promise<vo
   const exists = await client.query('select 1 from gear.inventories where character_id = $1 for update', [data.characterId]);
   if (!exists.rowCount) return; // karakteren er slettet imens
   const g = data.gear;
-  const ch = { equipment: { ...g.equipment }, inventory: [...g.pack] } as Character;
+  // En Tithe, der startede før to våben og to ringe (Feature-007 v3), sender udstyret i det gamle format.
+  const ch = { equipment: normalizeEquipment(g.equipment, B), inventory: [...g.pack] } as Character;
   const lose = losesFound(data.outcome.kind);
   const { lost, kept } = settleFoundGear(ch, data.titheId, lose);
   let hotbar = g.hotbar;
@@ -74,8 +78,8 @@ export async function onTitheEnded(client: Client, data: TitheEnded): Promise<vo
     data.characterId, Math.min(B.character.maxConsumables, g.potions), Math.min(B.character.maxConsumables, g.rations), JSON.stringify(hotbar),
   ]);
   await client.query('delete from gear.items where character_id = $1', [data.characterId]);
-  const placed: [Item, 'pack' | 'weapon' | 'armour' | 'ring'][] = [];
-  for (const slot of ['weapon', 'armour', 'ring'] as const) {
+  const placed: [Item, 'pack' | EquipSlot][] = [];
+  for (const slot of EQUIP_SLOTS) {
     const item = ch.equipment[slot];
     if (item) placed.push([item, slot]);
   }

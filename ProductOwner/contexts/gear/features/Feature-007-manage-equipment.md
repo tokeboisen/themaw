@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-007-manage-equipment.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -14,7 +14,7 @@ created: 2026-11-19
 
 ## 1. Purpose
 
-For the player: choose which weapon, armour and ring the character wears, so the character's build follows the loot the player finds and the skills the player grows.
+For the player: choose which melee weapon, ranged weapon, armour and two rings the character wears, so the character's build follows the loot the player finds and the skills the player grows.
 
 ## 2. Actors
 
@@ -45,8 +45,8 @@ For the player: choose which weapon, armour and ring the character wears, so the
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The equipped weapon, armour and ring, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| VIEW-01 | The equipped melee weapon, ranged weapon, armour and two rings, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -69,6 +69,7 @@ For the player: choose which weapon, armour and ring the character wears, so the
 | Field |
 |---|
 | Item |
+| Ring slot |
 
 ### CMD-02 Unequip item (VIEW-01 → AGG-01)
 
@@ -87,9 +88,11 @@ For the player: choose which weapon, armour and ring the character wears, so the
 | Field |
 |---|
 | Equipment |
-| Equipment › Weapon |
+| Equipment › Melee weapon |
+| Equipment › Ranged weapon |
 | Equipment › Armour |
-| Equipment › Ring |
+| Equipment › Ring 1 |
+| Equipment › Ring 2 |
 | Items (many) |
 | Items › Item |
 
@@ -106,6 +109,18 @@ Scenario: Equipping swaps the weapon
   Then EVT-01 "Item equipped" is recorded
   And the Pickaxe is in the pack
   And Kael's blows now train Blades
+
+Scenario: A bow goes into the ranged slot
+  Given Kael has a Pickaxe equipped and a Short Bow in the pack
+  When the player performs CMD-01 "Equip item" with the Short Bow
+  Then EVT-01 "Item equipped" is recorded
+  And Kael wears the Pickaxe as the melee weapon and the Short Bow as the ranged weapon
+
+Scenario: A second ring
+  Given Kael wears a Bone Ring and has a Cruel Bone Ring in the pack
+  When the player performs CMD-01 "Equip item" with the Cruel Bone Ring
+  Then EVT-01 "Item equipped" is recorded
+  And Kael wears both rings
 ```
 
 ### US-02: Unequip item (CMD-02 → EVT-01, EVT-02, EVT-03)
@@ -132,11 +147,12 @@ As a player I want to drop an item during a Tithe, so that I make room for bette
 
 ### Rules
 
-- Equipping puts the item in its slot – weapon, armour or ring – and moves the item that was there into the pack. (CMD-01)
-- Unequipping needs room in the pack. A character without a weapon fights unarmed: 1–3 damage, trained as Blades. (CMD-02)
+- Equipping puts the item in its slot – a melee weapon, a ranged weapon (a bow), armour or a ring – and moves the item that was there into the pack. A character wears a melee weapon, a ranged weapon, armour and two rings at the same time. A ring goes into a free ring slot; when both are taken, the player chooses which ring it replaces. (CMD-01)
+- Unequipping needs room in the pack. A character without a melee weapon fights unarmed in melee: 1–3 damage, trained as Blades. (CMD-02)
 - Dropping is only possible during a Tithe, and the item is gone. In the Rim items are sold instead (Market, Trade at the Forge). (CMD-03)
 - Weapons have damage, reach or range and attack time, and train their skill: Blades (Dagger, Rusty Sword, Short Sword), Heavy Weapons (Pickaxe, War Axe, Maul) and Bows (Short Bow, Hunting Bow). Armour gives armour, which reduces damage by armour / (armour + 50). A ring only has affixes. (AGG-01)
 - Rarity decides the affixes: Common none, Magic 1–2, Rare 3. Affixes are + an attribute, + % damage, + life, + armour, + the weapon's skill and + % Echo gained. A higher item level gives more damage, armour and bigger affixes. Rings are never common. (AGG-01)
+- Every equipped item gives its affixes – both weapons, also the one that is not chosen on the hotbar (Use the hotbar), and both rings. (AGG-01)
 
 ## 8. Integrations
 
@@ -150,15 +166,15 @@ As a player I want to drop an item during a Tithe, so that I make room for bette
 |---|---|---|---|
 | VIEW-01 | Inventory | (starting point) | CMD-01, CMD-02, CMD-03 |
 
-**VIEW-01:** Lists the equipped weapon, armour and ring with Unequip, and the items in the pack with Equip – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this Tithe – lost if you fall" when that applies.
+**VIEW-01:** Lists the equipped melee weapon, ranged weapon, armour and two rings with Unequip, and the items in the pack with Equip – a ring with Ring 1 and Ring 2 when both ring slots are taken – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this Tithe – lost if you fall" when that applies.
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|
-| – | – | – |
+| 1 | **Equipment slots:** How many weapons and rings can a character wear at the same time? | Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time. |
 
 ### Still open
 

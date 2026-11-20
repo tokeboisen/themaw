@@ -17,7 +17,7 @@ function tithe(players = 2): Tithe {
     seed: 3,
     players: Array.from({ length: players }, (_, i) => {
       const character = createCharacter(['Kael', 'Brann', 'Vessa'][i] ?? `P${i}`, 'miner', createRng(i + 1), B);
-      const hotbar: Hotbar = { '1': { weapon: character.equipment.weapon!.id } };
+      const hotbar: Hotbar = { '1': { weapon: character.equipment.melee!.id } };
       return { userId: `u${i + 1}`, userName: ['kael', 'brann', 'vessa'][i] ?? `p${i}`, characterId: `c${i + 1}`, character, hotbar };
     }),
   }, B);

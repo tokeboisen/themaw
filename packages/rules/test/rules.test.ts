@@ -102,9 +102,9 @@ test('F007 CMD-01: equipping an item swaps it with the one in the slot', () => {
   const ch = fresh();
   const sword = generateItem(createRng(3), 1, B, { baseId: 'short_sword', rarity: 'common' });
   ch.inventory.push(sword);
-  const old = ch.equipment.weapon!;
-  assert.ok(equipItem(ch, sword.id));
-  assert.equal(ch.equipment.weapon, sword);
+  const old = ch.equipment.melee!;
+  assert.equal(equipItem(ch, sword.id, B), 'melee');
+  assert.equal(ch.equipment.melee, sword);
   assert.ok(ch.inventory.includes(old));
   const gold = ch.gold;
   assert.ok(sellItem(ch, old.id, B) > 0);
@@ -127,7 +127,7 @@ test('F010 AGG-01: every depth connects the start with the exit, and the last de
 test('F009 CMD-01: falling costs the gold and items found in that Tithe, never what was brought down', () => {
   const ch = fresh();
   const save = newSave(ch, createRng(2), B);
-  const brought = ch.equipment.weapon;
+  const brought = ch.equipment.melee;
   const found = generateItem(createRng(4), 1, B);
   found.found = 'T1-test';
   ch.inventory.push(found);
@@ -138,7 +138,7 @@ test('F009 CMD-01: falling costs the gold and items found in that Tithe, never w
   const summary = finishTithe(save, t, B);
   assert.deepEqual(summary.lostItems, [found.name]);
   assert.equal(summary.goldLost, 100);
-  assert.equal(ch.equipment.weapon, brought);
+  assert.equal(ch.equipment.melee, brought);
   assert.equal(ch.gold, gold + summary.purse);
   assert.equal(save.rim.gifts.length, 2);
   assert.equal(ch.tithes, 1);
@@ -185,4 +185,34 @@ test('F020 CMD-01 / F024 CMD-01: the Rim sells consumables and hands out sponsor
   save.rim.gifts.push({ id: 'g1', house: 'House Vane', kind: 'gold', gold: 40 });
   assert.ok(acceptGift(save, 'g1', B).ok);
   assert.equal(save.rim.gifts.length, 0);
+});
+
+test('F007 scenarios "A bow goes into the ranged slot" and "A second ring"', () => {
+  const ch = fresh();
+  const pickaxe = ch.equipment.melee!;
+  const bow = generateItem(createRng(5), 1, B, { baseId: 'short_bow', rarity: 'common' });
+  const ring1 = generateItem(createRng(6), 1, B, { slot: 'ring' });
+  const ring2 = generateItem(createRng(7), 1, B, { slot: 'ring' });
+  const ring3 = generateItem(createRng(8), 1, B, { slot: 'ring' });
+  ch.inventory.push(bow, ring1, ring2, ring3);
+  assert.equal(equipItem(ch, bow.id, B), 'ranged');
+  assert.equal(ch.equipment.melee, pickaxe); // Kael wears the Pickaxe and the Short Bow
+  assert.equal(ch.equipment.ranged, bow);
+  assert.equal(equipItem(ch, ring1.id, B), 'ring1');
+  assert.equal(equipItem(ch, ring2.id, B), 'ring2'); // Kael wears both rings
+  // Med begge ringpladser optaget vælger spilleren, hvilken ring der erstattes.
+  assert.equal(equipItem(ch, ring3.id, B, 'ring2'), 'ring2');
+  assert.equal(ch.equipment.ring1, ring1);
+  assert.ok(ch.inventory.includes(ring2));
+});
+
+test('F007 AGG-01: every equipped item gives its affixes, also the weapon that is not chosen', () => {
+  const ch = fresh();
+  const bow = generateItem(createRng(9), 3, B, { baseId: 'short_bow', rarity: 'rare' });
+  bow.affixes = [{ stat: 'maxHp', value: 10 }];
+  const before = derivedStats(ch, B, 'melee').maxHp;
+  ch.equipment.ranged = bow;
+  assert.equal(derivedStats(ch, B, 'melee').maxHp, before + 10);
+  assert.equal(derivedStats(ch, B, 'melee').weapon.skill, 'heavy');
+  assert.equal(derivedStats(ch, B, 'ranged').weapon.skill, 'bows');
 });

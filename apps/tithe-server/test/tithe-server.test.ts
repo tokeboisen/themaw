@@ -30,7 +30,7 @@ function launch(name: string, tickets: string[]): TitheLaunched {
     name,
     players: tickets.map((ticket, i) => {
       const character = createCharacter(`Kael${i}`, 'miner', createRng(i + 1), BALANCE);
-      return { userId: crypto.randomUUID(), userName: `player${i}`, characterId: crypto.randomUUID(), ticket, character, hotbar: { '1': { weapon: character.equipment.weapon!.id } } };
+      return { userId: crypto.randomUUID(), userName: `player${i}`, characterId: crypto.randomUUID(), ticket, character, hotbar: { '1': { weapon: character.equipment.melee!.id } } };
     }),
   };
   app.host.launch(data);

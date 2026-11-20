@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-160" y="-360" width="1200" height="1940" as="geometry" />
+          <mxGeometry x="-160" y="-360" width="1200" height="1970" as="geometry" />
         </mxCell>
         <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
           <mxGeometry x="-160" y="-400" width="1200" height="40" as="geometry" />
@@ -14,7 +14,7 @@
           <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-120" y="-200" width="1120" height="1740" as="geometry" />
+          <mxGeometry x="-120" y="-200" width="1120" height="1770" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Stock the inventory" vertex="1">
           <mxGeometry x="-120" y="-240" width="1120" height="40" as="geometry" />
@@ -48,27 +48,27 @@
         </mxCell>
         <UserObject id="EVT-04" label="Potion bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Shop at the Apothecary">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="780" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="810" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="760" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="790" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-05" label="Ration bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Shop at the Apothecary">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="980" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1010" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-05-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="960" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="990" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-06" label="Item gift accepted&lt;br&gt;&lt;br&gt;(The Rim / Patronage)" tooltip="Accept sponsor gifts">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="1180" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1210" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-06-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="1160" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="1190" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="SVC-01" label="Quartermaster" tooltip="Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and the end of a Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#D689D6;strokeColor=#660066;" vertex="1">
@@ -91,14 +91,14 @@
           <mxGeometry x="400" y="380" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="CMD-03" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Add consumable&lt;/b&gt;&lt;br&gt;Consumable" vertex="1">
-          <mxGeometry x="400" y="780" width="120" height="120" as="geometry" />
+          <mxGeometry x="400" y="810" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="CMD-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
-          <mxGeometry x="400" y="760" width="120" height="20" as="geometry" />
+          <mxGeometry x="400" y="790" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Weapon&lt;br&gt;· Armour&lt;br&gt;· Ring&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Slot&lt;br&gt;· Rarity&lt;br&gt;· Item level&lt;br&gt;· Affixes&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Melee weapon&lt;br&gt;· Ranged weapon&lt;br&gt;· Armour&lt;br&gt;· Ring 1&lt;br&gt;· Ring 2&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Slot&lt;br&gt;· Rarity&lt;br&gt;· Item level&lt;br&gt;· Affixes&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
-            <mxGeometry x="600" y="400" width="120" height="300" as="geometry" />
+            <mxGeometry x="600" y="400" width="120" height="330" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
@@ -117,30 +117,30 @@
           <mxGeometry x="800" y="380" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="EVT-09" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Consumable added" vertex="1">
-          <mxGeometry x="800" y="780" width="120" height="120" as="geometry" />
+          <mxGeometry x="800" y="810" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="EVT-09-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
-          <mxGeometry x="800" y="760" width="120" height="20" as="geometry" />
+          <mxGeometry x="800" y="790" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-10" label="Character deleted&lt;br&gt;&lt;br&gt;(Character Progression / Characters)" tooltip="Delete character">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="1380" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1410" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-10-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="1360" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="1390" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="CMD-04" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Empty inventory&lt;/b&gt;&lt;br&gt;Character" vertex="1">
-          <mxGeometry x="400" y="980" width="120" height="120" as="geometry" />
+          <mxGeometry x="400" y="1010" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="CMD-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
-          <mxGeometry x="400" y="960" width="120" height="20" as="geometry" />
+          <mxGeometry x="400" y="990" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="EVT-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Inventory emptied" vertex="1">
-          <mxGeometry x="800" y="980" width="120" height="120" as="geometry" />
+          <mxGeometry x="800" y="1010" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="EVT-11-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
-          <mxGeometry x="800" y="960" width="120" height="20" as="geometry" />
+          <mxGeometry x="800" y="990" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="FLOW-EVT-01-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.125;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-01" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />

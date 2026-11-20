@@ -106,7 +106,7 @@ describe('Market', { skip: !hasDatabase }, () => {
   test('F019 CMD-02: equipped items cannot be sold', async () => {
     const cookie = await signUp(app, named('m7'));
     const id = await createCharacter(app, pool, cookie);
-    const weapon = (await get(cookie, `/api/characters/${id}/inventory`)).equipment.weapon;
+    const weapon = (await get(cookie, `/api/characters/${id}/inventory`)).equipment.melee;
     assert.equal((await post(cookie, `/api/characters/${id}/forge/sell`, { itemId: weapon.id })).statusCode, 400);
   });
 

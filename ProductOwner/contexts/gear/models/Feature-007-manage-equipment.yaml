@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -10,7 +10,8 @@ use_case:
   purpose:
     derived: false
     text: >-
-      For the player: choose which weapon, armour and ring the character wears, so the character's build follows
+      For the player: choose which melee weapon, ranged weapon, armour and two rings the character wears, so the
+      character's build follows
       the loot the player finds and the skills the player grows.
 elements:
   - id: VIEW-01
@@ -21,11 +22,12 @@ elements:
     actors:
       - Player
     description: >-
-      The equipped weapon, armour and ring, the items in the pack and the hotbar with the keys 1–8, each item
+      The equipped melee weapon, ranged weapon, armour and two rings, the items in the pack and the hotbar with the
+      keys 1–8, each item
       with damage or armour and affixes. Part of the character sheet.
     behavior: >-
-      Lists the equipped weapon, armour and ring with Unequip, and the items in the pack with Equip – and with
-      Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this
+      Lists the equipped melee weapon, ranged weapon, armour and two rings with Unequip, and the items in the pack
+      with Equip – a ring with Ring 1 and Ring 2 when both ring slots are taken – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this
       Tithe – lost if you fall" when that applies.
   - id: CMD-01
     type: command
@@ -35,6 +37,7 @@ elements:
     story: As a player I want to equip an item from my pack, so that I fight with the best gear I have.
     fields:
       - name: Item
+      - name: Ring slot
   - id: CMD-02
     type: command
     name: Unequip item
@@ -57,14 +60,17 @@ elements:
     col: 3
     stack: 2
     description: >-
-      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
       - name: Equipment
         attributes:
-          - name: Weapon
+          - name: Melee weapon
+          - name: Ranged weapon
           - name: Armour
-          - name: Ring
+          - name: Ring 1
+          - name: Ring 2
       - name: Items
         attributes:
           - name: Item
@@ -107,13 +113,15 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      Equipping puts the item in its slot – weapon, armour or ring – and moves the item that was there into
-      the pack.
+      Equipping puts the item in its slot – a melee weapon, a ranged weapon (a bow), armour or a ring – and moves the
+      item that was there into the pack. A character wears a melee weapon, a ranged weapon, armour and two rings at
+      the same time. A ring goes into a free ring slot; when both are taken, the player chooses which ring it
+      replaces.
   - applies_to:
       - CMD-02
     text: >-
-      Unequipping needs room in the pack. A character without a weapon fights unarmed: 1–3 damage, trained
-      as Blades.
+      Unequipping needs room in the pack. A character without a melee weapon fights unarmed in melee: 1–3 damage,
+      trained as Blades.
   - applies_to:
       - CMD-03
     text: >-
@@ -131,6 +139,11 @@ rules:
       Rarity decides the affixes: Common none, Magic 1–2, Rare 3. Affixes are + an attribute, + % damage, +
       life, + armour, + the weapon's skill and + % Echo gained. A higher item level gives more damage, armour
       and bigger affixes. Rings are never common.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Every equipped item gives its affixes – both weapons, also the one that is not chosen on the hotbar (Use the
+      hotbar), and both rings.
 scenarios:
   - title: Equipping swaps the weapon
     applies_to:
@@ -149,3 +162,27 @@ scenarios:
       When the player performs CMD-02 "Unequip item" with the ring
       Then nothing is recorded
       And "Your inventory is full." is shown
+  - title: A bow goes into the ranged slot
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has a Pickaxe equipped and a Short Bow in the pack
+      When the player performs CMD-01 "Equip item" with the Short Bow
+      Then EVT-01 "Item equipped" is recorded
+      And Kael wears the Pickaxe as the melee weapon and the Short Bow as the ranged weapon
+  - title: A second ring
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael wears a Bone Ring and has a Cruel Bone Ring in the pack
+      When the player performs CMD-01 "Equip item" with the Cruel Bone Ring
+      Then EVT-01 "Item equipped" is recorded
+      And Kael wears both rings
+open_questions:
+  - topic: Equipment slots
+    question: How many weapons and rings can a character wear at the same time?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time.

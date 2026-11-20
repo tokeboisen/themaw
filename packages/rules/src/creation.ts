@@ -3,6 +3,7 @@
 
 import type { Balance } from './balance.ts';
 import { ATTRIBUTES, SKILLS } from './character.ts';
+import { emptyEquipment } from './items.ts';
 import type { Allocation, Attribute, Background, Character, SkillId } from './types.ts';
 
 export type PointKind = 'attributes' | 'skills';
@@ -103,7 +104,7 @@ export function newCharacter(name: string, bg: Background, alloc: Allocation): C
     gold: 0,
     potions: 0,
     rations: 0,
-    equipment: { weapon: null, armour: null, ring: null },
+    equipment: emptyEquipment(),
     inventory: [],
     tithes: 0,
     championships: 0,

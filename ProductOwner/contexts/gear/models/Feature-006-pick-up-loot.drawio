@@ -36,7 +36,7 @@
         <mxCell id="CMD-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
           <mxGeometry x="200" y="-20" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Found in Tithe&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;Gold found" tooltip="Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Found in Tithe&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;Gold found" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
             <mxGeometry x="400" y="0" width="120" height="140" as="geometry" />
           </mxCell>

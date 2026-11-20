@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-011-fight-in-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 5
+version: 6
 status: draft
 created: 2026-11-19
 ```
@@ -14,7 +14,7 @@ created: 2026-11-19
 
 ## 1. Purpose
 
-For the player: strike monsters, rivals and other players with the weapon in hand or an Echo Art, so the candidate survives, earns Echo and Renown and finds loot.
+For the player: strike monsters, rivals and other players with the chosen weapon or an Echo Art, so the candidate survives, earns Echo and Renown and finds loot.
 
 ## 2. Actors
 
@@ -170,7 +170,7 @@ Scenario: No focus, no bolt
 
 ## 10. Validation and open questions
 
-### Resolved in version 5
+### Resolved in version 6
 
 | # | Question | Resolution |
 |---|---|---|

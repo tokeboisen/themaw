@@ -3,7 +3,7 @@
 
 import type { Balance } from './balance.ts';
 import { derivedStats, sellItem as sellFromInventory } from './character.ts';
-import { generateItem } from './items.ts';
+import { EQUIP_SLOTS, generateItem } from './items.ts';
 import { createRng, type Rng } from './rng.ts';
 import type { Character, Item, SkillId } from './types.ts';
 
@@ -217,7 +217,7 @@ export function settleFoundGear(ch: Character, titheId: string, lose: boolean): 
       ch.inventory.splice(ch.inventory.indexOf(item), 1);
     } else kept.push(item);
   }
-  for (const slot of ['weapon', 'armour', 'ring'] as const) {
+  for (const slot of EQUIP_SLOTS) {
     const item = ch.equipment[slot];
     if (!item || item.found !== titheId) continue;
     if (lose) {

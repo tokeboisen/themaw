@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-028-use-the-hotbar.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -42,7 +42,7 @@ For the player: press a number key to choose what Attack (Space) uses – the we
 | ID | Description |
 |---|---|
 | VIEW-01 | The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -65,7 +65,8 @@ For the player: press a number key to choose what Attack (Space) uses – the we
 | Field |
 |---|
 | Equipment |
-| Equipment › Weapon |
+| Equipment › Melee weapon |
+| Equipment › Ranged weapon |
 | Hotbar (many) |
 | Hotbar › Key |
 | Hotbar › Weapon |
@@ -79,18 +80,24 @@ As a player I want to choose what is on a number key, so that Attack uses the ri
 
 ```gherkin
 Scenario: Drawing the bow
-  Given Kael holds the Pickaxe and the Short Bow is on key 3
+  Given Kael holds the Pickaxe and the Short Bow in the pack is on key 3
   When the player performs CMD-01 "Choose hotbar key" with key 3
   Then EVT-01 "Hotbar key chosen" is recorded
-  And the Pickaxe is in the pack
+  And the Short Bow is the ranged weapon and the Pickaxe is still the melee weapon
   And Attack shoots the Short Bow, and its arrows train Bows
+
+Scenario: Switching back to the melee weapon
+  Given Kael wears the Pickaxe and the Short Bow and has chosen the Short Bow
+  When the player performs CMD-01 "Choose hotbar key" with key 1
+  Then EVT-01 "Hotbar key chosen" is recorded
+  And Attack strikes with the Pickaxe
 
 Scenario: Choosing Echo Bolt
   Given Kael holds the Pickaxe and Echo Bolt is on key 2
   When the player performs CMD-01 "Choose hotbar key" with key 2
   Then EVT-01 "Hotbar key chosen" is recorded
   And no Echo Bolt is cast
-  And Kael still holds the Pickaxe
+  And Kael still wears the Pickaxe
   And Attack casts Echo Bolt at the automatic target
 ```
 
@@ -102,10 +109,10 @@ Scenario: Choosing Echo Bolt
 
 ### Rules
 
-- Pressing a key chooses what Attack (Space) uses. A key with a weapon draws it: it becomes the equipped weapon, and the weapon in hand goes into the pack. The candidate cannot strike while drawing (0.3 seconds). (CMD-01)
-- A key with an Echo Art chooses it without casting it, and the weapon stays in hand. A key with nothing on it does nothing. (CMD-01)
-- Attack (Space) uses what is chosen: it strikes with the weapon in hand, and its blows train that weapon's skill, or it casts the chosen Echo Art at the automatic target (Tithe, Fight in the depths). (EVT-01)
-- A Tithe starts with the key of the weapon in hand chosen. Equipping another weapon on the character sheet chooses its key. (AGG-01)
+- Pressing a key chooses what Attack (Space) uses. A key with an equipped weapon chooses it. A key with a weapon in the pack draws it: it goes into its slot – melee or ranged – and the weapon that was there goes into the pack. Changing weapon takes 0.3 seconds, in which the candidate cannot strike. (CMD-01)
+- A key with an Echo Art chooses it without casting it, and the weapons stay equipped. A key with nothing on it does nothing. (CMD-01)
+- Attack (Space) uses what is chosen: it strikes with the chosen weapon, and its blows train that weapon's skill, or it casts the chosen Echo Art at the automatic target (Tithe, Fight in the depths). (EVT-01)
+- A Tithe starts with the melee weapon chosen, or the ranged weapon when there is no melee weapon; with neither, the candidate fights unarmed. Equipping a weapon on the character sheet chooses it. (AGG-01)
 - Clicking a slot of the hotbar with the mouse does the same as pressing its key. (CMD-01)
 
 ## 8. Integrations
@@ -124,11 +131,12 @@ Scenario: Choosing Echo Bolt
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **What a hotbar key does:** Should a key with an Echo Art cast it at once, or choose what Attack (Space) uses? | Decided 2026-11-19: every key chooses what Attack (Space) uses; a weapon is drawn, an Echo Art is chosen without being cast. |
+| 2 | **Equipment slots:** How many weapons and rings can a character wear at the same time? | Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time. |
 
 ### Still open
 

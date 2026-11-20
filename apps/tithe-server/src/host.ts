@@ -7,7 +7,7 @@ import type { WebSocket } from 'ws';
 import { EVENT, MESSAGES, type ClientMessage, type EventEnvelope, type PlayerDefeated, type ServerMessage, type TitheLaunched } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
-  ATTRIBUTES, BALANCE as B, ECHO_ARTS, HOTBAR_KEYS, SKILLS, answerInvitation, createTithe, invitePlayer, leaveParty, leaveTithe,
+  ATTRIBUTES, BALANCE as B, ECHO_ARTS, HOTBAR_KEYS, SKILLS, answerInvitation, isEquipSlot, createTithe, invitePlayer, leaveParty, leaveTithe,
   playersIn, queueAct, randomSeed, setInput, sheetAction, stepTithe, type Balance, type SheetAction, type Tithe,
 } from '@maw/rules';
 import { newViewState, results, sheet, snapshot, titheEnded, type ViewState } from './views.ts';
@@ -179,10 +179,11 @@ function validSheetAction(a: unknown): a is SheetAction {
   const x = a as Record<string, unknown>;
   switch (x.action) {
     case 'equip':
+      return typeof x.itemId === 'string' && (x.ring === undefined || x.ring === 'ring1' || x.ring === 'ring2');
     case 'drop':
       return typeof x.itemId === 'string';
     case 'unequip':
-      return x.slot === 'weapon' || x.slot === 'armour' || x.slot === 'ring';
+      return isEquipSlot(x.slot);
     case 'hotbar':
       return (HOTBAR_KEYS as readonly unknown[]).includes(x.key) && (typeof x.itemId === 'string' || (ECHO_ARTS as readonly unknown[]).includes(x.echoArt));
     case 'clear':

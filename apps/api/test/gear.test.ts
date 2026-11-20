@@ -25,12 +25,13 @@ describe('Gear', { skip: !hasDatabase }, () => {
     const cookie = await signUp(app, named('g1'));
     const id = await createCharacter(app, pool, cookie, 'Kael', 'miner');
     const inv = await inventory(cookie, id);
-    assert.equal(inv.equipment.weapon.baseId, 'pickaxe');
-    assert.equal(inv.equipment.weapon.rarity, 'common');
+    assert.equal(inv.equipment.melee.baseId, 'pickaxe');
+    assert.equal(inv.equipment.melee.rarity, 'common');
+    assert.equal(inv.equipment.ranged, null);
     assert.equal(inv.equipment.armour.baseId, 'padded_coat');
     assert.equal(inv.potions, 2);
     assert.equal(inv.rations, 3);
-    assert.deepEqual(inv.hotbar, { '1': { weapon: inv.equipment.weapon.id }, '2': { echoArt: 'Echo Bolt' } });
+    assert.deepEqual(inv.hotbar, { '1': { weapon: inv.equipment.melee.id }, '2': { echoArt: 'Echo Bolt' } });
     assert.deepEqual(inv.pack, []);
     assert.equal(inv.capacity, 13); // 12 + 1 for Strength 13
   });
@@ -70,9 +71,35 @@ describe('Gear', { skip: !hasDatabase }, () => {
     const response = await app.inject({ method: 'POST', url: `/api/characters/${id}/equip`, headers: { cookie }, payload: { itemId: sword!.id } });
     assert.equal(response.statusCode, 200);
     const inv = response.json();
-    assert.equal(inv.equipment.weapon.id, sword!.id);
+    assert.equal(inv.equipment.melee.id, sword!.id);
     assert.deepEqual(inv.pack.map((i: { baseId: string }) => i.baseId), ['pickaxe']); // the Pickaxe is in the pack
-    assert.equal(inv.equipment.weapon.skill, 'blades'); // Kael's blows now train Blades
+    assert.equal(inv.equipment.melee.skill, 'blades'); // Kael's blows now train Blades
+  });
+
+  test('F005: the Poacher\'s Short Bow is the ranged weapon', async () => {
+    const cookie = await signUp(app, named('g12'));
+    const id = await createCharacter(app, pool, cookie, 'Vessa', 'poacher');
+    const inv = await inventory(cookie, id);
+    assert.equal(inv.equipment.ranged.baseId, 'short_bow');
+    assert.equal(inv.equipment.melee, null);
+  });
+
+  test('F007 scenarios "A bow goes into the ranged slot" and "A second ring"', async () => {
+    const cookie = await signUp(app, named('g13'));
+    const id = await createCharacter(app, pool, cookie);
+    const [bow] = items(1, { baseId: 'short_bow', rarity: 'common' });
+    const rings = items(3, { slot: 'ring' });
+    await putInPack(pool, id, [bow!, ...rings]);
+    const equip = async (payload: object) => (await app.inject({ method: 'POST', url: `/api/characters/${id}/equip`, headers: { cookie }, payload })).json();
+    let inv = await equip({ itemId: bow!.id });
+    assert.equal(inv.equipment.melee.baseId, 'pickaxe'); // Kael wears the Pickaxe and the Short Bow
+    assert.equal(inv.equipment.ranged.id, bow!.id);
+    await equip({ itemId: rings[0]!.id });
+    inv = await equip({ itemId: rings[1]!.id });
+    assert.deepEqual([inv.equipment.ring1.id, inv.equipment.ring2.id], [rings[0]!.id, rings[1]!.id]); // Kael wears both rings
+    inv = await equip({ itemId: rings[2]!.id, ring: 'ring2' }); // med begge optaget vælger spilleren pladsen
+    assert.deepEqual([inv.equipment.ring1.id, inv.equipment.ring2.id], [rings[0]!.id, rings[2]!.id]);
+    assert.ok(inv.pack.some((i: { id: string }) => i.id === rings[1]!.id));
   });
 
   test('F007 scenario "Unequipping needs room"', async () => {
@@ -83,10 +110,10 @@ describe('Gear', { skip: !hasDatabase }, () => {
     await app.inject({ method: 'POST', url: `/api/characters/${id}/equip`, headers: { cookie }, payload: { itemId: ring!.id } });
     const capacity = (await inventory(cookie, id)).capacity;
     await putInPack(pool, id, items(capacity, { slot: 'armour', rarity: 'common' })); // Kael's pack is full
-    const response = await app.inject({ method: 'POST', url: `/api/characters/${id}/unequip`, headers: { cookie }, payload: { slot: 'ring' } });
+    const response = await app.inject({ method: 'POST', url: `/api/characters/${id}/unequip`, headers: { cookie }, payload: { slot: 'ring1' } });
     assert.equal(response.statusCode, 409);
     assert.deepEqual(response.json(), { message: MESSAGES.inventoryFull });
-    assert.equal((await inventory(cookie, id)).equipment.ring.id, ring!.id); // nothing is recorded
+    assert.equal((await inventory(cookie, id)).equipment.ring1.id, ring!.id); // nothing is recorded
   });
 
   test('F027 scenario "A bow is put on key 3"', async () => {

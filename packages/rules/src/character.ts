@@ -3,9 +3,9 @@
 // Overført fra prototypen; tilpasses featurenes nuværende versioner i fase 1 og 2.
 
 import type { Balance } from './balance.ts';
-import { generateItem, itemBase, sellValue } from './items.ts';
+import { emptyEquipment, generateItem, itemBase, sellValue, targetSlot, weaponSlot } from './items.ts';
 import type { Rng } from './rng.ts';
-import type { Attribute, Character, Item, SkillId, Slot } from './types.ts';
+import type { Attribute, Character, EquipSlot, Item, SkillId, WeaponSlot } from './types.ts';
 
 export const ATTRIBUTES: Attribute[] = ['strength', 'dexterity', 'stamina', 'constitution', 'intelligence'];
 export const ATTRIBUTE_NAMES: Record<Attribute, string> = {
@@ -37,11 +37,13 @@ export function createCharacter(name: string, backgroundId: string, rng: Rng, B:
     gold: C.startGold,
     potions: C.startPotions,
     rations: C.startRations,
-    equipment: {
-      weapon: generateItem(rng, 1, B, { baseId: bg.weapon, rarity: 'common' }),
-      armour: generateItem(rng, 1, B, { baseId: 'padded_coat', rarity: 'common' }),
-      ring: null,
-    },
+    equipment: (() => {
+      const equipment = emptyEquipment();
+      const weapon = generateItem(rng, 1, B, { baseId: bg.weapon, rarity: 'common' });
+      equipment[weaponSlot(weapon, B)] = weapon;
+      equipment.armour = generateItem(rng, 1, B, { baseId: 'padded_coat', rarity: 'common' });
+      return equipment;
+    })(),
     inventory: [],
     tithes: 0,
     championships: 0,
@@ -202,21 +204,50 @@ export interface DerivedStats {
   capacity: number;
   echoGain: number;
   moveSpeed: number;
+  /** Det valgte våben, som Attack bruger (Feature-028). */
   weapon: WeaponStats;
+  /** Nærkampsvåbnet, eller de bare næver uden et (Feature-007). */
+  melee: WeaponStats;
+  /** Afstandsvåbnet, hvis der er et. */
+  ranged: WeaponStats | null;
   bolt: BoltStats;
 }
 
-export function derivedStats(ch: Character, B: Balance): DerivedStats {
-  const bonuses = itemBonuses(ch);
-  const a = effectiveAttributes(ch, bonuses);
-  const C = B.character;
-  const base = C.startAttribute;
-  const item = ch.equipment.weapon;
+function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: ItemBonuses): WeaponStats {
   const wb = item ? itemBase(B, item.baseId) : null;
   const unarmed = B.combat.unarmed;
   const skill: SkillId = item?.skill ?? 'blades';
   const effective = effectiveSkill(ch, skill, B, bonuses);
-  const damageMult = (1 + effective * B.skills.damagePerSkill) * (1 + bonuses.damagePct / 100);
+  return {
+    skill,
+    min: item?.min ?? unarmed.min,
+    max: item?.max ?? unarmed.max,
+    reach: wb?.reach ?? unarmed.reach,
+    range: wb?.range ?? 0,
+    ranged: !!wb?.range,
+    arc: wb?.arc ?? unarmed.arc,
+    staminaCost: wb?.stamina ?? unarmed.stamina,
+    cooldown: (wb?.cooldown ?? unarmed.cooldown) * attackSpeed(effective, B),
+    effective,
+    damageMult: (1 + effective * B.skills.damagePerSkill) * (1 + bonuses.damagePct / 100),
+  };
+}
+
+/**
+ * Feature-028: våbnet, Attack bruger, når intet andet er valgt: nærkampsvåbnet, ellers afstandsvåbnet, ellers de bare
+ * næver.
+ */
+export function defaultWeapon(ch: Character): WeaponSlot {
+  return !ch.equipment.melee && ch.equipment.ranged ? 'ranged' : 'melee';
+}
+
+export function derivedStats(ch: Character, B: Balance, chosen: WeaponSlot = defaultWeapon(ch)): DerivedStats {
+  const bonuses = itemBonuses(ch);
+  const a = effectiveAttributes(ch, bonuses);
+  const C = B.character;
+  const base = C.startAttribute;
+  const melee = weaponStats(ch, ch.equipment.melee, B, bonuses);
+  const ranged = ch.equipment.ranged ? weaponStats(ch, ch.equipment.ranged, B, bonuses) : null;
   const echoEffective = effectiveSkill(ch, 'echo', B, bonuses);
   const bolt = B.combat.echoBolt;
   const armour = bonuses.armour;
@@ -234,19 +265,9 @@ export function derivedStats(ch: Character, B: Balance): DerivedStats {
     capacity: C.baseCapacity + Math.floor(Math.max(0, a.strength - base) / 2) * C.capacityPerTwoStrength,
     echoGain: 1 + bonuses.echoGain / 100,
     moveSpeed: C.moveSpeed,
-    weapon: {
-      skill,
-      min: item?.min ?? unarmed.min,
-      max: item?.max ?? unarmed.max,
-      reach: wb?.reach ?? unarmed.reach,
-      range: wb?.range ?? 0,
-      ranged: !!wb?.range,
-      arc: wb?.arc ?? unarmed.arc,
-      staminaCost: wb?.stamina ?? unarmed.stamina,
-      cooldown: (wb?.cooldown ?? unarmed.cooldown) * attackSpeed(effective, B),
-      effective,
-      damageMult,
-    },
+    weapon: chosen === 'ranged' && ranged ? ranged : melee,
+    melee,
+    ranged,
     bolt: {
       skill: 'echo',
       min: bolt.min,
@@ -267,19 +288,23 @@ export function hasRoom(ch: Character, B: Balance): boolean {
   return ch.inventory.length < derivedStats(ch, B).capacity;
 }
 
-/** Tager en ting på fra inventory; det, der sad på pladsen, kommer i inventory. */
-export function equipItem(ch: Character, itemId: string): boolean {
+/**
+ * Feature-007 CMD-01: tager en ting på fra inventory på dens plads – nærkamps- eller afstandsvåben, rustning eller en
+ * ringplads – og det, der sad der, kommer i inventory. Returnerer pladsen, eller null.
+ */
+export function equipItem(ch: Character, itemId: string, B: Balance, ringSlot?: 'ring1' | 'ring2'): EquipSlot | null {
   const index = ch.inventory.findIndex((i) => i.id === itemId);
-  if (index < 0) return false;
+  if (index < 0) return null;
   const item = ch.inventory[index]!;
-  const old = ch.equipment[item.slot];
-  ch.equipment[item.slot] = item;
+  const slot = targetSlot(ch.equipment, item, B, item.slot === 'ring' ? ringSlot : undefined);
+  const old = ch.equipment[slot];
+  ch.equipment[slot] = item;
   ch.inventory.splice(index, 1);
   if (old) ch.inventory.push(old);
-  return true;
+  return slot;
 }
 
-export function unequipItem(ch: Character, slot: Slot, B: Balance): boolean {
+export function unequipItem(ch: Character, slot: EquipSlot, B: Balance): boolean {
   const item = ch.equipment[slot];
   if (!item || !hasRoom(ch, B)) return false;
   ch.equipment[slot] = null;

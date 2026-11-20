@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-008-use-consumables.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -44,7 +44,7 @@ For the player: drink a potion or eat a ration in the middle of a Tithe, so the 
 | ID | Description |
 |---|---|
 | VIEW-01 | The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -125,7 +125,7 @@ Scenario: A ration is eaten
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

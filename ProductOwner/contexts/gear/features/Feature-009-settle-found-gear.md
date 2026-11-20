@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-009-settle-found-gear.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -44,7 +44,7 @@ For the player: when a Tithe ends, what was found in it is kept – unless the c
 | ID | Description |
 |---|---|
 | SVC-01 | Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and the end of a Tithe. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -69,9 +69,11 @@ For the player: when a Tithe ends, what was found in it is kept – unless the c
 | Field |
 |---|
 | Equipment |
-| Equipment › Weapon |
+| Equipment › Melee weapon |
+| Equipment › Ranged weapon |
 | Equipment › Armour |
-| Equipment › Ring |
+| Equipment › Ring 1 |
+| Equipment › Ring 2 |
 | Items (many) |
 | Items › Item |
 | Items › Found in Tithe |
@@ -126,7 +128,7 @@ Scenario: Leaving loses what was found
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

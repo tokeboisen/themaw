@@ -89,11 +89,19 @@ export interface SkillState {
   xp: number;
 }
 
+/** Feature-007: en karakter bærer et nærkampsvåben, et afstandsvåben, rustning og to ringe på samme tid. */
+export type EquipSlot = 'melee' | 'ranged' | 'armour' | 'ring1' | 'ring2';
+
 export interface Equipment {
-  weapon: Item | null;
+  melee: Item | null;
+  ranged: Item | null;
   armour: Item | null;
-  ring: Item | null;
+  ring1: Item | null;
+  ring2: Item | null;
 }
+
+/** Det våben, Attack bruger (Feature-028). */
+export type WeaponSlot = 'melee' | 'ranged';
 
 export interface Character {
   name: string;

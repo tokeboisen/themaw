@@ -1,6 +1,6 @@
 // Gear: inventaret (Feature-005, -007, -027) og Gears forespørgsler til Market og Patronage.
 
-import { BALANCE as B, derivedStats, type Character, type Equipment, type Hotbar, type Item, type Slot } from '@maw/rules';
+import { BALANCE as B, derivedStats, emptyEquipment, type Character, type EquipSlot, type Equipment, type Hotbar, type Item } from '@maw/rules';
 import { characterCore } from '../characters/queries.ts';
 import type { Client, Pool } from '../db.ts';
 
@@ -23,11 +23,11 @@ export async function loadInventory(db: Db, characterId: string, lock = false): 
   );
   const row = inv.rows[0];
   if (!row) return undefined;
-  const items = await db.query<{ location: Slot | 'pack'; data: Item }>(
+  const items = await db.query<{ location: EquipSlot | 'pack'; data: Item }>(
     'select location, data from gear.items where character_id = $1 order by added_at, id',
     [characterId],
   );
-  const equipment: Equipment = { weapon: null, armour: null, ring: null };
+  const equipment: Equipment = emptyEquipment();
   const pack: Item[] = [];
   for (const item of items.rows) {
     if (item.location === 'pack') pack.push(item.data);

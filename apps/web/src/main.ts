@@ -7,7 +7,7 @@
 import { MESSAGES, type EndedMessage } from '@maw/contracts';
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
-  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type HotbarKey, type PointKind, type Slot,
+  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EquipSlot, type HotbarKey, type PointKind,
 } from '@maw/rules';
 import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type StatisticsRow, type TitheListItem } from './api.ts';
 import { $, esc, onAction } from './dom.ts';
@@ -226,7 +226,7 @@ function overlayHtml(): string {
     const inGame = state.screen === 'tithe';
     const inv = inGame ? state.game?.sheetData?.inventory : state.rim.data.inventory;
     const hotbar = inGame ? state.game?.hotbar ?? {} : inv?.hotbar ?? {};
-    const weapons = inv ? [inv.equipment.weapon, ...inv.pack] : [];
+    const weapons = inv ? [inv.equipment.melee, inv.equipment.ranged, ...inv.pack] : [];
     return helpHtml(hotbar, (id) => weapons.find((w) => w?.id === id)?.name ?? 'a weapon');
   }
   if (o === 'others') return othersHtml(state.others, state.screen === 'tithe' ? state.game?.party ?? null : null);
@@ -413,8 +413,10 @@ function titheSheetAction(action: string, id: string | undefined): boolean {
   if (state.screen !== 'tithe' || !game) return false;
   const key = state.rim.hotbarKey as HotbarKey | null;
   state.rim.sheetMessage = '';
-  if (action === 'equip') game.sheetAction({ action: 'equip', itemId: id! });
-  else if (action === 'unequip') game.sheetAction({ action: 'unequip', slot: id as Slot });
+  if (action === 'equip') {
+    const [itemId, ring] = id!.split('|') as [string, 'ring1' | 'ring2' | undefined];
+    game.sheetAction(ring ? { action: 'equip', itemId, ring } : { action: 'equip', itemId });
+  } else if (action === 'unequip') game.sheetAction({ action: 'unequip', slot: id as EquipSlot });
   else if (action === 'drop') game.sheetAction({ action: 'drop', itemId: id! });
   else if (action === 'hotbar-weapon' && key) game.sheetAction({ action: 'hotbar', key, itemId: id! });
   else if (action === 'hotbar-art' && key) game.sheetAction({ action: 'hotbar', key, echoArt: 'Echo Bolt' });
@@ -616,7 +618,8 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'hotbar-clear': {
       const c = active()!;
       const key = state.rim.hotbarKey ?? '';
-      const result = action === 'equip' ? await api.equip(c.id, id!)
+      const [itemId, ring] = (id ?? '').split('|') as [string, 'ring1' | 'ring2' | undefined];
+      const result = action === 'equip' ? await api.equip(c.id, itemId, ring)
         : action === 'unequip' ? await api.unequip(c.id, id!)
         : action === 'hotbar-weapon' ? await api.assignHotbar(c.id, key, { itemId: id! })
         : action === 'hotbar-art' ? await api.assignHotbar(c.id, key, { echoArt: id! })

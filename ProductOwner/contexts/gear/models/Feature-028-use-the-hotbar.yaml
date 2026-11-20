@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -40,12 +40,14 @@ elements:
     col: 3
     stack: 1
     description: >-
-      Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack,
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
       - name: Equipment
         attributes:
-          - name: Weapon
+          - name: Melee weapon
+          - name: Ranged weapon
       - name: Hotbar
         attributes:
           - name: Key
@@ -68,23 +70,24 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      Pressing a key chooses what Attack (Space) uses. A key with a weapon draws it: it becomes the equipped weapon,
-      and the weapon in hand goes into the pack. The candidate cannot strike while drawing (0.3 seconds).
+      Pressing a key chooses what Attack (Space) uses. A key with an equipped weapon chooses it. A key with a weapon
+      in the pack draws it: it goes into its slot – melee or ranged – and the weapon that was there goes into the
+      pack. Changing weapon takes 0.3 seconds, in which the candidate cannot strike.
   - applies_to:
       - CMD-01
     text: >-
-      A key with an Echo Art chooses it without casting it, and the weapon stays in hand. A key with nothing on it
+      A key with an Echo Art chooses it without casting it, and the weapons stay equipped. A key with nothing on it
       does nothing.
   - applies_to:
       - EVT-01
     text: >-
-      Attack (Space) uses what is chosen: it strikes with the weapon in hand, and its blows train that weapon's
+      Attack (Space) uses what is chosen: it strikes with the chosen weapon, and its blows train that weapon's
       skill, or it casts the chosen Echo Art at the automatic target (Tithe, Fight in the depths).
   - applies_to:
       - AGG-01
     text: >-
-      A Tithe starts with the key of the weapon in hand chosen. Equipping another weapon on the character sheet
-      chooses its key.
+      A Tithe starts with the melee weapon chosen, or the ranged weapon when there is no melee weapon; with neither,
+      the candidate fights unarmed. Equipping a weapon on the character sheet chooses it.
   - applies_to:
       - CMD-01
     text: Clicking a slot of the hotbar with the mouse does the same as pressing its key.
@@ -93,11 +96,19 @@ scenarios:
     applies_to:
       - CMD-01
     gherkin: |-
-      Given Kael holds the Pickaxe and the Short Bow is on key 3
+      Given Kael holds the Pickaxe and the Short Bow in the pack is on key 3
       When the player performs CMD-01 "Choose hotbar key" with key 3
       Then EVT-01 "Hotbar key chosen" is recorded
-      And the Pickaxe is in the pack
+      And the Short Bow is the ranged weapon and the Pickaxe is still the melee weapon
       And Attack shoots the Short Bow, and its arrows train Bows
+  - title: Switching back to the melee weapon
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael wears the Pickaxe and the Short Bow and has chosen the Short Bow
+      When the player performs CMD-01 "Choose hotbar key" with key 1
+      Then EVT-01 "Hotbar key chosen" is recorded
+      And Attack strikes with the Pickaxe
   - title: Choosing Echo Bolt
     applies_to:
       - CMD-01
@@ -106,7 +117,7 @@ scenarios:
       When the player performs CMD-01 "Choose hotbar key" with key 2
       Then EVT-01 "Hotbar key chosen" is recorded
       And no Echo Bolt is cast
-      And Kael still holds the Pickaxe
+      And Kael still wears the Pickaxe
       And Attack casts Echo Bolt at the automatic target
 open_questions:
   - topic: What a hotbar key does
@@ -117,3 +128,10 @@ open_questions:
     resolution: >-
       Decided 2026-11-19: every key chooses what Attack (Space) uses; a weapon is drawn, an Echo Art is chosen
       without being cast.
+  - topic: Equipment slots
+    question: How many weapons and rings can a character wear at the same time?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-19: a melee weapon, a ranged weapon, armour and two rings at the same time.

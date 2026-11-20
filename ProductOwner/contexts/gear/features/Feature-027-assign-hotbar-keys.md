@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-027-assign-hotbar-keys.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -43,8 +43,8 @@ For the player: put weapons and Echo Arts on the keys 1–8, so the player can s
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The equipped weapon, armour and ring, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet. |
-| AGG-01 | Everything a character owns and carries: the equipped weapon, armour and ring, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| VIEW-01 | The equipped melee weapon, ranged weapon, armour and two rings, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -134,7 +134,7 @@ As a player I want to clear a number key, so that my hotbar only holds what I us
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|
