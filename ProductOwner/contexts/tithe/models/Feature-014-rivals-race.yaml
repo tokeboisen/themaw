@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -111,8 +111,8 @@ rules:
   - applies_to:
       - SVC-01
     text: >-
-      Rivals walk toward the stairs in bursts and search on the way, so a depth takes them about 110 seconds
-      (±15 %, a little faster at a higher level). In a sealed depth they move three times as fast. Rivals the
+      Rivals walk toward the stairs – in The Broken City toward the foundry – in bursts and search on the way, so a
+      depth takes them about 110 seconds (±15 %, a little faster at a higher level). In a sealed depth they move three times as fast. Rivals the
       player cannot see move on at the same pace without being shown.
   - applies_to:
       - SVC-01

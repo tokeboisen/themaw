@@ -2,4 +2,5 @@
 export * from './events.ts';
 export * from './messages.ts';
 export * from './payloads.ts';
+export * from './square.ts';
 export * from './tithe.ts';

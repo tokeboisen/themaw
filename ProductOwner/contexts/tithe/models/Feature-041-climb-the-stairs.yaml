@@ -1,0 +1,98 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Climb the stairs
+  bounded_context: Tithe
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: climb the stairs of a large house or a factory in The Broken City to its upper floors and
+      back down, so the candidate can search them for loot – and leave the street fights below for a while.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Depth
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight,
+      loot on the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
+    behavior: >-
+      Standing on stairs shows "Climb – press F" or "Go down – press F". On an upper floor the screen shows only
+      that floor, and the HUD shows the house and the floor.
+  - id: CMD-01
+    type: command
+    name: Climb the stairs
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to climb the stairs of a house, so that I can search its upper floors before my rivals
+      do.
+  - id: AGG-01
+    type: aggregate
+    name: Tithe
+    col: 3
+    stack: 1
+    description: >-
+      One run into the Maw: its seed and depths, its candidates (the player and the rivals), the monsters,
+      the Warden and the outcome.
+    fields:
+      - name: Candidates
+        attributes:
+          - name: Name
+          - name: Floor
+        many: true
+  - id: EVT-01
+    type: event
+    name: Floor reached
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Small houses have one floor. Large houses have an upper floor and factories two, reached by stairs inside;
+      stairs go both up and down, and going down returns the candidate to the stairs below.
+  - applies_to:
+      - EVT-01
+    text: >-
+      An upper floor is its own map: the candidate sees only that floor, with its rooms, monsters and a cache. Other
+      candidates come up the same stairs.
+  - applies_to:
+      - EVT-01
+    text: >-
+      An upper floor belongs to its house's district: it is sealed with the district, and a candidate on it is
+      wounded like everyone in the district (Spectacle, Run the show; Survive the depths).
+  - applies_to:
+      - CMD-01
+    text: Floors give no Renown; only districts closer to the middle count as deeper depths (Descend).
+scenarios:
+  - title: Kael climbs to the upper floor
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael stands on the stairs in a large house in The Broken City
+      When the player performs CMD-01 "Climb the stairs"
+      Then EVT-01 "Floor reached" is recorded with floor 2
+      And Kael sees only the upper floor
+  - title: Kael goes back down
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael stands on the stairs on the upper floor of a large house
+      When the player performs CMD-01 "Climb the stairs"
+      Then EVT-01 "Floor reached" is recorded with floor 1
+      And Kael stands at the stairs in the street level of the house

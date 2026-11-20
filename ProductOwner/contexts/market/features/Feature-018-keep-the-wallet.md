@@ -5,7 +5,7 @@ bounded_context: Market
 product: The Maw
 source: models/Feature-018-keep-the-wallet.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -118,7 +118,7 @@ No user stories.
 
 - A new character starts with 60 gold. (SVC-01)
 - The gold found in a Tithe is only added when it is kept (EVT-02); a fall adds nothing of it. (SVC-01)
-- The Rim shows the gold at the top of every tab. (AGG-01)
+- The Mustering Square and its shops show the gold at the top. (AGG-01)
 - A player defeated by another player spills 10–20 % of the gold in the wallet, rounded down. It lies on the floor where the player fell, and whoever picks it up finds it (Gear, Pick up loot). (CMD-02, EVT-08)
 - When a character is deleted, its wallet is closed and the gold is gone. (CMD-03)
 
@@ -151,7 +151,7 @@ Scenario: A defeat spills gold
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|

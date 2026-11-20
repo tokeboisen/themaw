@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 2
 status: draft
 created: '2026-11-19'
 use_case:
@@ -20,7 +20,7 @@ elements:
     stack: 1
     actors:
       - Player
-    description: 'Hesta Varn''s forge in the Rim: the items for sale with price, and the player''s pack with
+    description: 'Hesta Varn''s forge on the Mustering Square: the items for sale with price, and the player''s pack with
       sell price.'
     behavior: >-
       "Hesta Varn, the smith: Steel for the Branded. Coin first." Two lists: For sale, each item with its price

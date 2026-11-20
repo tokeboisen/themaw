@@ -34,6 +34,8 @@ export interface InventoryView {
 /** Feature-036 VIEW-01: en åben Tithe i listen. */
 export interface TitheListItem {
   name: string;
+  reach: string;
+  reachName: string;
   opener: string;
   players: string[];
   count: number;
@@ -41,9 +43,19 @@ export interface TitheListItem {
   full: boolean;
 }
 
+/** Feature-036 VIEW-01: en Reach på tavlen. */
+export interface ReachView {
+  id: string;
+  number: number;
+  name: string;
+  text: string;
+}
+
 /** Feature-036 VIEW-02 Lobby */
 export interface LobbyView {
   name: string;
+  reach: string;
+  reachName: string;
   isOpener: boolean;
   players: { userName: string; characterName: string; mark: number; opener: boolean }[];
   max: number;
@@ -133,9 +145,9 @@ export const api = {
   gifts: (id: string) => call<{ gifts: GiftView[] }>('GET', `/api/characters/${id}/gifts`),
   acceptGift: (id: string, giftId: string) => call<GiftView>('POST', `/api/characters/${id}/gifts/${giftId}/accept`),
   // Lobby (F036, F025, F037)
-  tithes: () => call<{ tithes: TitheListItem[]; max: number }>('GET', '/api/tithes'),
+  tithes: () => call<{ reaches: ReachView[]; tithes: TitheListItem[]; max: number }>('GET', '/api/tithes'),
   currentTithe: () => call<CurrentTithe>('GET', '/api/tithes/current'),
-  openTithe: (name: string) => call<CurrentTithe>('POST', '/api/tithes', { name }),
+  openTithe: (name: string, reach: string) => call<CurrentTithe>('POST', '/api/tithes', { name, reach }),
   joinTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/join`),
   launchTithe: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/launch`),
   leaveLobby: (name: string) => call<CurrentTithe>('POST', `/api/tithes/${encodeURIComponent(name)}/leave`),

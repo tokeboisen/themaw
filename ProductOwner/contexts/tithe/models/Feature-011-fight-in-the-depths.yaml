@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 6
+version: 7
 status: draft
 created: '2026-11-19'
 use_case:
@@ -178,8 +178,9 @@ rules:
     text: >-
       The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar
       and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam
-      around him, calls Gnawers every 14 seconds, never leaves his hall). A monster's level is the depth +
-      half of the player's Marks above 1.
+      around him, calls Gnawers every 14 seconds, never leaves his hall). The Broken City has the same monsters,
+      and its Warden is The Smelter in the foundry, who fights like The Foreman. A monster's level is the depth
+      + half of the player's Marks above 1.
 scenarios:
   - title: A blow slays a Gnawer
     applies_to:

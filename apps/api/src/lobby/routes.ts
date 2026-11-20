@@ -14,9 +14,13 @@ import { workingCopy } from './working-copy.ts';
 /** Navne sammenlignes uden forskel på store og små bogstaver og uden mellemrum i enderne. */
 const nameKey = (name: string) => name.trim().toLocaleLowerCase('en');
 
+const reachName = (id: string) => B.reaches.find((r) => r.id === id)?.name ?? id;
+
 function lobbyView(tithe: TitheRow, list: MemberRow[], userId: string) {
   return {
     name: tithe.name,
+    reach: tithe.reach,
+    reachName: reachName(tithe.reach),
     isOpener: tithe.opener_user_id === userId,
     players: list.map((m) => ({ userName: m.user_name, characterName: m.character_name, mark: m.mark, opener: m.user_id === tithe.opener_user_id })),
     max: B.lobby.maxPlayers,
@@ -58,7 +62,12 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
        from lobby.tithes t where t.status = 'open' order by t.created_at`,
     );
     return reply.send({
-      tithes: rows.map((t) => ({ name: t.name, opener: t.opener_name, players: t.players, count: t.players.length, max: B.lobby.maxPlayers, full: t.players.length >= B.lobby.maxPlayers })),
+      // Feature-036 VIEW-01: tavlen viser Reaches med en kort beskrivelse og de åbne Tithes med deres Reach.
+      reaches: B.reaches.map((r) => ({ id: r.id, number: r.number, name: r.name, text: r.text })),
+      tithes: rows.map((t) => ({
+        name: t.name, reach: t.reach, reachName: reachName(t.reach), opener: t.opener_name, players: t.players, count: t.players.length,
+        max: B.lobby.maxPlayers, full: t.players.length >= B.lobby.maxPlayers,
+      })),
       max: B.lobby.maxPlayers,
     });
   });
@@ -70,12 +79,15 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
   });
 
   // Feature-036 CMD-01 Open a Tithe
-  app.post<{ Body: { name?: unknown } }>('/api/tithes', async (request, reply) => {
+  app.post<{ Body: { name?: unknown; reach?: unknown } }>('/api/tithes', async (request, reply) => {
     const userId = requireUser(request, reply);
     if (!userId) return reply;
     const raw = request.body?.name;
     const name = typeof raw === 'string' ? raw.trim() : '';
     if ([...name].length < B.lobby.nameMin || [...name].length > B.lobby.nameMax) return refuse(reply, 400, INVALID);
+    // Feature-036 CMD-01: Tithen åbnes i en af Reaches; uden valg i The Old Mines.
+    const reach = request.body?.reach ?? 'mines';
+    if (!B.reaches.some((r) => r.id === reach)) return refuse(reply, 400, INVALID);
     await syncRunning(pool);
     const result = await transaction(pool, async (client) => {
       await client.query('select pg_advisory_xact_lock(7272003)');
@@ -85,7 +97,7 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
       const taken = await client.query('select 1 from lobby.tithes where name_key = $1', [nameKey(name)]);
       if (taken.rowCount) return 'taken' as const;
       const id = randomUUID();
-      await client.query(`insert into lobby.tithes (id, name, name_key, opener_user_id, status) values ($1, $2, $3, $4, 'open')`, [id, name, nameKey(name), userId]);
+      await client.query(`insert into lobby.tithes (id, name, name_key, opener_user_id, status, reach) values ($1, $2, $3, $4, 'open', $5)`, [id, name, nameKey(name), userId, reach]);
       await join(client, id, userId, me);
       return 'ok' as const;
     });
@@ -139,7 +151,7 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
       }
       await client.query(`update lobby.tithes set status = 'launched', launched_at = now() where id = $1`, [tithe.id]);
       // Feature-037 EVT-01 Tithe launched → Feature-010 SVC-01 Tithe master
-      const data: TitheLaunched = { titheId: tithe.id, name: tithe.name, players };
+      const data: TitheLaunched = { titheId: tithe.id, name: tithe.name, reach: tithe.reach === 'city' ? 'city' : 'mines', players };
       await enqueue(client, envelope(EVENT.titheLaunched, data));
       return 'ok' as const;
     });

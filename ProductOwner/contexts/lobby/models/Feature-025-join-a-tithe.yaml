@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 6
 status: draft
 created: '2026-11-19'
 use_case:
@@ -20,11 +20,12 @@ elements:
     stack: 1
     actors:
       - Player
-    description: The Tithes that are open on the server, and the form to open a new one.
+    description: The Reaches, the Tithes that are open on the server, and the form to open a new one.
     behavior: >-
-      Opened with "Descend into the Maw" in the Rim. Lists the Tithes that are open on the server with their
-      name, the user name of the player who opened them, the players in them by user name and "n of 8", each
-      with Join (disabled when full). A name field and "Open a Tithe" open a new one.
+      Opened at the Tithe Board in the middle of the Mustering Square (Walk the Mustering Square). Shows the Reaches
+      with a short description, and lists the Tithes that are open on the server with their name, Reach, the user
+      name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled
+      when full). A name field, a choice of Reach and "Open a Tithe" open a new one.
   - id: CMD-01
     type: command
     name: Join a Tithe
@@ -39,8 +40,8 @@ elements:
     col: 3
     stack: 1
     description: >-
-      An open Tithe on the server before it is launched: its unique name, the player who opened it and the
-      players who have joined.
+      An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it
+      and the players who have joined.
     fields:
       - name: Players
         attributes:
@@ -85,8 +86,8 @@ rules:
   - applies_to:
       - VIEW-01
     text: >-
-      The Rim has the buttons Character, Characters, Other players, Help and Account, and "Descend into the
-      Maw", which opens VIEW-01 "Tithes".
+      The player goes down from the Tithe Board in the middle of the Mustering Square, which opens VIEW-01
+      "Tithes" (Walk the Mustering Square).
 scenarios:
   - title: Brann joins Ashfall
     applies_to:

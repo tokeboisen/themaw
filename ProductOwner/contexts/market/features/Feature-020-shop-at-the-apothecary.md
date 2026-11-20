@@ -5,7 +5,7 @@ bounded_context: Market
 product: The Maw
 source: models/Feature-020-shop-at-the-apothecary.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-19
 ```
@@ -43,7 +43,7 @@ For the player: buy healing draughts and rations from Mother Quill, so the candi
 
 | ID | Description |
 |---|---|
-| VIEW-01 | Mother Quill's apothecary in the Rim: healing draughts and rations. |
+| VIEW-01 | Mother Quill's apothecary on the Mustering Square: healing draughts and rations. |
 | AGG-01 | The character's gold. |
 
 ## 4. Flows
@@ -118,7 +118,7 @@ Scenario: Nine rations are enough
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

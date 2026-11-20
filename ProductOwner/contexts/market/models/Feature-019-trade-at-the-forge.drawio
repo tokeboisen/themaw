@@ -22,7 +22,7 @@
         <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: buy weapons, armour and rings from Hesta Varn and sell what is not needed, so the gold of a Tithe becomes the gear for the next." vertex="1">
           <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
         </mxCell>
-        <UserObject id="VIEW-01" label="Forge&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="Hesta Varn's forge in the Rim: the items for sale with price, and the player's pack with sell price.">
+        <UserObject id="VIEW-01" label="Forge&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="Hesta Varn's forge on the Mustering Square: the items for sale with price, and the player's pack with sell price.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
             <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
           </mxCell>

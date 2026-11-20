@@ -2,14 +2,15 @@
 // Account (F033). Fase 2: the Rim med Forge (F019), Apothecary (F020) og Patrons' Hall (F024), guldet (F018), og
 // inventar og hotbar på karakterskærmen (F007, F027). Fase 3: Tithes og lobby (F036, F025, F037), selve Tithen (F010–F017,
 // F028, F029), resultatet (F016), Help (F030) og statistikken (F040). Fase 4: Other players og partier (F034, F035).
+// Fase 6: Mustering Square (F042) med stederne som overlays og Reaches på tavlen (F036).
 // Teksterne er på engelsk og citeret fra featurene.
 
 import { MESSAGES, type EndedMessage } from '@maw/contracts';
 import {
   ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
-  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EquipSlot, type HotbarKey, type PointKind,
+  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EquipSlot, type HotbarKey, type PointKind, type SquarePlace,
 } from '@maw/rules';
-import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type StatisticsRow, type TitheListItem } from './api.ts';
+import { api, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type ReachView, type StatisticsRow, type TitheListItem } from './api.ts';
 import { $, esc, onAction } from './dom.ts';
 import { helpHtml } from './help.ts';
 import { lobbyHtml, tithesHtml } from './lobby.ts';
@@ -19,9 +20,10 @@ import { resultsHtml } from './results.ts';
 import { apothecaryHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
 import { sheetHtml } from './sheet.ts';
 import { statisticsHtml } from './statistics.ts';
+import { SquareView } from './square/view.ts';
 import { Game } from './tithe/game.ts';
 
-type Overlay = null | 'sheet' | 'account' | 'help' | 'leave' | 'others' | { confirmDelete: string };
+type Overlay = null | 'sheet' | 'account' | 'help' | 'leave' | 'others' | SquarePlace | 'lobby' | { confirmDelete: string };
 
 const state = {
   screen: 'signin' as Screen,
@@ -33,11 +35,12 @@ const state = {
   create: { background: 'miner', alloc: null as Allocation | null, name: '', message: '' },
   overlay: null as Overlay,
   rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', hotbarKey: null as string | null },
-  lobby: { list: [] as TitheListItem[], current: null as LobbyView | null, message: '', nameDraft: '' },
+  lobby: { list: [] as TitheListItem[], reaches: [] as ReachView[], current: null as LobbyView | null, message: '', nameDraft: '', reach: 'mines' },
   game: null as Game | null,
   ended: null as EndedMessage | null,
   stats: { rows: [] as StatisticsRow[], back: 'rim' as 'rim' | 'characters' },
   others: [] as PlayerRow[],
+  square: null as SquareView | null,
 };
 
 const app = $('#app');
@@ -185,31 +188,6 @@ function createHtml(): string {
   </div>`;
 }
 
-function rimHtml(): string {
-  const c = active();
-  const { tab, data, message } = state.rim;
-  const tabs: [RimTab, string][] = [['forge', 'Forge'], ['apothecary', 'Apothecary'], ['patrons', "Patrons' Hall"]];
-  const views: Record<RimTab, () => string> = { forge: () => forgeHtml(data, message), apothecary: () => apothecaryHtml(data, message), patrons: () => patronsHtml(data, message) };
-  const waiting = data.gifts.length ? ` (${data.gifts.length})` : '';
-  return `<div class="panel wide">
-    <header class="top">
-      <div><h1>The Rim</h1><p class="muted">${c ? `${esc(c.name)} · ${esc(backgroundName(c.background))} · Mark ${c.mark}` : ''}</p></div>
-      <div class="actions">
-        <span class="gold-text big-gold">${data.gold} gold</span>
-        <button class="primary" data-act="sheet">Character</button>
-        <button class="ghost" data-act="characters">Characters</button>
-        <button class="ghost" data-act="others">Other players</button>
-        <button class="ghost" data-act="statistics">Statistics</button>
-        <button class="ghost" data-act="help">Help</button>
-        <button class="ghost" data-act="account">Account</button>
-      </div>
-    </header>
-    <nav class="tabs">${tabs.map(([id, name]) => `<button class="${id === tab ? 'active' : ''}" data-act="tab" data-id="${id}">${name}${id === 'patrons' ? waiting : ''}</button>`).join('')}</nav>
-    ${views[tab]()}
-    <footer class="rim-foot"><button class="primary big" data-act="descend">Descend into the Maw</button></footer>
-  </div>`;
-}
-
 function overlayHtml(): string {
   const o = state.overlay;
   if (!o) return '';
@@ -230,6 +208,19 @@ function overlayHtml(): string {
     return helpHtml(hotbar, (id) => weapons.find((w) => w?.id === id)?.name ?? 'a weapon');
   }
   if (o === 'others') return othersHtml(state.others, state.screen === 'tithe' ? state.game?.party ?? null : null);
+  // Feature-042: stederne på Mustering Square åbnes som overlays; pladsen ses bag dem.
+  const place = (title: string, body: string) => `<div class="overlay see-through"><div class="sheet place">
+    <header class="top"><h2>${title}</h2><div class="actions"><span class="gold-text big-gold">${state.rim.data.gold} gold</span>
+      <button class="ghost" data-act="close">Close</button></div></header>${body}</div></div>`;
+  if (o === 'forge') return place('The Forge', forgeHtml(state.rim.data, state.rim.message));
+  if (o === 'apothecary') return place('The Apothecary', apothecaryHtml(state.rim.data, state.rim.message));
+  if (o === 'patrons') return place("The Patrons' Hall", patronsHtml(state.rim.data, state.rim.message));
+  if (o === 'board') {
+    return `<div class="overlay see-through"><div class="sheet place">${tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft, state.lobby.reaches, state.lobby.reach)}</div></div>`;
+  }
+  if (o === 'lobby') {
+    return state.lobby.current ? `<div class="overlay see-through"><div class="sheet place">${lobbyHtml(state.lobby.current, state.lobby.message)}</div></div>` : '';
+  }
   if (o === 'leave') {
     // Feature-029 VIEW-01
     return `<div class="overlay"><div class="dialog">
@@ -251,21 +242,63 @@ function overlayHtml(): string {
 }
 
 function renderOverlay(): void {
-  // Overlayet tegnes forfra ved hver handling; scroll-positionen bevares, så karakterskærmen ikke springer til toppen.
+  // Overlayet tegnes forfra ved hver handling; scroll-positionen og et felt med fokus bevares.
   const scrolled = [...overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog')].map((el) => el.scrollTop);
+  const focused = document.activeElement instanceof HTMLInputElement && overlay.contains(document.activeElement) ? document.activeElement.name : '';
   overlay.innerHTML = overlayHtml();
   overlay.querySelectorAll<HTMLElement>('.overlay, .sheet, .dialog').forEach((el, i) => (el.scrollTop = scrolled[i] ?? 0));
+  if (focused) {
+    const input = overlay.querySelector<HTMLInputElement>(`input[name="${focused}"]`);
+    if (input && input.type !== 'radio') {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+/** Feature-042: overskriften på pladsen med karakteren, guldet og gaverne, der venter. */
+function squareHud() {
+  const c = active();
+  return {
+    title: 'The Mustering Square',
+    sub: c ? `${c.name} · ${backgroundName(c.background)} · Mark ${c.mark}` : '',
+    gold: state.rim.data.gold,
+    giftsWaiting: state.rim.data.gifts.length,
+  };
+}
+
+/** Feature-042 VIEW-01: F ved et sted åbner det. Tavlen viser lobbyen, når spilleren venter i en. */
+async function openPlace(place: SquarePlace): Promise<void> {
+  state.rim.message = '';
+  if (place === 'board') {
+    if (state.lobby.current) return show('rim', 'lobby');
+    state.lobby.message = '';
+    await loadTithes();
+    return show('rim', 'board');
+  }
+  await loadRim();
+  show('rim', place);
 }
 
 function render(): void {
-  // Tithe-skærmen bygges én gang og opdateres af spilklienten; kun overlayet tegnes her.
+  if (state.screen !== 'rim' && state.square) {
+    state.square.unmount();
+    state.square = null;
+  }
+  // Pladsen og Tithe-skærmen bygges én gang og opdaterer sig selv; kun overlayet tegnes her.
+  if (state.screen === 'rim') {
+    state.square ??= new SquareView({ open: (place) => void openPlace(place) });
+    if (!state.square.mounted) state.square.mount(app);
+    state.square.setHud(squareHud());
+    return renderOverlay();
+  }
   if (state.screen === 'tithe') {
     if (state.game && !state.game.mounted) state.game.mount(app);
     return renderOverlay();
   }
-  const screens: Record<Exclude<Screen, 'tithe'>, () => string> = {
-    signin: signInHtml, characters: charactersHtml, create: createHtml, rim: rimHtml,
-    tithes: () => tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft),
+  const screens: Record<Exclude<Screen, 'tithe' | 'rim'>, () => string> = {
+    signin: signInHtml, characters: charactersHtml, create: createHtml,
+    tithes: () => tithesHtml(state.lobby.list, state.lobby.message, state.lobby.nameDraft, state.lobby.reaches, state.lobby.reach),
     lobby: () => (state.lobby.current ? lobbyHtml(state.lobby.current, state.lobby.message) : ''),
     results: () => (state.ended ? resultsHtml(state.ended) : ''),
     statistics: () => statisticsHtml(state.stats.rows, state.stats.back),
@@ -291,6 +324,7 @@ async function loadTithes(): Promise<boolean> {
   if (!result.ok) return false;
   const changed = JSON.stringify(result.data.tithes) !== JSON.stringify(state.lobby.list);
   state.lobby.list = result.data.tithes;
+  state.lobby.reaches = result.data.reaches;
   return changed;
 }
 
@@ -298,15 +332,15 @@ async function loadTithes(): Promise<boolean> {
 async function follow(current: CurrentTithe): Promise<void> {
   if (current.state === 'playing') return startGame(current.ticket);
   if (current.state === 'lobby') {
+    if (!state.lobby.current) state.lobby.message = '';
     state.lobby.current = current.tithe;
-    if (state.screen !== 'lobby') state.lobby.message = '';
-    return show('lobby');
+    return show('rim', 'lobby');
   }
   // Feature-037: lukkes Tithen, er de andre tilbage ved listen af Tithes.
   state.lobby.current = null;
-  if (state.screen === 'lobby') {
+  if (state.overlay === 'lobby') {
     await loadTithes();
-    show('tithes');
+    show('rim', 'board');
   }
 }
 
@@ -382,10 +416,22 @@ app.addEventListener('input', (event) => {
   const el = event.target as HTMLInputElement;
   if (el.id === 'char-name') state.create.name = el.value;
   if (el.name === 'name' && el.form?.id === 'open-tithe') state.lobby.nameDraft = el.value;
+  if (el.name === 'reach' && el.form?.id === 'open-tithe') {
+    state.lobby.reach = el.value;
+    render();
+  }
 });
 
-// Feature-036 CMD-01 Open a Tithe
-app.addEventListener('submit', async (event) => {
+// Feature-036 CMD-01 Open a Tithe (formularen ligger på Tithe Board i overlayet)
+overlay.addEventListener('input', (event) => {
+  const el = event.target as HTMLInputElement;
+  if (el.name === 'name' && el.form?.id === 'open-tithe') state.lobby.nameDraft = el.value;
+  if (el.name === 'reach' && el.form?.id === 'open-tithe') {
+    state.lobby.reach = el.value;
+    renderOverlay();
+  }
+});
+overlay.addEventListener('submit', async (event) => {
   const form = event.target as HTMLFormElement;
   if (form.id !== 'open-tithe') return;
   event.preventDefault();
@@ -397,7 +443,7 @@ app.addEventListener('submit', async (event) => {
     input.setCustomValidity('');
     return;
   }
-  const result = await api.openTithe(name);
+  const result = await api.openTithe(name, state.lobby.reach);
   if (!result.ok) {
     state.lobby.message = result.refusal.message;
     await loadTithes();
@@ -458,10 +504,9 @@ async function act(action: string, id: string | undefined): Promise<void> {
       state.game?.partyAction({ t: 'party', action: 'leave' });
       return;
     case 'descend':
-      // Feature-025 VIEW-01: "Descend into the Maw" åbner listen af Tithes.
-      state.lobby.message = '';
-      await loadTithes();
-      return show('tithes');
+    case 'square-open':
+      // Feature-042: stederne på pladsen; Tithe Board åbner listen af Tithes (Feature-025 VIEW-01).
+      return openPlace(action === 'descend' ? 'board' : (id as SquarePlace));
     case 'rim':
       await loadRim();
       return show('rim');
@@ -484,7 +529,7 @@ async function act(action: string, id: string | undefined): Promise<void> {
       if (action === 'leave-lobby') {
         state.lobby.current = null;
         await loadTithes();
-        return show('tithes');
+        return show('rim', 'board');
       }
       return follow(result.data);
     }
@@ -509,11 +554,11 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'return-to-rim': {
       // Feature-016 VIEW-01: "Return to the Rim" åbner the Rim, på Patrons' Hall, når der venter gaver.
       state.ended = null;
-      state.rim.tab = id === 'patrons' ? 'patrons' : 'forge';
       state.rim.message = '';
       await loadCharacters();
       await loadRim();
-      show('rim');
+      // Feature-016 VIEW-01: tilbage på Mustering Square med Patrons' Hall åben, når der venter gaver.
+      show('rim', id === 'patrons' ? 'patrons' : null);
       // Pengepung, gaver og det fundne kommer over bussen et øjeblik efter.
       refreshSoon();
       window.setTimeout(refreshSoon, 1500);
@@ -592,10 +637,6 @@ async function act(action: string, id: string | undefined): Promise<void> {
       show('rim');
       return refreshSoon();
     }
-    case 'tab':
-      state.rim.tab = id as RimTab;
-      state.rim.message = '';
-      return render();
     case 'buy':
     case 'sell':
     case 'buy-consumable':
@@ -677,14 +718,18 @@ if (me.ok) {
 // ændret. Lobbyen spørger hvert sekund, så alle kommer med, når Tithen startes.
 window.setInterval(async () => {
   if (state.screen === 'rim' && (await loadRim())) render();
-  if (state.screen === 'tithes' && (await loadTithes())) render();
+  if (state.overlay === 'board' && (await loadTithes()) && state.overlay === 'board') renderOverlay();
   if (state.overlay === 'others' && (await loadOthers()) && state.overlay === 'others') renderOverlay();
 }, 2000);
 window.setInterval(async () => {
-  if (state.screen !== 'lobby') return;
+  // Lobbyen følges, så længe spilleren venter i en – også når overlayet er lukket, og spilleren går på pladsen.
+  if (state.screen !== 'rim' || !state.lobby.current) return;
   const current = await api.currentTithe();
-  if (!current.ok || state.screen !== 'lobby') return;
-  if (current.data.state === 'lobby' && JSON.stringify(current.data.tithe) === JSON.stringify(state.lobby.current)) return;
-  await follow(current.data);
-  if (current.data.state === 'lobby') render();
+  if (!current.ok || !state.lobby.current) return;
+  const cur = current.data;
+  if (cur.state === 'playing') return startGame(cur.ticket);
+  if (cur.state === 'none') return follow(cur);
+  if (JSON.stringify(cur.tithe) === JSON.stringify(state.lobby.current)) return;
+  state.lobby.current = cur.tithe;
+  if (state.overlay === 'lobby') renderOverlay();
 }, 1000);

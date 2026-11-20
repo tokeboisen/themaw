@@ -146,6 +146,8 @@ const MONSTERS: Record<string, MonsterDef> = {
   spitter: { name: 'Crystal Spitter', hp: 16, min: 3, max: 6, speed: 1.9, radius: 0.35, range: 6, cooldown: 1.7, windup: 0.35, aggro: 8, echo: 6, projectileSpeed: 7, ranged: true, weight: 25 },
   brute: { name: 'Tunnel Brute', hp: 38, min: 6, max: 10, speed: 1.7, radius: 0.5, reach: 1.1, cooldown: 1.5, windup: 0.5, aggro: 6, echo: 9, armour: 6, itemChance: 0.3, weight: 20 },
   foreman: { name: 'The Foreman', hp: 300, min: 10, max: 18, speed: 1.5, radius: 0.9, reach: 2.4, cooldown: 2.4, windup: 0.85, aggro: 9, echo: 120, armour: 10, summonEvery: 14, summonMax: 6, warden: true },
+  // Feature-011: The Broken City's Warden fights like The Foreman.
+  smelter: { name: 'The Smelter', hp: 300, min: 10, max: 18, speed: 1.5, radius: 0.9, reach: 2.4, cooldown: 2.4, windup: 0.85, aggro: 9, echo: 120, armour: 10, summonEvery: 14, summonMax: 6, warden: true },
 };
 
 const RIVALS: RivalDef[] = [
@@ -164,6 +166,9 @@ const SKILL_WEIGHTS: Record<SkillId, Partial<Record<Attribute, number>>> = {
   bows: { dexterity: 0.7, strength: 0.3 },
   echo: { intelligence: 0.8, stamina: 0.2 },
 };
+
+/** Feature-010: de steder, en Tithe kan være i. */
+export type ReachId = 'mines' | 'city';
 
 export const BALANCE = {
   character: {
@@ -293,6 +298,25 @@ export const BALANCE = {
     fallPenalty: 'lose-found' as 'lose-found' | 'none',
   },
   view: { visionRadius: 7 },
+  /** Feature-010 og -036: stederne, en Tithe kan åbnes i. */
+  reaches: [
+    { id: 'mines', number: 1, name: 'The Old Mines', text: 'Three depths of tunnels and halls. The Foreman waits at the bottom.' },
+    { id: 'city', number: 2, name: 'The Broken City', text: 'One great ruin of streets, houses and factories. The Smelter holds the foundry in the middle.' },
+  ] as { id: ReachId; number: number; name: string; text: string }[],
+  /** Feature-010, -017, -041: The Broken City. */
+  city: {
+    blocks: 7,
+    block: 16,
+    districts: 4,
+    /** Yderringen forsegles efter 240 sekunder, den næste efter 420 og den tredje efter 600; støberiet aldrig. */
+    sealTimes: [240, 420, 600],
+    wards: ['the outer ward', 'the second ward', 'the third ward', 'the foundry'],
+    /** Rivalerne krydser byen på omtrent den tid, minernes tre dybder tager. */
+    rivalDepths: 3,
+    cachesOnGround: 8,
+    monstersPerHouse: [0, 2] as [number, number],
+    streetPacks: 14,
+  },
   /** Feature-036 og -025: navnet på en Tithe og pladserne i den. */
   lobby: { nameMin: 3, nameMax: 30, maxPlayers: 8 },
 };

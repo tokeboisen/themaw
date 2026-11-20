@@ -14,6 +14,7 @@ export interface TitheRow {
   opener_user_id: string;
   status: 'open' | 'launched';
   launched_at: Date | null;
+  reach: string;
 }
 
 export interface MemberRow {

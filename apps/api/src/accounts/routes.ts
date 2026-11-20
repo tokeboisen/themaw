@@ -85,6 +85,22 @@ export function accountsRoutes(app: FastifyInstance, pool: Pool): void {
   });
 
   // Den indloggede bruger (Feature-033 VIEW-01 Account viser brugernavnet).
+  // Kun inde i Docker (gatewayen sender kun /api/* hertil): tithe-server spørger, hvem en session-cookie tilhører, når
+  // en spiller går ind på Mustering Square (Feature-042), og hvilken karakter spilleren spiller.
+  app.get('/internal/whoami', async (request, reply) => {
+    if (!request.userId) return reply.code(401).send({ message: 'Sign in first.' });
+    const { rows } = await pool.query<{ user_name: string; id: string | null; name: string | null; mark: number | null }>(
+      `select u.user_name, c.id, c.name, c.mark from accounts.users u
+       left join characters.rosters r on r.user_id = u.id
+       left join characters.characters c on c.id = r.active_character_id
+       where u.id = $1`,
+      [request.userId],
+    );
+    const row = rows[0];
+    if (!row) return reply.code(401).send({ message: 'Sign in first.' });
+    return reply.send({ userId: request.userId, userName: row.user_name, character: row.id ? { id: row.id, name: row.name, mark: row.mark } : null });
+  });
+
   app.get('/api/me', async (request, reply) => {
     if (!request.userId) return refuse(reply, 401, { message: 'Sign in first.' });
     const { rows } = await pool.query<{ user_name: string }>('select user_name from accounts.users where id = $1', [request.userId]);

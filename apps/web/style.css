@@ -168,3 +168,22 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 .invitation p { margin: 0 0 6px; font-weight: 600; }
 .items.plain li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; }
 .slot-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+/* Feature-036 VIEW-01: Reaches på tavlen */
+.reaches { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 4px 0 12px; }
+.reach { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); cursor: pointer; }
+.reach input { display: none; }
+.reach.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+
+/* Feature-042: Mustering Square – pladsen fylder vinduet med toplinjen ovenpå. */
+.square { position: fixed; inset: 0; overflow: hidden; background: #0b0807; }
+.square canvas.view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.square-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; background: linear-gradient(rgba(18, 14, 11, 0.95), rgba(18, 14, 11, 0.75)); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.square-top h1 { font-size: 20px; }
+.square-top p { margin: 2px 0 0; }
+.square-top .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.square-prompt { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); }
+.square-prompt:empty { display: none; }
+.square-status:empty { display: none; }
+.sheet.place { max-width: 980px; }
+.board .list { margin-bottom: 12px; }
+@media (max-width: 760px) { .square-top .actions .ghost { padding: 4px 8px; font-size: 12px; } }

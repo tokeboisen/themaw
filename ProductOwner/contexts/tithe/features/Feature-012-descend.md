@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-012-descend.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-19
 ```
@@ -86,7 +86,7 @@ Scenario: Kael descends
 
 ### Rules
 
-- The player descends by standing on the stairs and pressing Descend. The last depth has no stairs, only the gate. (CMD-01)
+- The player descends by standing on the stairs and pressing Descend. The last depth has no stairs, only the gate. In The Broken City there are no stairs down: crossing into a district closer to the middle is reaching a deeper depth. (CMD-01)
 - A new depth starts in its start room. Rivals who are already in that depth appear where they have come to. (EVT-01)
 - Reaching a depth for the first time gives Renown (Spectacle, Run the show). (EVT-01)
 
@@ -106,7 +106,7 @@ Scenario: Kael descends
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

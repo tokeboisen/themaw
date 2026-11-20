@@ -5,7 +5,7 @@ bounded_context: Patronage
 product: The Maw
 source: models/Feature-024-accept-sponsor-gifts.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-19
 ```
@@ -42,7 +42,7 @@ For the player: accept the gifts the Noble Houses sent, so the items and gold be
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The Noble Houses' agents in the Rim, with the sponsor gifts that wait. |
+| VIEW-01 | The Noble Houses' agents in the Patrons' Hall on the Mustering Square, with the sponsor gifts that wait. |
 | AGG-01 | A gift from one of the Noble Houses for the Renown of a Tithe: an item or gold, waiting until it is accepted. |
 
 ## 4. Flows
@@ -114,7 +114,7 @@ Scenario: A full pack refuses an item gift
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

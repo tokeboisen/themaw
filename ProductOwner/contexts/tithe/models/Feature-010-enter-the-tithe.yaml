@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -107,9 +107,17 @@ rules:
   - applies_to:
       - AGG-01
     text: >-
-      Every Tithe gets a new seed that lays out its depths anew: rooms joined by corridors two tiles wide,
-      the stairs in the room farthest from the start, and two caches. Reach 1, The Old Mines, has 3 depths;
-      the last is The Foreman's Hall with the Warden and the gate.
+      Every Tithe is in a Reach, chosen when it is opened (Lobby, Open a Tithe), and gets a new seed that lays it out
+      anew. Reach 1, The Old Mines, has 3 depths of rooms joined by corridors two tiles wide, the stairs in the room
+      farthest from the start and two caches in each; the last is The Foreman's Hall with the Warden and the gate.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Reach 2, The Broken City, is one large map of ruined streets and roads: small houses, large houses with an
+      upper floor and big factories with two (Climb the stairs), and caches in the houses. It is divided into four
+      districts from the outer ring to the foundry in the middle, the largest factory, where The Smelter guards the
+      gate. The districts are its depths (Descend), and everything said about The Foreman and his hall holds for The
+      Smelter and the foundry.
   - applies_to:
       - CMD-01
       - AGG-01
@@ -129,7 +137,8 @@ rules:
       - EVT-02
     text: >-
       Every candidate – player or NPC rival – starts in a room of its own, the rooms chosen about equally far
-      from the stairs. Everyone starts without a party.
+      from the stairs – in The Broken City in a house of its own in the outer ring, about equally far from the
+      foundry. Everyone starts without a party.
   - applies_to:
       - EVT-02
     text: >-
@@ -165,3 +174,10 @@ open_questions:
     applies_to:
       - SVC-01
     resolution: 'Decided 2026-11-19: no. Characters are kept on the Maw Server, so the game needs a connection.'
+  - topic: A second Reach
+    question: Is there more than The Old Mines?
+    status: resolved
+    applies_to:
+      - AGG-01
+    resolution: >-
+      Decided 2026-11-20: yes: Reach 2, The Broken City, one large map of ruins with houses on several floors and the Warden in the foundry in the middle; the districts are sealed from the outside in.

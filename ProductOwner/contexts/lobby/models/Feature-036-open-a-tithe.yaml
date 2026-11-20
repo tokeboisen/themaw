@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -20,11 +20,12 @@ elements:
     stack: 1
     actors:
       - Player
-    description: The Tithes that are open on the server, and the form to open a new one.
+    description: The Reaches, the Tithes that are open on the server, and the form to open a new one.
     behavior: >-
-      Opened with "Descend into the Maw" in the Rim. Lists the Tithes that are open on the server with their
-      name, the user name of the player who opened them, the players in them by user name and "n of 8", each
-      with Join (disabled when full). A name field and "Open a Tithe" open a new one.
+      Opened at the Tithe Board in the middle of the Mustering Square (Walk the Mustering Square). Shows the Reaches
+      with a short description, and lists the Tithes that are open on the server with their name, Reach, the user
+      name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled
+      when full). A name field, a choice of Reach and "Open a Tithe" open a new one.
   - id: CMD-01
     type: command
     name: Open a Tithe
@@ -33,16 +34,18 @@ elements:
     story: As a player I want to open a Tithe with a name, so that my friends can find it and join me.
     fields:
       - name: Name
+      - name: Reach
   - id: AGG-01
     type: aggregate
     name: Lobby
     col: 3
     stack: 1
     description: >-
-      An open Tithe on the server before it is launched: its unique name, the player who opened it and the
-      players who have joined.
+      An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it
+      and the players who have joined.
     fields:
       - name: Name
+      - name: Reach
       - name: Opened by
       - name: Players
         attributes:
@@ -78,6 +81,11 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
+      A Tithe is opened in one of the Reaches: The Old Mines or The Broken City (Tithe, Enter the Tithe). The Tithe
+      Board shows them with a short description.
+  - applies_to:
+      - CMD-01
+    text: >-
       The name is 3–30 characters and must be unique among the Tithes that are open or running on the server
       ("A Tithe with this name already exists.").
   - applies_to:
@@ -86,6 +94,14 @@ rules:
       The player who opens a Tithe is in it with the chosen character, and the Tithe shows in the list for
       everyone.
 scenarios:
+  - title: Kael opens a Tithe in The Broken City
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given no Tithe is called "Rustgate"
+      When the player performs CMD-01 "Open a Tithe" with "Rustgate" in The Broken City
+      Then EVT-01 "Tithe opened" is recorded
+      And VIEW-01 "Tithes" shows Rustgate in The Broken City
   - title: Kael opens Ashfall
     applies_to:
       - CMD-01
@@ -109,3 +125,10 @@ open_questions:
     applies_to:
       - CMD-01
     resolution: 'Decided 2026-11-19: 3–30 characters.'
+  - topic: Reaches
+    question: Can a Tithe be opened in more than one place?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-20: yes, in one of the Reaches – The Old Mines or The Broken City – chosen when the Tithe is opened (Tithe, Enter the Tithe).

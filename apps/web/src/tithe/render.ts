@@ -2,7 +2,7 @@
 // Overført fra prototype/js/client/render.js. Bevidst enkelt: felter, cirkler og farver.
 
 import type { SnapshotEntity, YouView } from '@maw/contracts';
-import { EXIT, GATE, RARITY_COLORS, WALL, type Rarity } from '@maw/rules';
+import { EXIT, GATE, INDOOR, RARITY_COLORS, ROAD, RUBBLE, STAIRS, WALL, type Rarity } from '@maw/rules';
 
 const MONSTER_COLORS: Record<string, string> = { gnawer: '#8d7b68', spitter: '#9b6bd1', brute: '#8a3a2f', foreman: '#b0602d' };
 const UNKNOWN = 255;
@@ -151,9 +151,22 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
           ctx.fillStyle = '#4b3d33';
           ctx.fillRect(px, py, tile + 0.5, 3);
-        } else {
-          ctx.fillStyle = (x + y) % 2 ? '#251e18' : '#221b16';
+        } else if (tt === RUBBLE) {
+          // The Broken City: murbrokker – lave, spærrer vejen.
+          ctx.fillStyle = (x + y) % 2 ? '#2b2620' : '#29241f';
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+          ctx.fillStyle = '#5b5046';
+          ctx.fillRect(px + tile * 0.15, py + tile * 0.35, tile * 0.4, tile * 0.35);
+          ctx.fillStyle = '#4a4038';
+          ctx.fillRect(px + tile * 0.5, py + tile * 0.2, tile * 0.32, tile * 0.3);
+        } else {
+          ctx.fillStyle = tt === ROAD ? ((x + y) % 2 ? '#2b2620' : '#29241f') : tt === INDOOR || tt === STAIRS ? ((x + y) % 2 ? '#33271c' : '#30251b') : (x + y) % 2 ? '#251e18' : '#221b16';
+          ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+          if (tt === STAIRS) {
+            // Feature-041: trapperne i husene.
+            ctx.fillStyle = '#8a6a44';
+            for (let s = 0; s < 4; s++) ctx.fillRect(px + 4 + s * 2, py + 4 + (s * (tile - 8)) / 4, tile - 8 - s * 4, (tile - 8) / 4 - 2);
+          }
           if (tt === EXIT) {
             ctx.fillStyle = '#c87a2e';
             ctx.fillRect(px + 4, py + 4, tile - 8, tile - 8);
@@ -336,8 +349,8 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       for (let x = 0; x < f.mapW; x++) {
         const v = f.tiles[y * f.mapW + x];
         if (v === UNKNOWN || v === WALL || v === undefined) continue;
-        mctx.fillStyle = v === EXIT ? '#ff9a3a' : v === GATE ? '#ffd84a' : '#5a4e44';
-        const big = v === EXIT || v === GATE ? 2 : 0;
+        mctx.fillStyle = v === EXIT || v === STAIRS ? '#ff9a3a' : v === GATE ? '#ffd84a' : v === RUBBLE ? '#3a332c' : v === INDOOR ? '#6b5640' : '#5a4e44';
+        const big = v === EXIT || v === GATE ? 2 : v === STAIRS ? 1 : 0;
         mctx.fillRect(x * s - big, y * s - big, s + big * 2, s + big * 2);
       }
     }

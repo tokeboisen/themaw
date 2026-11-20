@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -225,8 +225,10 @@ rules:
       - EVT-10
     text: >-
       Depth 1 is sealed 240 seconds after the Tithe starts and depth 2 after 480 seconds; the last depth is
-      never sealed. A candidate who enters a depth with less than 90 seconds left gets 90 seconds. The Mirrormaster
-      announces the seal 30 seconds before, and the HUD shows the time left.
+      never sealed. A candidate who enters a depth with less than 90 seconds left gets 90 seconds. In The Broken
+      City the districts are sealed from the outside in: the outer ring after 240 seconds, the second after 420 and
+      the third after 600; the foundry is never sealed. The Mirrormaster announces the seal 30 seconds before, and
+      the HUD shows the time left.
   - applies_to:
       - SVC-01
     text: >-

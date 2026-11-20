@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-010-enter-the-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -100,10 +100,11 @@ No user stories.
 
 ### Rules
 
-- Every Tithe gets a new seed that lays out its depths anew: rooms joined by corridors two tiles wide, the stairs in the room farthest from the start, and two caches. Reach 1, The Old Mines, has 3 depths; the last is The Foreman's Hall with the Warden and the gate. (AGG-01)
+- Every Tithe is in a Reach, chosen when it is opened (Lobby, Open a Tithe), and gets a new seed that lays it out anew. Reach 1, The Old Mines, has 3 depths of rooms joined by corridors two tiles wide, the stairs in the room farthest from the start and two caches in each; the last is The Foreman's Hall with the Warden and the gate. (AGG-01)
+- Reach 2, The Broken City, is one large map of ruined streets and roads: small houses, large houses with an upper floor and big factories with two (Climb the stairs), and caches in the houses. It is divided into four districts from the outer ring to the foundry in the middle, the largest factory, where The Smelter guards the gate. The districts are its depths (Descend), and everything said about The Foreman and his hall holds for The Smelter and the foundry. (AGG-01)
 - A Tithe has 8 candidates: the players who joined it, and NPC rivals for the places that are left, chosen among Cassian Morrow (heavy weapons, one Mark above the players, hostile 90 %), Vessa Thorne (bows, 35 %), Ash and Rook Kell (blades, 60 %), Mira Silvertongue (Echo Arts, 20 %), Silent Odo (blades, 15 %) and Garrick Vane, champion of House Vane (heavy weapons, one Mark above the players, 80 %). A single player meets all seven NPC rivals. (CMD-01, AGG-01)
 - An NPC rival's level follows the players' average Mark. Every player enters with the chosen character, full life, stamina and focus and a full stomach. (CMD-01)
-- Every candidate – player or NPC rival – starts in a room of its own, the rooms chosen about equally far from the stairs. Everyone starts without a party. (AGG-01, EVT-02)
+- Every candidate – player or NPC rival – starts in a room of its own, the rooms chosen about equally far from the stairs – in The Broken City in a house of its own in the outer ring, about equally far from the foundry. Everyone starts without a party. (AGG-01, EVT-02)
 - For the first 20 seconds no candidate may strike another (grace). In those seconds the players can form parties (Parties, Form a party). (EVT-02)
 - The Maw Server runs the Tithe and the Mirrormaster's show; the players' browsers only show it and send the players' actions, so no player can cheat. (SVC-01)
 
@@ -132,12 +133,13 @@ Scenario: A Tithe with three players starts
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Where the Tithe runs:** Should the Tithe and the Mirrormaster's show be run by the Maw Server, so no player can cheat, or in the players' browsers? | Decided 2026-11-19: the Maw Server runs the Tithe and the show, so no player can cheat. |
 | 2 | **Playing without a connection:** Can a player play a Tithe without a connection? | Decided 2026-11-19: no. Characters are kept on the Maw Server, so the game needs a connection. |
+| 3 | **A second Reach:** Is there more than The Old Mines? | Decided 2026-11-20: yes: Reach 2, The Broken City, one large map of ruins with houses on several floors and the Warden in the foundry in the middle; the districts are sealed from the outside in. |
 
 ### Still open
 

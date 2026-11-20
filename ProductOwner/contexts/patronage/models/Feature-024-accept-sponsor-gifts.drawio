@@ -22,7 +22,7 @@
         <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: accept the gifts the Noble Houses sent, so the items and gold become the character's." vertex="1">
           <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
         </mxCell>
-        <UserObject id="VIEW-01" label="Patrons' Hall&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The Noble Houses' agents in the Rim, with the sponsor gifts that wait.">
+        <UserObject id="VIEW-01" label="Patrons' Hall&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The Noble Houses' agents in the Patrons' Hall on the Mustering Square, with the sponsor gifts that wait.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
             <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
           </mxCell>

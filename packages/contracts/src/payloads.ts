@@ -1,6 +1,6 @@
 // Indholdet af de events, der går over bussen. Navnene er modellens; routing keys kommer fra event-kataloget.
 
-import type { Character, Equipment, Hotbar, Item, OutcomeKind, SkillId, TitheRecord } from '@maw/rules';
+import type { Character, Equipment, Hotbar, Item, OutcomeKind, ReachId, SkillId, TitheRecord } from '@maw/rules';
 import { routingKey } from './events.ts';
 
 export const EVENT = {
@@ -94,6 +94,8 @@ export interface TithePlayer {
 export interface TitheLaunched {
   titheId: string;
   name: string;
+  /** Feature-037: Tithen lægges ud i sin Reach. Mangler den, er det The Old Mines. */
+  reach?: ReachId;
   players: TithePlayer[];
 }
 

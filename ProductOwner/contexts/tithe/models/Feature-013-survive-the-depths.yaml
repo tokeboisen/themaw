@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -203,7 +203,9 @@ rules:
       recovers at 40 % and life does not recover. Otherwise life recovers 0.3 per second.
   - applies_to:
       - SVC-02
-    text: A sealed depth wounds every candidate in it by 3 % of max life per second until they leave it.
+    text: >-
+      A sealed depth – or a sealed district of The Broken City, with the floors of its houses – wounds every
+      candidate in it by 3 % of max life per second until they leave it.
   - applies_to:
       - CMD-02
       - CMD-03

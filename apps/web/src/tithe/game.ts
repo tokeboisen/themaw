@@ -265,9 +265,13 @@ export class Game {
     setBar('hunger', y.hunger, B.hunger.max, y.starving ? 'Starving!' : `Hunger ${Math.floor(y.hunger)}`);
     setBar('echo', y.echo, y.echoNext, `Mark ${y.mark} · Echo ${y.echo} / ${y.echoNext}`);
     root.querySelector('.hud-points')!.classList.toggle('hidden', y.points <= 0);
-    root.querySelector('.hud-depth')!.textContent = `Depth ${s.depth} of ${s.depths}`;
+    // Feature-010 VIEW-01: dybden i minerne; i byen distriktet og etagen (Feature-041).
+    const floorName = s.area.floor === 3 ? ' · top floor' : s.area.floor === 2 ? ' · upper floor' : '';
+    root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city'
+      ? `${s.area.reachName} · ${(s.area.ward ?? '').replace(/^./, (c) => c.toUpperCase())}${floorName}`
+      : `${s.area.reachName} · Depth ${s.depth} of ${s.depths}`;
     const seal = root.querySelector<HTMLElement>('.hud-seal')!;
-    if (!s.seal) seal.textContent = s.depth === s.depths ? "The Foreman's Hall" : '';
+    if (!s.seal) seal.textContent = s.area.reach === 'city' ? (s.area.ward === 'the foundry' ? "The Smelter's foundry" : '') : s.depth === s.depths ? "The Foreman's Hall" : '';
     else if (s.seal.sealed) seal.textContent = 'SEALED – get out!';
     else {
       const left = Math.max(0, Math.ceil(s.seal.left));
@@ -277,7 +281,8 @@ export class Game {
     root.querySelector('.hud-renown')!.textContent = `Renown ${s.renown} · Gold found ${s.goldFound}`;
     root.querySelector('.hud-potions')!.textContent = String(y.potions);
     root.querySelector('.hud-rations')!.textContent = String(y.rations);
-    const prompt = s.interact === 'descend' ? 'Descend – press F' : s.interact === 'gate' ? 'Claim the Tithe – press F' : '';
+    const prompt = s.interact === 'descend' ? 'Descend – press F' : s.interact === 'gate' ? 'Claim the Tithe – press F'
+      : s.interact === 'climb' ? 'Climb – press F' : s.interact === 'down' ? 'Go down – press F' : '';
     const promptEl = root.querySelector<HTMLElement>('.hud-prompt')!;
     if (promptEl.textContent !== prompt) promptEl.innerHTML = prompt ? `<button class="primary" data-act="game-act" data-id="interact">${prompt}</button>` : '';
     // Feature-028 VIEW-01: hotbaren nederst med tasterne 1–8; den valgte tast er fremhævet.
@@ -296,7 +301,7 @@ export class Game {
     const candidates = s.candidates
       .map((c) => `<li class="${c.you ? 'you' : ''} ${c.status !== 'in' ? 'out' : ''}" title="${esc(c.name)}${c.player ? '' : ' (NPC)'}">
         <span class="who">${esc(c.name)}${c.player ? '' : ' <span class="muted">(NPC)</span>'}</span>
-        <span>${c.status === 'in' ? `depth ${c.depth}` : c.status}</span></li>`)
+        <span>${c.status === 'in' ? `${s.area.reach === 'city' ? 'ward' : 'depth'} ${c.depth}` : c.status}</span></li>`)
       .join('');
     if (candidates !== this.candidatesHtml) {
       this.candidatesHtml = candidates;

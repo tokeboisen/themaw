@@ -110,7 +110,9 @@ export interface Snapshot {
   goldFound: number;
   candidates: CandidateView[];
   party: PartyView;
-  interact: 'descend' | 'gate' | null;
+  /** Hvor spilleren er (Feature-010 VIEW-01, -041): stedet, distriktet i byen og etagen i et hus. */
+  area: { reach: 'mines' | 'city'; reachName: string; ward: string | null; floor: number };
+  interact: 'descend' | 'gate' | 'climb' | 'down' | null;
   fx: { type: string; x?: number; y?: number; text?: string; color?: string; size?: number; amount?: number; kind?: string }[];
   msgs: { who: string; text: string }[];
 }

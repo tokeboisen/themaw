@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-025-join-a-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 5
+version: 6
 status: draft
 created: 2026-11-19
 ```
@@ -42,8 +42,8 @@ For the player: join a Tithe another player has opened and see who is in it, so 
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The Tithes that are open on the server, and the form to open a new one. |
-| AGG-01 | An open Tithe on the server before it is launched: its unique name, the player who opened it and the players who have joined. |
+| VIEW-01 | The Reaches, the Tithes that are open on the server, and the form to open a new one. |
+| AGG-01 | An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it and the players who have joined. |
 | VIEW-02 | The waiting room of an open Tithe: its name and the players in it. |
 
 ## 4. Flows
@@ -101,7 +101,7 @@ Scenario: A full Tithe
 
 - A Tithe has room for 8 players ("The Tithe is full."). A player joins with the chosen character and is in one lobby at a time. (CMD-01)
 - Players can join until the Tithe is launched. Everyone in the lobby sees who is in it by user name. (CMD-01, EVT-01)
-- The Rim has the buttons Character, Characters, Other players, Help and Account, and "Descend into the Maw", which opens VIEW-01 "Tithes". (VIEW-01)
+- The player goes down from the Tithe Board in the middle of the Mustering Square, which opens VIEW-01 "Tithes" (Walk the Mustering Square). (VIEW-01)
 
 ## 8. Integrations
 
@@ -116,13 +116,13 @@ Scenario: A full Tithe
 | VIEW-01 | Tithes | (starting point) | CMD-01 |
 | VIEW-02 | Lobby | EVT-01 | – |
 
-**VIEW-01:** Opened with "Descend into the Maw" in the Rim. Lists the Tithes that are open on the server with their name, the user name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled when full). A name field and "Open a Tithe" open a new one.
+**VIEW-01:** Opened at the Tithe Board in the middle of the Mustering Square (Walk the Mustering Square). Shows the Reaches with a short description, and lists the Tithes that are open on the server with their name, Reach, the user name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled when full). A name field, a choice of Reach and "Open a Tithe" open a new one.
 
 **VIEW-02:** Shows the Tithe's name and its players with user name, character and Mark, "n of 8", and Leave. The player who opened the Tithe also has Launch.
 
 ## 10. Validation and open questions
 
-### Resolved in version 5
+### Resolved in version 6
 
 | # | Question | Resolution |
 |---|---|---|

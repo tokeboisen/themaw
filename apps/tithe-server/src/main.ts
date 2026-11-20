@@ -5,6 +5,7 @@ import { EVENT, bindingsFor, queueFor, type TitheLaunched } from '@maw/contracts
 import { connectBus } from '@maw/platform';
 import { Host } from './host.ts';
 import { createTitheServer } from './server.ts';
+import { Square, httpWhoami } from './square.ts';
 
 const env = {
   rabbitUrl: process.env.RABBITMQ_URL ?? '',
@@ -26,7 +27,9 @@ await bus.consume(queueFor('Tithe'), bindingsFor('Tithe'), async (event) => {
   if (event.type === EVENT.titheLaunched) host.launch(event.data as TitheLaunched);
 });
 
-const app = createTitheServer(host, () => bus.isOpen());
+// Feature-042: Mustering Square; api'et fortæller, hvem en session-cookie tilhører.
+const square = new Square(httpWhoami(process.env.API_URL ?? 'http://api:3000'));
+const app = createTitheServer(host, () => bus.isOpen(), square);
 
 const shutdown = async () => {
   await app.close();

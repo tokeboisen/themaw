@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-011-fight-in-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 6
+version: 7
 status: draft
 created: 2026-11-19
 ```
@@ -152,7 +152,7 @@ Scenario: No focus, no bolt
 - A rival that is struck becomes hostile to the player. A defeated rival is dragged back by the Brand and drops gold and perhaps an item. (EVT-03)
 - EVT-02 "Monster slain" is recorded for every monster, The Foreman included. Only the player who slays The Foreman opens the gate (Claim the Tithe); if a rival slays him, the rival claims the Tithe (Rivals race). (EVT-02, EVT-04)
 - A monster slain by the player drops gold (40 %), an item (12 %, Tunnel Brute 30 %) and a potion or a ration (15 %); The Foreman drops gold, a rare and two magic items. Monsters called by the Mirrormaster or The Foreman drop nothing. A cache drops gold, one or two items and perhaps a supply when the candidate walks into it. (EVT-05)
-- The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). A monster's level is the depth + half of the player's Marks above 1. (AGG-01)
+- The monsters of The Old Mines: the Gnawer (fast, weak, in packs), the Crystal Spitter (spits from afar and keeps its distance), the Tunnel Brute (slow, strong, armoured) and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The Broken City has the same monsters, and its Warden is The Smelter in the foundry, who fights like The Foreman. A monster's level is the depth + half of the player's Marks above 1. (AGG-01)
 
 ## 8. Integrations
 
@@ -170,7 +170,7 @@ Scenario: No focus, no bolt
 
 ## 10. Validation and open questions
 
-### Resolved in version 6
+### Resolved in version 7
 
 | # | Question | Resolution |
 |---|---|---|

@@ -5,7 +5,7 @@ bounded_context: Market
 product: The Maw
 source: models/Feature-019-trade-at-the-forge.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-19
 ```
@@ -45,7 +45,7 @@ For the player: buy weapons, armour and rings from Hesta Varn and sell what is n
 
 | ID | Description |
 |---|---|
-| VIEW-01 | Hesta Varn's forge in the Rim: the items for sale with price, and the player's pack with sell price. |
+| VIEW-01 | Hesta Varn's forge on the Mustering Square: the items for sale with price, and the player's pack with sell price. |
 | AGG-01 | Hesta Varn's forge and the items for sale. |
 | AGG-02 | The character's gold. |
 
@@ -150,7 +150,7 @@ Scenario: An item is sold
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

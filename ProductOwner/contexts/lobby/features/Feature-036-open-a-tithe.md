@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-036-open-a-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -42,8 +42,8 @@ For the player: open a Tithe with a name of the player's own on the server, so f
 
 | ID | Description |
 |---|---|
-| VIEW-01 | The Tithes that are open on the server, and the form to open a new one. |
-| AGG-01 | An open Tithe on the server before it is launched: its unique name, the player who opened it and the players who have joined. |
+| VIEW-01 | The Reaches, the Tithes that are open on the server, and the form to open a new one. |
+| AGG-01 | An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it and the players who have joined. |
 | VIEW-02 | The waiting room of an open Tithe: its name and the players in it. |
 
 ## 4. Flows
@@ -62,12 +62,14 @@ For the player: open a Tithe with a name of the player's own on the server, so f
 | Field |
 |---|
 | Name |
+| Reach |
 
 ### AGG-01 Lobby (CMD-01 → EVT-01)
 
 | Field |
 |---|
 | Name |
+| Reach |
 | Opened by |
 | Players (many) |
 | Players › User name |
@@ -80,6 +82,12 @@ For the player: open a Tithe with a name of the player's own on the server, so f
 As a player I want to open a Tithe with a name, so that my friends can find it and join me.
 
 ```gherkin
+Scenario: Kael opens a Tithe in The Broken City
+  Given no Tithe is called "Rustgate"
+  When the player performs CMD-01 "Open a Tithe" with "Rustgate" in The Broken City
+  Then EVT-01 "Tithe opened" is recorded
+  And VIEW-01 "Tithes" shows Rustgate in The Broken City
+
 Scenario: Kael opens Ashfall
   Given no Tithe is called "Ashfall"
   When the player performs CMD-01 "Open a Tithe" with "Ashfall"
@@ -101,6 +109,7 @@ Scenario: The name is taken
 
 ### Rules
 
+- A Tithe is opened in one of the Reaches: The Old Mines or The Broken City (Tithe, Enter the Tithe). The Tithe Board shows them with a short description. (CMD-01)
 - The name is 3–30 characters and must be unique among the Tithes that are open or running on the server ("A Tithe with this name already exists."). (CMD-01)
 - The player who opens a Tithe is in it with the chosen character, and the Tithe shows in the list for everyone. (EVT-01)
 
@@ -117,17 +126,18 @@ Scenario: The name is taken
 | VIEW-01 | Tithes | (starting point) | CMD-01 |
 | VIEW-02 | Lobby | EVT-01 | – |
 
-**VIEW-01:** Opened with "Descend into the Maw" in the Rim. Lists the Tithes that are open on the server with their name, the user name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled when full). A name field and "Open a Tithe" open a new one.
+**VIEW-01:** Opened at the Tithe Board in the middle of the Mustering Square (Walk the Mustering Square). Shows the Reaches with a short description, and lists the Tithes that are open on the server with their name, Reach, the user name of the player who opened them, the players in them by user name and "n of 8", each with Join (disabled when full). A name field, a choice of Reach and "Open a Tithe" open a new one.
 
 **VIEW-02:** Shows the Tithe's name and its players with user name, character and Mark, "n of 8", and Leave. The player who opened the Tithe also has Launch.
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Tithe names:** How long can the name of a Tithe be? | Decided 2026-11-19: 3–30 characters. |
+| 2 | **Reaches:** Can a Tithe be opened in more than one place? | Decided 2026-11-20: yes, in one of the Reaches – The Old Mines or The Broken City – chosen when the Tithe is opened (Tithe, Enter the Tithe). |
 
 ### Still open
 

@@ -82,4 +82,13 @@ describe('Accounts', { skip: !hasDatabase }, () => {
     assert.match(response.headers['set-cookie'] as string, /Max-Age=0/);
     assert.equal((await me(cookie)).statusCode, 401);
   });
+
+  test('F042: tithe-server can ask who a session cookie belongs to', async () => {
+    const cookie = await signUp(app, named('whoami'));
+    const response = await app.inject({ method: 'GET', url: '/internal/whoami', headers: { cookie } });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().userName, named('whoami'));
+    assert.equal(response.json().character, null);
+    assert.equal((await app.inject({ method: 'GET', url: '/internal/whoami' })).statusCode, 401);
+  });
 });

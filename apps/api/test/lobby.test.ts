@@ -46,6 +46,20 @@ describe('Lobby', { skip: !hasDatabase }, () => {
     assert.ok(list.tithes.some((t: { name: string }) => t.name === name)); // EVT-01: the Tithe shows for everyone
   });
 
+  test('F036 scenario "Kael opens a Tithe in The Broken City", and the board shows the Reaches', async () => {
+    const kael = await playerWithCharacter('kael8');
+    const name = named('Rustgate');
+    const response = await post(kael.cookie, '/api/tithes', { name, reach: 'city' });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.json().tithe.reachName, 'The Broken City');
+    const board = await get(kael.cookie, '/api/tithes');
+    assert.deepEqual(board.reaches.map((r: { name: string }) => r.name), ['The Old Mines', 'The Broken City']);
+    assert.equal(board.tithes.find((t: { name: string }) => t.name === name).reach, 'city');
+    await post(kael.cookie, `/api/tithes/${encodeURIComponent(name)}/launch`);
+    assert.equal((await launchedEvent(name)).reach, 'city'); // F037: "Tithe launched" carries the Reach
+    assert.equal((await post(kael.cookie, '/api/tithes', { name: named('Nowhere'), reach: 'moon' })).statusCode, 400);
+  });
+
   test('F036 scenario "The name is taken" (also in other letter case), and a name must be 3–30 characters', async () => {
     const kael = await playerWithCharacter('kael2');
     const other = await playerWithCharacter('other2');

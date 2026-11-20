@@ -42,7 +42,7 @@
         <mxCell id="CMD-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
           <mxGeometry x="200" y="180" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Lobby&lt;/b&gt;&lt;br&gt;&lt;b&gt;Players (many)&lt;/b&gt;&lt;br&gt;· User name&lt;br&gt;· Character&lt;br&gt;NPC places&lt;br&gt;Launched" tooltip="An open Tithe on the server before it is launched: its unique name, the player who opened it and the players who have joined.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Lobby&lt;/b&gt;&lt;br&gt;&lt;b&gt;Players (many)&lt;/b&gt;&lt;br&gt;· User name&lt;br&gt;· Character&lt;br&gt;NPC places&lt;br&gt;Launched" tooltip="An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it and the players who have joined.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
             <mxGeometry x="400" y="0" width="120" height="120" as="geometry" />
           </mxCell>

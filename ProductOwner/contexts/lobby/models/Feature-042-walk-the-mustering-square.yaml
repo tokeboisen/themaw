@@ -1,0 +1,108 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-20'
+use_case:
+  name: Walk the Mustering Square
+  bounded_context: Lobby
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: walk the Mustering Square in the Rim between Tithes, meet the other players there and go to
+      the shops, the Patrons' Hall and the Tithe Board, so the Rim is a place the players share before they go
+      down.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Mustering Square
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The square in the Rim where the Branded gather: the Forge, the Apothecary, the Patrons' Hall, the Tithe Board
+      in the middle and the players on the square.
+    behavior: >-
+      The player's character walks the square with WASD or the arrows. Hesta Varn's forge stands to the west, Mother
+      Quill's apothecary to the east, the Patrons' Hall to the north and the Tithe Board in the middle. Standing at
+      one of them shows "<name> – press F", and F opens it as an overlay (Market, Patronage; Open a Tithe). Other
+      players on the square are shown with their user names. The gold and the buttons Character, Characters,
+      Other players, Statistics, Help and Account are at the top.
+  - id: CMD-01
+    type: command
+    name: Walk the square
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to walk the Mustering Square, so that I can go to the shops and the Tithe Board and meet the
+      other players.
+    fields:
+      - name: Direction
+  - id: AGG-01
+    type: aggregate
+    name: Square
+    col: 3
+    stack: 1
+    description: The Mustering Square and the players on it.
+    fields:
+      - name: Players
+        attributes:
+          - name: User name
+          - name: Character
+          - name: Position
+        many: true
+  - id: EVT-01
+    type: event
+    name: Player moved
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - AGG-01
+    text: >-
+      The player is on the square after choosing a character (Characters, Choose character) and after a Tithe, and
+      stays on it while waiting in a lobby; the square shows every player on it.
+  - applies_to:
+      - CMD-01
+    text: >-
+      The Maw Server keeps the players' positions, so everyone sees the same square. Walls, stalls and the board
+      block the way.
+  - applies_to:
+      - VIEW-01
+    text: >-
+      The square replaces the Rim's menu: the shops, the Patrons' Hall and the Tithe Board are places on it, and the
+      Patrons' Hall glows when gifts wait.
+scenarios:
+  - title: Kael walks to the Forge
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael is on the Mustering Square
+      When the player performs CMD-01 "Walk the square" toward the Forge
+      Then EVT-01 "Player moved" is recorded
+      And "Forge – press F" is shown when Kael stands at the Forge
+  - title: Brann sees Kael
+    applies_to:
+      - EVT-01
+    gherkin: |-
+      Given Kael and Brann are on the Mustering Square
+      When EVT-01 "Player moved" has been recorded for Kael
+      Then VIEW-01 "Mustering Square" shows Kael's user name where Kael stands
+open_questions:
+  - topic: The square
+    question: Is the place where players start between Tithes a screen or a square they walk?
+    status: resolved
+    applies_to:
+      - VIEW-01
+    resolution: >-
+      Decided 2026-11-20: a square the players walk, with the shops, the Patrons' Hall and the Tithe Board in the
+      middle, where the players see each other.

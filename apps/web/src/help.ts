@@ -5,13 +5,14 @@ import { HOTBAR_KEYS, type Hotbar } from '@maw/rules';
 import { esc } from './dom.ts';
 
 const TOPICS: [string, string][] = [
-  ['The Tithe', 'Up to eight candidates – players and NPC rivals – race down three depths of the Old Mines. Slay The Foreman at the bottom and walk through the gate to be the Champion. A fall, or leaving, loses what you found in the Tithe, but never what you brought down.'],
+  ['The Tithe', 'Up to eight candidates – players and NPC rivals – race to the Warden. Slay him and walk through the gate to be the Champion. A fall, or leaving, loses what you found in the Tithe, but never what you brought down.'],
+  ['The Reaches', 'A Tithe is in one of two Reaches. The Old Mines: three depths of tunnels with The Foreman at the bottom. The Broken City: one great ruin with The Smelter in the foundry in the middle; its districts are sealed from the outside in, and large houses and factories have upper floors up the stairs.'],
   ['Fighting', 'Aim is automatic: you strike the nearest enemy in reach. A number key chooses what Space uses – a weapon, which you draw, or Echo Bolt. Blades swing narrow arcs, heavy weapons wide ones, bows shoot arrows. Monsters wind up before they attack – dodge through it. For the first 20 seconds no candidate may strike another.'],
   ['Skills and Marks', 'Every blow that lands trains the skill that dealt it; strong enemies teach more. Slain enemies give Echo, and enough Echo burns a new Mark into your Brand: 3 attribute points and 2 skill points to spend on the character sheet, also during a Tithe.'],
   ['Gear and loot', 'Walk over loot to pick it up. Items need room in your pack. Equip, unequip, drop and set your hotbar on the character sheet. Items found in a Tithe are lost if you fall.'],
   ['Hunger and supplies', 'Hunger falls as you fight. At 0 you starve: stamina recovers slowly and life not at all. A ration restores 45 hunger, a potion 40 % of your life. You carry at most 9 of each.'],
   ['The Mirrormaster', 'Lucan Ilveth runs the show. Kill streaks bring sponsor gifts; a bored crowd brings beasts. Depth 1 is sealed after 4 minutes and depth 2 after 8 – a sealed depth wounds everyone still in it.'],
-  ['The Rim', 'Between Tithes you rest in the Rim: buy and sell at the Forge, buy supplies at the Apothecary, and accept the Noble Houses’ gifts in the Patrons’ Hall. The Crown pays a purse after every Tithe.'],
+  ['The Rim', 'Between Tithes you walk the Mustering Square: Hesta Varn\u2019s Forge to the west, Mother Quill\u2019s Apothecary to the east, the Patrons\u2019 Hall to the north – it glows when gifts wait – and the Tithe Board in the middle. Stand at one and press F. The Crown pays a purse after every Tithe.'],
   ['Playing with others', 'Open a Tithe with a name of your own, or join one a friend has opened. The player who opened it launches it, and NPC rivals fill the places that are left. In the first 20 seconds you can invite the other players into your party (O). Party members never hurt each other; anyone else may strike you once the grace is over, and a player who is struck down spills some of their gold.'],
 ];
 
@@ -23,7 +24,7 @@ export function helpHtml(hotbar: Hotbar, weaponName: (id: string) => string): st
   }).join('');
   const keys: [string, string][] = [
     ['W A S D / arrows', 'Move'], ['Space', 'Attack with what is chosen on the hotbar'], ['1–8, or click a slot', 'Choose on the hotbar'], ['Shift', 'Dodge'], ['Q', 'Potion'], ['R', 'Ration'],
-    ['F', 'Descend and the gate'], ['C', 'Character'], ['O', 'Other players'], ['H', 'Help'], ['Esc', 'Close'],
+    ['F', 'Descend, climb the stairs, the gate and the places on the square'], ['C', 'Character'], ['O', 'Other players'], ['H', 'Help'], ['Esc', 'Close'],
   ];
   return `<div class="overlay see-through"><div class="sheet">
     <header class="top"><h2>Help</h2><button class="ghost" data-act="close">Close</button></header>

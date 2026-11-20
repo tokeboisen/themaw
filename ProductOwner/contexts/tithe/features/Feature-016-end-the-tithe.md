@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-016-end-the-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -143,11 +143,11 @@ Scenario: An NPC rival's victory ends the Tithe for every player
 |---|---|---|---|
 | VIEW-01 | Tithe results | EVT-04 | – |
 
-**VIEW-01:** Shown 2.5 seconds after the end. The heading is "You are the Champion!", "<name> is the Champion", "You fell" or "You left the Tithe". It shows the Tithe's number, time, deepest depth, monsters slain, rivals and players defeated, Renown, gold found (or lost), the Crown's Purse, sponsor gifts waiting, the Mark and the skills before and after the Tithe, and what was lost. "Return to the Rim" opens the Rim, on the Patrons' Hall when gifts wait.
+**VIEW-01:** Shown 2.5 seconds after the end. The heading is "You are the Champion!", "<name> is the Champion", "You fell" or "You left the Tithe". It shows the Tithe's number, time, deepest depth, monsters slain, rivals and players defeated, Renown, gold found (or lost), the Crown's Purse, sponsor gifts waiting, the Mark and the skills before and after the Tithe, and what was lost. "Return to the Rim" returns to the Mustering Square, with the Patrons' Hall open when gifts wait.
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-013-survive-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -136,7 +136,7 @@ No user stories.
 - Monsters sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls. Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot be hit, for 20 stamina. (SVC-01)
 - Damage to a candidate is reduced by armour / (armour + 50). (CMD-01)
 - Hunger falls by 0.25 per second, 2 % slower per Stamina above 10. At 0 the candidate starves: stamina recovers at 40 % and life does not recover. Otherwise life recovers 0.3 per second. (SVC-02, CMD-03)
-- A sealed depth wounds every candidate in it by 3 % of max life per second until they leave it. (SVC-02)
+- A sealed depth – or a sealed district of The Broken City, with the floors of its houses – wounds every candidate in it by 3 % of max life per second until they leave it. (SVC-02)
 - A potion heals 40 % of max life, and a ration restores 45 hunger (Gear, Use consumables). (CMD-02, CMD-03)
 - When a player's life reaches 0, the player falls and the Brand drags them back: the player's part of the Tithe ends (End the Tithe), and the other candidates go on. An NPC rival whose life reaches 0 falls and leaves the Tithe. (EVT-10, EVT-11)
 
@@ -174,7 +174,7 @@ Scenario: A sealed depth collapses
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

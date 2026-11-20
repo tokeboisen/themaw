@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-037-launch-the-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -44,7 +44,7 @@ For the player who opened a Tithe: decide when it starts, so the players who wan
 | ID | Description |
 |---|---|
 | VIEW-01 | The waiting room of an open Tithe: its name and the players in it. |
-| AGG-01 | An open Tithe on the server before it is launched: its unique name, the player who opened it and the players who have joined. |
+| AGG-01 | An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it and the players who have joined. |
 
 ## 4. Flows
 
@@ -99,6 +99,7 @@ As a player I want to leave a lobby before the Tithe starts, so that I can join 
 
 ### Rules
 
+- EVT-01 "Tithe launched" carries the Tithe's Reach, so the Tithe is laid out in it (Tithe, Enter the Tithe). (EVT-01)
 - Only the player who opened the Tithe can launch it, also alone. At launch NPC rivals fill the places up to 8, and EVT-01 "Tithe launched" starts the Tithe (Tithe, Enter the Tithe). (CMD-01, EVT-01)
 - Every player can leave the lobby before the launch. When the player who opened the Tithe leaves, the Tithe is closed and the others return to the list of Tithes. (CMD-02, EVT-02)
 
@@ -118,7 +119,7 @@ As a player I want to leave a lobby before the Tithe starts, so that I can join 
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

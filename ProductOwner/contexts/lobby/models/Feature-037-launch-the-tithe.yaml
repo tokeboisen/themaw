@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -41,8 +41,8 @@ elements:
     col: 3
     stack: 1
     description: >-
-      An open Tithe on the server before it is launched: its unique name, the player who opened it and the
-      players who have joined.
+      An open Tithe on the server before it is launched: its unique name, its Reach, the player who opened it
+      and the players who have joined.
     fields:
       - name: Players
         attributes:
@@ -75,6 +75,9 @@ flows:
   - from: AGG-01
     to: EVT-02
 rules:
+  - applies_to:
+      - EVT-01
+    text: EVT-01 "Tithe launched" carries the Tithe's Reach, so the Tithe is laid out in it (Tithe, Enter the Tithe).
   - applies_to:
       - CMD-01
       - EVT-01

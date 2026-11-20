@@ -61,6 +61,10 @@ layout:
     use_case: Read help
     x: 10160
     y: 0
+  - bounded_context: Tithe
+    use_case: Climb the stairs
+    x: 10760
+    y: 0
   - bounded_context: Spectacle
     use_case: Run the show
     x: 0
@@ -184,4 +188,8 @@ layout:
   - bounded_context: Lobby
     use_case: Open a Tithe
     x: 1320
+    y: 0
+  - bounded_context: Lobby
+    use_case: Walk the Mustering Square
+    x: 3840
     y: 0

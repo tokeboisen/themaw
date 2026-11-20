@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-026-choose-character.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -94,7 +94,7 @@ Scenario: Another character is chosen
 
 ### Rules
 
-- The player plays one character at a time; the chosen character is the one in the Rim, the parties and the Tithe. After choosing, the player is in the Rim. (CMD-01, EVT-03)
+- The player plays one character at a time; the chosen character is the one in the Rim, the parties and the Tithe. After choosing, the player is on the Mustering Square in the Rim (Lobby, Walk the Mustering Square). (CMD-01, EVT-03)
 - The character can only be changed in the Rim, not during a Tithe or while the player's party is looking for a Tithe. (CMD-01)
 
 ## 8. Integrations
@@ -120,7 +120,7 @@ Scenario: A new user goes straight to Create character
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|

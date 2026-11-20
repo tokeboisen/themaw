@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 2
 status: draft
 created: '2026-11-19'
 use_case:
@@ -20,7 +20,7 @@ elements:
     stack: 1
     actors:
       - Player
-    description: 'Mother Quill''s apothecary in the Rim: healing draughts and rations.'
+    description: 'Mother Quill''s apothecary on the Mustering Square: healing draughts and rations.'
     behavior: >-
       "Mother Quill: Drink before you need it, child. Eat before you starve." Healing Draught and Ration with
       what they do, the price, how many the character carries of the 9, and Buy (disabled without gold or room).

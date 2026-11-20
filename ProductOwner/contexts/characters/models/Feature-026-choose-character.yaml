@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -82,7 +82,8 @@ rules:
       - EVT-03
     text: >-
       The player plays one character at a time; the chosen character is the one in the Rim, the parties and
-      the Tithe. After choosing, the player is in the Rim.
+      the Tithe. After choosing, the player is on the Mustering Square in the Rim (Lobby, Walk the Mustering
+      Square).
   - applies_to:
       - CMD-01
     text: >-

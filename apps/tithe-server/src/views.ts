@@ -3,7 +3,7 @@
 
 import type { CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
 import {
-  BALANCE, chosenKey, crownsPurse, echoToNextMark, giftCount, losesFound, sameParty, sealInfo, type Item, type Player,
+  BALANCE, chosenKey, crownsPurse, districtAt, echoToNextMark, giftCount, losesFound, sameParty, sealInfoAt, shownDepth, type Item, type Player,
   type SkillId, type Tithe, type TitheSummary,
 } from '@maw/rules';
 
@@ -25,12 +25,12 @@ const r2 = (x: number) => Math.round(x * 100) / 100;
 function candidates(t: Tithe, p: Player): CandidateView[] {
   const list: CandidateView[] = t.players.map((x) => ({
     name: x.userName,
-    depth: x.depth,
+    depth: shownDepth(t, x),
     status: !x.end ? 'in' : x.end.kind === 'champion' ? 'champion' : x.end.kind === 'left' ? 'left' : x.end.kind === 'fell' ? 'fallen' : 'in',
     player: true,
     you: x.id === p.id,
   }));
-  for (const r of t.rivals) list.push({ name: r.name, depth: r.depth, status: r.status, player: false, you: false });
+  for (const r of t.rivals) list.push({ name: r.name, depth: shownDepth(t, r), status: r.status, player: false, you: false });
   return list;
 }
 
@@ -49,6 +49,17 @@ function party(t: Tithe, p: Player): PartyView {
     invitations: inviteLeft > 0
       ? t.invitations.filter((i) => i.to === p.id).map((i) => ({ from: i.from, name: t.players.find((x) => x.id === i.from)?.userName ?? '' }))
       : [],
+  };
+}
+
+function area(t: Tithe, p: Player): Snapshot['area'] {
+  const B = t.B ?? BALANCE;
+  const d = districtAt(t, p.depth, p.x, p.y);
+  return {
+    reach: t.reach,
+    reachName: B.reaches.find((r) => r.id === t.reach)?.name ?? '',
+    ward: d === null ? null : B.city.wards[d - 1] ?? null,
+    floor: t.depths[p.depth]?.floor ?? 1,
   };
 }
 
@@ -117,11 +128,12 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
     loot: dep.loot.filter((l) => seen(l)).map((l) => ({ id: l.id, x: r2(l.x), y: r2(l.y), kind: l.kind, ...(l.item ? { rarity: l.item.rarity } : {}) })),
     caches: dep.caches.filter((c) => explored[Math.floor(c.y) * map.w + Math.floor(c.x)]).map((c) => ({ x: r2(c.x), y: r2(c.y), opened: c.opened })),
     gate,
-    seal: sealInfo(t, p.depth),
+    seal: sealInfoAt(t, p.depth, p.x, p.y),
     renown: p.record.renown,
     goldFound: p.record.goldFound,
     candidates: candidates(t, p),
     party: party(t, p),
+    area: area(t, p),
     interact: p.interact,
     fx: t.fx
       .filter((f) => f.depth === p.depth && (!f.to || f.to === p.id) && (f.x === undefined || f.y === undefined || seen({ x: f.x, y: f.y }, 2)))

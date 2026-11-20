@@ -3,13 +3,14 @@
 // Ingen DOM og intet netværk her: tithe-server kalder stepTithe 30 gange i sekundet og sender hver spiller det, den kan se.
 // Partier dannes i de første 20 sekunder (Feature-034, -035), og spillere slår spillere uden for deres parti (Feature-011).
 
-import type { Balance, MonsterDef, RivalDef } from './balance.ts';
+import type { Balance, MonsterDef, ReachId, RivalDef } from './balance.ts';
+import { GROUND_AREA, generateCity, type StairLink } from './city.ts';
 import {
   addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, spendAttributePoint, spendSkillPoint, unequipItem,
   SKILL_NAMES, type DerivedStats,
 } from './character.ts';
 import {
-  bfs, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, tileAt, type DepthMap, type Room,
+  bfs, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, STAIRS, tileAt, type DepthMap, type Room,
 } from './dungeon.ts';
 import { assignHotbarKey, clearHotbarKey, ECHO_ARTS, HOTBAR_KEYS, removeWeaponFromHotbar, type EchoArt, type Hotbar, type HotbarKey } from './gear.ts';
 import { generateItem, isEquipSlot, type ItemOptions } from './items.ts';
@@ -28,9 +29,12 @@ const LINES = {
   sponsor: '{house} is pleased. A gift falls from the offering shaft!',
   rivalFell: '{name} falls, and the Brand drags them back up. The crowd roars!',
   rivalDepth: '{name} reaches depth {d}.',
-  rivalLostWarden: '{name} fell to the Foreman. He is wounded now...',
-  warden: 'The Foreman stirs. Who will face him?',
-  wardenSlain: 'The Foreman is dead! The gate opens for {name}. Walk through and claim the Tithe!',
+  rivalLostWarden: '{name} fell to {warden}. He is wounded now...',
+  warden: '{Warden} stirs. Who will face him?',
+  wardenSlain: '{Warden} is dead! The gate opens for {name}. Walk through and claim the Tithe!',
+  wardWarning: '{Ward} grows dull. I will seal it in {s} seconds.',
+  wardSealed: '{Ward} is sealed! Anyone still in it... well. Run.',
+  ward: '{Ward}. The crowd leans closer.',
   champion: 'Aurum, behold your Champion: {name}!',
   playerFell: '{name} falls. The Brand drags them back up... The Maw is not finished with them.',
   playerLeft: '{name} has left the Tithe. The Brand drags them back up.',
@@ -41,7 +45,11 @@ const LINES = {
 
 export const RARITY_COLORS: Record<Rarity, string> = { common: '#e8e2d6', magic: '#6aa6ff', rare: '#ffd84a' };
 
-const fmt = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => String(values[k]));
+const fmt = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, k: string) => {
+  // {Warden} og {Ward} med stort begyndelsesbogstav.
+  const value = values[k] ?? values[k.toLowerCase()];
+  return k[0] === k[0]!.toUpperCase() && typeof value === 'string' ? value[0]!.toUpperCase() + value.slice(1) : String(value);
+});
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -180,7 +188,7 @@ export interface Player extends Body {
   explored: Record<number, Uint8Array>;
   /** Felter, spilleren har set siden sidste snapshot. */
   revealed: number[];
-  interact: 'descend' | 'gate' | null;
+  interact: 'descend' | 'gate' | 'climb' | 'down' | null;
   field: Int16Array | null;
   fieldAge: number;
   /** Tælles op, når karakterskærmens indhold ændrer sig, så serveren ved, hvornår den skal sendes igen. */
@@ -230,6 +238,15 @@ export interface Depth {
   sealedSaid: boolean;
   /** Dybde 1: kandidaternes egne startrum (Feature-010). */
   startRooms: Room[];
+  /** Området med Warden og porten: minernes sidste dybde eller byens gadeplan. */
+  warden: boolean;
+  /** Trapperne i The Broken City (Feature-041). */
+  stairs: StairLink[];
+  /** Byens gadeplan: distriktet for hvert felt (1–4). */
+  districts: Uint8Array | null;
+  /** En etage i et hus: husets distrikt og etagens nummer (2 eller 3). */
+  floorDistrict: number | null;
+  floor: number;
 }
 
 /** Feature-034 EVT-01 Invitation sent: kan kun besvares i nådetiden (Feature-035). */
@@ -295,6 +312,11 @@ export interface Tithe {
   invitations: Invitation[];
   /** Spillere, der er slået ned af andre spillere, og som endnu ikke er sendt på bussen. */
   defeats: Defeat[];
+  /** Feature-010: The Old Mines eller The Broken City. */
+  reach: ReachId;
+  /** Byens distrikter, der er varslet og forseglet (Feature-017). */
+  wardsWarned: Set<number>;
+  wardsSealed: Set<number>;
 }
 
 export interface TithePlayerSetup {
@@ -308,6 +330,7 @@ export interface TithePlayerSetup {
 export interface TitheSetup {
   id: string;
   name: string;
+  reach?: ReachId;
   seed: number;
   players: TithePlayerSetup[];
 }
@@ -321,7 +344,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const t: Tithe = {
     id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
     champion: null, closed: false, wardenAlive: true, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: false, mark, nextId: 1,
-    invitations: [], defeats: [],
+    invitations: [], defeats: [], reach: setup.reach === 'city' ? 'city' : 'mines', wardsWarned: new Set(), wardsSealed: new Set(),
   };
   t.players = setup.players.map((s) => makePlayer(t, s));
   // NPC-rivaler fylder pladserne op til 8, valgt blandt de syv (Feature-010 CMD-01).
@@ -329,7 +352,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const count = Math.max(0, B.tithe.candidates - t.players.length);
   for (let i = 0; i < count && pool.length; i++) t.rivals.push(makeRival(t, pool.splice(Math.floor(rng.next() * pool.length), 1)[0]!));
 
-  const dep = buildDepth(t, 1);
+  const dep = t.reach === 'city' ? buildCity(t) : buildDepth(t, 1);
   t.depths[1] = dep;
   // Hver kandidat starter i sit eget rum, omtrent lige langt fra trappen (Feature-010 AGG-01).
   const candidates: (Player | Rival)[] = [...t.players, ...t.rivals];
@@ -410,6 +433,27 @@ function makeRival(t: Tithe, def: RivalDef): Rival {
   };
 }
 
+/** Feature-012: minerne har tre dybder; byen er ét område, og dens distrikter tæller som dybder. */
+export function depthCount(t: Tithe): number {
+  return t.reach === 'city' ? 1 : t.B.tithe.depths;
+}
+
+/** Distriktet (1–4) på et sted i byen; null i minerne. */
+export function districtAt(t: Tithe, area: number, x: number, y: number): number | null {
+  const dep = t.depths[area];
+  if (!dep) return null;
+  if (dep.floorDistrict !== null) return dep.floorDistrict;
+  if (!dep.districts) return null;
+  return dep.districts[Math.floor(y) * dep.map.w + Math.floor(x)] ?? 1;
+}
+
+/** Hvornår stedet forsegles: dybden i minerne, distriktet i byen (Feature-017). */
+function sealAtPos(t: Tithe, area: number, x: number, y: number): number | null {
+  const d = districtAt(t, area, x, y);
+  if (d !== null) return t.B.city.sealTimes[d - 1] ?? null;
+  return t.depths[area]?.sealAt ?? null;
+}
+
 function monsterLevel(t: Tithe, d: number): number {
   const M = t.B.monsters;
   return Math.max(1, Math.round(d * M.levelPerDepth + Math.floor((t.mark - 1) * M.followPlayerLevel)));
@@ -446,14 +490,74 @@ function buildDepth(t: Tithe, d: number): Depth {
   const B = t.B;
   const last = d === B.tithe.depths;
   const map = generateDepth(t.rng, { warden: last });
+  return populate(t, d, map, last, null);
+}
+
+/** Monstre, The Foreman eller The Smelter, og caches i et område med dets startrum. */
+/**
+ * Reach 2, The Broken City (Feature-010, -041): gadeplan med distrikter og etagerne i de store huse og fabrikker.
+ * Monstrenes niveau følger distriktet, som tæller som en dybde.
+ */
+function buildCity(t: Tithe): Depth {
+  const B = t.B;
+  const plan = generateCity(t.rng, B);
+  const ground = populate(t, 1, plan.ground, true, plan.startRooms, B.city.cachesOnGround);
+  ground.districts = plan.districts;
+  ground.stairs = plan.groundStairs;
+  const at = (x: number, y: number) => plan.districts[Math.floor(y) * plan.ground.w + Math.floor(x)] ?? 1;
+  ground.monsters = ground.monsters.map((m) => {
+    const level = monsterLevel(t, m.def.warden ? B.city.districts : at(m.x, m.y));
+    if (m.level === level) return m;
+    const again = makeMonster(t, m.type, m.x, m.y, level);
+    again.hp = Math.round(again.maxHp * (m.hp / m.maxHp));
+    return again;
+  });
+  // Bander af Gnawers på vejene i de indre distrikter.
+  const startSet = new Set(ground.startRooms.slice(0, t.players.length));
+  for (let i = 0, tries = 0; i < B.city.streetPacks && tries < 500; tries++) {
+    const x = t.rng.int(2, plan.ground.w - 3);
+    const y = t.rng.int(2, plan.ground.h - 3);
+    const d = at(x, y);
+    if (d < 2 || d >= B.city.districts || plan.ground.tiles[y * plan.ground.w + x] !== 5) continue;
+    if ([...startSet].some((r) => Math.hypot(r.cx - x, r.cy - y) < 12)) continue;
+    for (let k = 0; k < t.rng.int(2, 3); k++) ground.monsters.push(makeMonster(t, 'gnawer', x + 0.5 + t.rng.range(-1, 1), y + 0.5 + t.rng.range(-1, 1), monsterLevel(t, d)));
+    i += 1;
+  }
+  for (const f of plan.floors) {
+    const map = f.map;
+    const room = map.rooms[0]!;
+    const toExit = bfs(map, map.exit.x, map.exit.y);
+    const dep: Depth = {
+      level: f.area, map, monsters: [], loot: [], caches: [], projectiles: [], toExit, maxExitDist: 1, sealAt: null, warned: false,
+      sealedSaid: false, startRooms: [room], warden: false, stairs: f.stairs, districts: null, floorDistrict: f.district, floor: f.floor,
+    };
+    const level = monsterLevel(t, f.district);
+    for (let i = 0; i < t.rng.int(1, 3); i++) {
+      const pos = randomFloorInRoom(t.rng, map, room);
+      if (Math.hypot(pos.x - map.start.x, pos.y - map.start.y) < 3) continue;
+      dep.monsters.push(makeMonster(t, t.rng.chance(0.3) ? 'brute' : t.rng.chance(0.5) ? 'spitter' : 'gnawer', pos.x + 0.5, pos.y + 0.5, level));
+    }
+    // Feature-041 EVT-01: hver etage har en cache.
+    const pos = randomFloorInRoom(t.rng, map, room);
+    dep.caches.push({ id: nid(t, 'c'), x: pos.x + 0.5, y: pos.y + 0.5, opened: false });
+    t.depths[f.area] = dep;
+  }
+  return ground;
+}
+
+function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room[] | null, caches = t.B.loot.cachesPerDepth): Depth {
+  const B = t.B;
   const toExit = bfs(map, map.exit.x, map.exit.y);
   let maxExitDist = 1;
   for (const v of toExit) if (v > maxExitDist) maxExitDist = v;
-  const startRooms = d === 1 ? chooseStartRooms(map, toExit, t.players.length + t.rivals.length, t.rng) : [map.startRoom];
+  const startRooms = d === 1
+    ? chooseStartRooms(start ? { ...map, rooms: start } : map, toExit, t.players.length + t.rivals.length, t.rng)
+    : [map.startRoom];
   const playerRooms = new Set(d === 1 ? startRooms.slice(0, t.players.length) : [map.startRoom]);
   const dep: Depth = {
     level: d, map, monsters: [], loot: [], caches: [], projectiles: [], toExit, maxExitDist,
-    sealAt: B.mirrormaster.sealTimes[d - 1] ?? null, warned: false, sealedSaid: false, startRooms,
+    sealAt: t.reach === 'city' ? null : B.mirrormaster.sealTimes[d - 1] ?? null, warned: false, sealedSaid: false, startRooms,
+    warden: last, stairs: [], districts: null, floorDistrict: null, floor: 1,
   };
   const level = monsterLevel(t, d);
   const types = Object.entries(B.monsters.types).filter(([, m]) => !m.warden);
@@ -479,7 +583,7 @@ function buildDepth(t: Tithe, d: number): Depth {
   }
   if (map.wardenRoom) {
     const wr = map.wardenRoom;
-    const foreman = makeMonster(t, 'foreman', wr.cx + 0.5, wr.cy + 0.5, level);
+    const foreman = makeMonster(t, t.reach === 'city' ? 'smelter' : 'foreman', wr.cx + 0.5, wr.cy + 0.5, level);
     foreman.hp = Math.round(foreman.hp * t.wardenHpFactor);
     dep.monsters.push(foreman);
     for (let i = 0; i < 2; i++) {
@@ -488,7 +592,7 @@ function buildDepth(t: Tithe, d: number): Depth {
     }
   }
   const cacheRooms = map.rooms.filter((r) => r !== map.startRoom && r !== map.wardenRoom && !playerRooms.has(r));
-  for (let i = 0; i < B.loot.cachesPerDepth && cacheRooms.length; i++) {
+  for (let i = 0; i < caches && cacheRooms.length; i++) {
     const room = cacheRooms.splice(Math.floor(t.rng.next() * cacheRooms.length), 1)[0]!;
     const pos = randomFloorInRoom(t.rng, map, room);
     dep.caches.push({ id: nid(t, 'c'), x: pos.x + 0.5, y: pos.y + 0.5, opened: false });
@@ -581,7 +685,7 @@ function placeRival(t: Tithe, dep: Depth, r: Rival): void {
   const players = playersOn(t, dep.level);
   let pos: { x: number; y: number } | null = null;
   if (r.progress < 0.08) {
-    pos = randomFloorInRoom(t.rng, map, map.startRoom);
+    pos = randomFloorInRoom(t.rng, map, t.reach === 'city' ? t.rng.pick(dep.startRooms) : map.startRoom);
   } else {
     const target = (1 - r.progress) * dep.maxExitDist;
     let bestScore = Infinity;
@@ -626,6 +730,16 @@ function syncRivalPresence(t: Tithe): void {
     }
   }
   for (const [d, dep] of Object.entries(t.depths)) if (!playersOn(t, Number(d)).length) dep.projectiles = [];
+}
+
+/** Feature-012: i byen er et distrikt tættere på midten en dybere dybde, med Renown første gang. */
+function reachWard(t: Tithe, p: Player): void {
+  if (t.reach !== 'city') return;
+  const d = districtAt(t, p.depth, p.x, p.y);
+  if (d === null || d <= p.record.maxDepth) return;
+  p.record.maxDepth = d;
+  addRenown(t, p, t.B.renown.depth);
+  say(t, 'Mirrormaster', fmt(LINES.ward, { ward: t.B.city.wards[d - 1]! }), p.id);
 }
 
 function enterDepth(t: Tithe, p: Player, d: number): void {
@@ -834,6 +948,7 @@ export function stepTithe(t: Tithe, dt: number): void {
   for (const p of playersIn(t)) {
     reveal(t, p);
     updateInteract(t, p);
+    reachWard(t, p);
   }
   if (!playersIn(t).length) t.closed = true;
 }
@@ -882,6 +997,10 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
       }
       if (p.interact === 'gate') {
         claimTithe(t, p);
+        return;
+      }
+      if (p.interact === 'climb' || p.interact === 'down') {
+        climbStairs(t, p);
         return;
       }
     }
@@ -953,6 +1072,34 @@ function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   }
   p.drawT = t.B.combat.drawTime;
   refreshStats(t, p);
+}
+
+/** Feature-041 CMD-01 Climb the stairs: op til en øvre etage eller ned igen; etagen er sit eget kort. */
+function climbStairs(t: Tithe, p: Player): void {
+  const link = stairAt(t, p);
+  if (!link || !t.depths[link.area]) return;
+  p.depth = link.area;
+  p.x = link.tx + 0.5;
+  p.y = link.ty + 0.5;
+  p.dodgeT = 0;
+  p.field = null;
+  p.fieldAge = 99;
+  syncRivalPresence(t);
+  reveal(t, p);
+  updateInteract(t, p);
+}
+
+function stairAt(t: Tithe, p: Player): StairLink | null {
+  const dep = t.depths[p.depth];
+  if (!dep) return null;
+  const x = Math.floor(p.x);
+  const y = Math.floor(p.y);
+  return dep.stairs.find((s) => s.x === x && s.y === y) ?? null;
+}
+
+/** Wardens navn: The Foreman i minerne, The Smelter i byen. */
+export function wardenName(t: Tithe): string {
+  return t.reach === 'city' ? t.B.monsters.types.smelter!.name : t.B.monsters.types.foreman!.name;
 }
 
 /** Feature-015 CMD-01: porten er kun åben for partiet hos den, der slog The Foreman. */
@@ -1223,7 +1370,7 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
         p.record.wardenSlain = true;
         addRenown(t, p, B.renown.warden);
         dropLoot(t, dep, target.x, target.y, target.level + 1, { goldChance: 1, items: 3, rarities: ['rare', 'magic', 'magic'], consumableChance: 1 });
-        say(t, 'Mirrormaster', fmt(LINES.wardenSlain, { name: p.name }));
+        say(t, 'Mirrormaster', fmt(LINES.wardenSlain, { name: p.name, warden: wardenName(t) }));
         t.fx.push({ type: 'shake', depth: dep.level, amount: 8 });
       } else if (isRival(killer)) {
         rivalChampion(t, killer);
@@ -1367,7 +1514,7 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
       }
       if (!t.wardenSaid && isPlayer(target)) {
         t.wardenSaid = true;
-        say(t, 'Mirrormaster', LINES.warden);
+        say(t, 'Mirrormaster', fmt(LINES.warden, { warden: wardenName(t) }));
       }
       m.summonT -= dt;
       if (m.summonT <= 0) {
@@ -1442,7 +1589,7 @@ function rivalVictims(t: Tithe, dep: Depth, r: Rival): Body[] {
 
 function updateRivals(t: Tithe, dep: Depth, dt: number): void {
   const B = t.B;
-  const last = dep.level === B.tithe.depths;
+  const last = dep.warden;
   for (const r of realRivals(t, dep.level)) {
     r.attackCd = Math.max(0, r.attackCd - dt);
     r.flash = Math.max(0, r.flash - dt);
@@ -1501,8 +1648,9 @@ function updateRivals(t: Tithe, dep: Depth, dt: number): void {
       continue;
     }
     // Rivaler, du kan se, går i ryk og leder undervejs, så de i gennemsnit er secondsPerDepth om en dybde.
-    const sealed = dep.sealAt != null && t.time >= dep.sealAt;
-    r.budget = Math.min(4, r.budget + (dt * dep.maxExitDist * (sealed ? 3 : 1)) / r.secondsPerDepth);
+    const sealAt = sealAtPos(t, dep.level, r.x, r.y);
+    const sealed = sealAt != null && t.time >= sealAt;
+    r.budget = Math.min(4, r.budget + (dt * dep.maxExitDist * (sealed ? 3 : 1)) / rivalSeconds(t, r));
     if (r.budget >= 4) r.walking = true;
     if (!r.walking || exitTile === 0) {
       r.stuckT = 0;
@@ -1551,8 +1699,29 @@ function rivalFight(t: Tithe, dep: Depth, r: Rival, target: Body, dt: number): v
   } else moveToward(dep, r, target.x, target.y, speed);
 }
 
-function sealAtFor(t: Tithe, d: number): number | null {
+function sealAtFor(t: Tithe, r: Rival): number | null {
+  if (t.reach === 'city') return t.B.city.sealTimes[rivalDistrict(t, r) - 1] ?? null;
+  const d = r.depth;
   return t.depths[d] ? t.depths[d].sealAt : t.B.mirrormaster.sealTimes[d - 1] ?? null;
+}
+
+/** I byen krydser rivalerne hele byen på den tid, minernes tre dybder tager (Feature-014). */
+function rivalSeconds(t: Tithe, r: Rival): number {
+  return t.reach === 'city' ? r.secondsPerDepth * t.B.city.rivalDepths : r.secondsPerDepth;
+}
+
+/** Hvilket distrikt en rival i byen er i: hvor den står, eller hvor langt den er nået, når ingen ser den. */
+export function rivalDistrict(t: Tithe, r: Rival): number {
+  if (r.real) return districtAt(t, r.depth, r.x, r.y) ?? 1;
+  const D = t.B.city.districts;
+  return r.progress >= 1 ? D : Math.min(D - 1, 1 + Math.floor(r.progress * (D - 1)));
+}
+
+/** Dybden, kandidatlisten viser: dybden i minerne, distriktet i byen (Feature-010 VIEW-01). */
+export function shownDepth(t: Tithe, c: Player | Rival): number {
+  if (t.reach !== 'city') return c.depth;
+  if (c.kind === 'rival') return rivalDistrict(t, c);
+  return districtAt(t, c.depth, c.x, c.y) ?? 1;
 }
 
 // Rivaler på dybder uden spillere skrider frem i tid i stedet for at blive simuleret.
@@ -1560,13 +1729,13 @@ function updateAbstractRivals(t: Tithe, dt: number): void {
   const B = t.B;
   for (const r of t.rivals) {
     if (r.real || r.status !== 'in' || t.closed) continue;
-    const sealAt = sealAtFor(t, r.depth);
+    const sealAt = sealAtFor(t, r);
     const sealed = sealAt != null && t.time >= sealAt;
     if (r.progress < 1) {
-      r.progress += (dt / r.secondsPerDepth) * (sealed ? 3 : 1);
+      r.progress += (dt / rivalSeconds(t, r)) * (sealed ? 3 : 1);
       continue;
     }
-    if (r.depth < B.tithe.depths) {
+    if (r.depth < depthCount(t)) {
       r.depth += 1;
       r.progress = 0;
       r.hp = r.maxHp;
@@ -1585,9 +1754,9 @@ function updateAbstractRivals(t: Tithe, dt: number): void {
     }
     r.status = 'fallen';
     t.wardenHpFactor *= B.tithe.wardenWoundedFactor;
-    const foreman = t.depths[B.tithe.depths]?.monsters.find((m) => m.def.warden);
+    const foreman = Object.values(t.depths).find((d) => d.warden)?.monsters.find((m) => m.def.warden);
     if (foreman) foreman.hp = Math.min(foreman.hp, Math.round(foreman.maxHp * t.wardenHpFactor));
-    say(t, 'Mirrormaster', fmt(LINES.rivalLostWarden, { name: r.name }));
+    say(t, 'Mirrormaster', fmt(LINES.rivalLostWarden, { name: r.name, warden: wardenName(t) }));
   }
 }
 
@@ -1690,6 +1859,13 @@ function pickups(t: Tithe, dep: Depth): void {
 
 // --- Mirrormaster (Feature-017) og sammenstyrtning (Feature-013) ------------------------------
 
+/** Forseglingen dér, hvor spilleren står: dybden i minerne, distriktet i byen (Feature-017 og HUD'en). */
+export function sealInfoAt(t: Tithe, area: number, x: number, y: number): { left: number; sealed: boolean } | null {
+  const at = sealAtPos(t, area, x, y);
+  if (at == null) return null;
+  return { left: at - t.time, sealed: t.time >= at };
+}
+
 export function sealInfo(t: Tithe, depth: number): { left: number; sealed: boolean } | null {
   const dep = t.depths[depth];
   if (!dep || dep.sealAt == null) return null;
@@ -1698,14 +1874,15 @@ export function sealInfo(t: Tithe, depth: number): { left: number; sealed: boole
 
 /** Feature-013: en forseglet dybde sårer alle i den med 3 % af max liv i sekundet. */
 function sealDamage(t: Tithe, dep: Depth, dt: number): void {
-  const seal = sealInfo(t, dep.level);
-  if (!seal?.sealed) return;
   const M = t.B.mirrormaster;
+  const sealedAt = (x: number, y: number) => !!sealInfoAt(t, dep.level, x, y)?.sealed;
   for (const p of playersOn(t, dep.level)) {
+    if (!sealedAt(p.x, p.y)) continue;
     p.hp -= p.stats.maxHp * M.sealDamagePerSecond * dt;
     if (p.hp <= 0) kill(t, dep, { name: 'the collapsing tunnels' } as Body, p);
   }
   for (const r of realRivals(t, dep.level)) {
+    if (!sealedAt(r.x, r.y)) continue;
     r.hp -= r.maxHp * M.sealDamagePerSecond * dt;
     if (r.hp <= 0) kill(t, dep, null, r);
   }
@@ -1728,6 +1905,22 @@ function mirrormaster(t: Tithe, dt: number): void {
       say(t, 'Mirrormaster', fmt(LINES.sealed, { d }));
       t.fx.push({ type: 'shake', depth: d, amount: 6 });
     }
+  }
+  // Feature-017 CMD-04: byens distrikter forsegles udefra og ind; Mirrormaster varsler 30 sekunder før.
+  if (t.reach === 'city') {
+    const C = t.B.city;
+    C.sealTimes.forEach((at, i) => {
+      const d = i + 1;
+      if (!t.wardsWarned.has(d) && t.time >= at - M.sealWarning) {
+        t.wardsWarned.add(d);
+        say(t, 'Mirrormaster', fmt(LINES.wardWarning, { ward: C.wards[i]!, s: Math.ceil(at - t.time) }));
+      }
+      if (!t.wardsSealed.has(d) && t.time >= at) {
+        t.wardsSealed.add(d);
+        say(t, 'Mirrormaster', fmt(LINES.wardSealed, { ward: C.wards[i]! }));
+        for (const p of playersIn(t)) if (districtAt(t, p.depth, p.x, p.y) === d) t.fx.push({ type: 'shake', depth: p.depth, amount: 6, to: p.id });
+      }
+    });
   }
   // Feature-017 CMD-03: efter 40 sekunder uden skade keder publikum sig, og der kommer 4 Gnawers.
   for (const p of playersIn(t)) {
@@ -1785,9 +1978,11 @@ function updateInteract(t: Tithe, p: Player): void {
     if (!map.wardenRoom) p.interact = 'descend';
   }
   if (map.gate && t.gateOpenFor.has(p.id) && Math.hypot(map.gate.x + 0.5 - p.x, map.gate.y + 0.5 - p.y) < 1.6) p.interact = 'gate';
+  const link = stairAt(t, p);
+  if (link) p.interact = link.up ? 'climb' : 'down';
 }
 
 // --- Til tests ------------------------------------------------------------------------------------
 
 /** Hjælpere, som testene bruger til at stille en situation op. Spillet bruger dem ikke. */
-export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth, claimTithe };
+export const testing = { enterDepth, kill, damage, endPlayer, makeMonster, buildDepth, claimTithe, climbStairs };
