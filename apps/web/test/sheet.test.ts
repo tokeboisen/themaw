@@ -23,12 +23,9 @@ test('F007 scenario "Comparing before equipping": the Pickaxe\'s melee damage tu
   assert.equal(html.split('class="cmp"').length - 1, now.filter((r, i) => r.value !== statRows(withAxe)[i]!.value).length);
 });
 
-test('F007 VIEW-01: for an equipped item the comparison is without it', () => {
+test('F007 scenario "No comparison for what is worn": an equipped item is not compared', () => {
   const kael = createCharacter('Kael', 'miner', createRng(1), B);
-  const pick = kael.equipment.melee!;
-  const without = withItem(kael, pick.id)!;
-  assert.equal(without.equipment.melee, null);
-  assert.ok(without.inventory.some((i) => i.id === pick.id));
+  assert.equal(withItem(kael, kael.equipment.melee!.id), null);
 });
 
 test('F027 scenario "Equip puts an Echo Art on the first empty key"', () => {

@@ -124,14 +124,15 @@ function hotbarHtml(inv: PackView | null, mark: Mark): string {
  */
 function inventoryHtml(inv: PackView | null, mark: Mark, tithe: TitheMode | null, ch: Character): string {
   if (!inv) return '<div class="box"><h3>Inventory</h3><p class="hint">The inventory is on its way…</p></div>';
-  const markable = (item: Item, html: string) => {
+  const markable = (item: Item, html: string, compare = true) => {
     const id = `${item.slot === 'weapon' ? 'w' : 'i'}:${item.id}`;
-    return html.replace('<li class="item">', `<li class="item markable ${mark === id ? 'marked' : ''}" ${markAttrs(id, mark)} data-compare="${esc(item.id)}">`);
+    const cmp = compare ? ` data-compare="${esc(item.id)}"` : '';
+    return html.replace('<li class="item">', `<li class="item markable ${mark === id ? 'marked' : ''}" ${markAttrs(id, mark)}${cmp}>`);
   };
   const equipped = EQUIP_SLOTS.map((slot) => {
     const item = inv.equipment[slot];
     const note = tithe?.found.includes(item?.id ?? '') ? FOUND : '';
-    return item ? markable(item, itemRow(item, `${revealButton(item, tithe, ch)}<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`, unidentifiedNote(item, tithe) || note, EQUIP_SLOT_NAMES[slot], ch))
+    return item ? markable(item, itemRow(item, `${revealButton(item, tithe, ch)}<button class="ghost small-btn" data-act="unequip" data-id="${slot}">Unequip</button>`, unidentifiedNote(item, tithe) || note, EQUIP_SLOT_NAMES[slot], ch), false)
       : `<li class="item"><div class="muted">${EQUIP_SLOT_NAMES[slot]}: empty</div></li>`;
   }).join('');
   const pack = inv.pack.length
@@ -229,27 +230,18 @@ export function statRows(ch: Character): StatRow[] {
   ];
 }
 
-/** Karakteren med tingen taget på – eller, for en ting, der allerede er taget på, uden den. */
+/** Feature-007 VIEW-01: karakteren med en ting fra pakken taget på; en ting, der allerede er taget på, sammenlignes ikke (null). */
 export function withItem(ch: Character, itemId: string): Character | null {
   const c = structuredClone(ch);
   const index = c.inventory.findIndex((i) => i.id === itemId);
-  if (index >= 0) {
-    const item = c.inventory[index]!;
-    const slot = targetSlot(c.equipment, item, B);
-    const old = c.equipment[slot];
-    c.equipment[slot] = item;
-    c.inventory.splice(index, 1);
-    if (old) c.inventory.push(old);
-    return c;
-  }
-  for (const slot of EQUIP_SLOTS) {
-    const item = c.equipment[slot];
-    if (item?.id !== itemId) continue;
-    c.equipment[slot] = null;
-    c.inventory.push(item);
-    return c;
-  }
-  return null;
+  if (index < 0) return null;
+  const item = c.inventory[index]!;
+  const slot = targetSlot(c.equipment, item, B);
+  const old = c.equipment[slot];
+  c.equipment[slot] = item;
+  c.inventory.splice(index, 1);
+  if (old) c.inventory.push(old);
+  return c;
 }
 
 /**
@@ -275,11 +267,8 @@ export function statsHtmlFor(itemId: string | null): string {
 function statsBox(ch: Character, mark: Mark): string {
   const base = statRows(ch);
   const byItem = new Map<string, string>();
-  const worn = new Set(EQUIP_SLOTS.map((slot) => ch.equipment[slot]?.id).filter(Boolean));
-  for (const item of [...EQUIP_SLOTS.map((slot) => ch.equipment[slot]), ...ch.inventory]) {
-    if (!item) continue;
-    // Feature-007: sammenligningen udelader en uidentificeret tings skjulte affixes.
-    if (item.identified === false && worn.has(item.id)) continue;
+  // Feature-007: kun ting i pakken sammenlignes; sammenligningen udelader en uidentificeret tings skjulte affixes.
+  for (const item of ch.inventory) {
     const other = withItem(ch, item.id);
     if (!other) continue;
     if (item.identified === false) {
@@ -290,7 +279,7 @@ function statsBox(ch: Character, mark: Mark): string {
   }
   compareTables = { base: statsTable(base, null), byItem };
   return `<div class="box sheet-stats"><h3>Stats</h3><div id="sheet-stats">${statsHtmlFor(compareIdOf(mark))}</div>
-    <p class="hint">Point at an item: the values it would change turn <span class="cmp-inline">yellow</span> and show them with it equipped (or without it, if it is equipped).</p></div>`;
+    <p class="hint">Point at an item in your pack: the values it would change turn <span class="cmp-inline">yellow</span> and show them with it equipped.</p></div>`;
 }
 
 function weights(skill: SkillId, background: string): string {

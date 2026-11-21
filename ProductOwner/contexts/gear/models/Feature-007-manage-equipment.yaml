@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 11
+version: 12
 status: draft
 created: '2026-11-19'
 use_case:
@@ -30,9 +30,9 @@ elements:
       with Equip – a ring with Ring 1 and Ring 2 when both ring slots are taken – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this
       Tithe – lost if you fall" when that applies. It is the Equipment tab of the character sheet. Beside the items stand the character's stats –
       the five attributes with the bonus from items, life, stamina, focus, armour, melee, ranged and Echo Bolt damage,
-      critical chance, load and stamina costs – in white. Pointing at or marking an item replaces each value that would change with the
-      value with the item equipped, in yellow – for an item that is already equipped, the value without it – so
-      nothing moves on the screen.
+      critical chance, load and stamina costs – in white. Pointing at or marking an item in the pack replaces each value that would change
+      with the value with the item equipped, in yellow, so nothing moves on the screen. Equipped items show no
+      comparison.
   - id: CMD-01
     type: command
     name: Equip item
@@ -210,6 +210,13 @@ scenarios:
       When the player points at the War Axe in VIEW-01 "Inventory"
       Then the melee damage with the Pickaxe turns into the melee damage with the War Axe, in yellow
       And no new line is added
+  - title: No comparison for what is worn
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael wears a Pickaxe
+      When the player points at the Pickaxe in VIEW-01 "Inventory"
+      Then the values stay as they are, in white
   - title: Gear adds up
     applies_to:
       - AGG-01
