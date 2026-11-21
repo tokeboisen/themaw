@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 2
 status: draft
 created: '2026-11-21'
 use_case:
@@ -11,7 +11,7 @@ use_case:
     derived: false
     text: >-
       For the player: fight with the Echo – the Maw's resonance that the Branded learn to shape in their minds – by
-      casting the Echo Art chosen on the hotbar: arts that strike, shield, hold monsters, move the caster or make the
+      casting the Echo Arts on the hotbar with their keys: arts that strike, shield, hold monsters, move the caster or make the
       party stronger, so a Branded who trains Echo Arts has more to do than throw a bolt.
 elements:
   - id: VIEW-01
@@ -25,7 +25,7 @@ elements:
       The depth of the Maw the candidate is in: the map around the candidate, candidates and monsters in sight, loot on
       the floor, life, stamina, focus, hunger, Renown, the seal timer and the rivals' depths.
     behavior: >-
-      The chosen Echo Art is cast with Attack (Space). Areas burst in the Echo's pale light, flames, echoes and mirror
+      An Echo Art is cast by pressing its number key. Areas burst in the Echo's pale light, flames, echoes and mirror
       images stand on the floor while they last, and a party art lights up everyone it reaches. The hotbar shows the
       cooldown left on each art's key, and the HUD shows the effects on the player (Warded, Rallied, Quickened,
       Mantled, Refused, Mirrored, Courageous, Crowned).
@@ -34,7 +34,7 @@ elements:
     name: Cast an Echo Art
     col: 2
     stack: 1
-    story: As a player I want to cast the Echo Art chosen on my hotbar, so that I fight with the Echo – alone or for my party.
+    story: As a player I want to cast an Echo Art by pressing its key, so that I fight with the Echo – alone or for my party.
     fields:
       - name: Echo Art
       - name: Aim
@@ -78,8 +78,8 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      An Echo Art is cast with Attack (Space) when its key is chosen on the hotbar (Gear, Use the hotbar) and the
-      character knows it (Characters, Read the spellbook). It costs focus and then waits for its cooldown; without
+      An Echo Art is cast at once when its key on the hotbar is pressed (Gear, Use the hotbar) and the character
+      knows it (Characters, Read the spellbook); Attack (Space) keeps striking with the weapon. It costs focus and then waits for its cooldown; without
       enough focus, or before the cooldown is over, nothing happens. An art aimed at a spot aims at the nearest enemy in
       range, otherwise at a spot 4 tiles straight ahead. Echo Chain, Last Words and The Maw Remembers need a target and
       are not cast without one. Echo Bolt is cast as Fight in the depths describes.
@@ -162,7 +162,7 @@ scenarios:
     applies_to:
       - CMD-01
     gherkin: |-
-      Given Kael has 5 focus and Shatterpulse is chosen
+      Given Kael has 5 focus and Shatterpulse is on key 4
       When the player performs CMD-01 "Cast an Echo Art" with Shatterpulse
       Then nothing is recorded
   - title: Hearth Echo heals the party

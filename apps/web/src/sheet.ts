@@ -252,11 +252,15 @@ export function withItem(ch: Character, itemId: string): Character | null {
   return null;
 }
 
-/** Værdierne i hvidt; under hver, der ændrer sig, værdien med tingen i gult. */
+/**
+ * Feature-007 VIEW-01: værdierne i hvidt; en værdi, der ændrer sig, erstattes af værdien med tingen i gult, så der ikke
+ * kommer nye linjer, og intet flytter sig.
+ */
 export function statsTable(base: StatRow[], other: StatRow[] | null): string {
   return `<table class="stats">${base.map((row, i) => {
-    const changed = other && other[i] && other[i]!.value !== row.value ? `<div class="cmp">${esc(other[i]!.value)}</div>` : '';
-    return `<tr><td>${row.label}</td><td class="num">${esc(row.value)}${changed}</td></tr>`;
+    const next = other?.[i];
+    const cell = next && next.value !== row.value ? `<span class="cmp">${esc(next.value)}</span>` : esc(row.value);
+    return `<tr><td>${row.label}</td><td class="num">${cell}</td></tr>`;
   }).join('')}</table>`;
 }
 
@@ -286,7 +290,7 @@ function statsBox(ch: Character, mark: Mark): string {
   }
   compareTables = { base: statsTable(base, null), byItem };
   return `<div class="box sheet-stats"><h3>Stats</h3><div id="sheet-stats">${statsHtmlFor(compareIdOf(mark))}</div>
-    <p class="hint">Point at an item: white is now, <span class="cmp-inline">yellow</span> is with it equipped (or without it, if it is equipped).</p></div>`;
+    <p class="hint">Point at an item: the values it would change turn <span class="cmp-inline">yellow</span> and show them with it equipped (or without it, if it is equipped).</p></div>`;
 }
 
 function weights(skill: SkillId, background: string): string {

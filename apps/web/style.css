@@ -277,3 +277,5 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 .talent-card .art-kind { color: var(--gold); }
 /* Feature-019: Identify all hos smeden */
 .identify-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+/* Feature-007 VIEW-01: en gul værdi erstatter den hvide på samme linje, så intet flytter sig */
+.sheet-stats td.num { white-space: nowrap; }

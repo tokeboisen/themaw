@@ -193,9 +193,7 @@ export interface Player extends Body {
   /** Arbejdskopien af karakteren (planen, afsnit 5). */
   ch: Character;
   hotbar: Hotbar;
-  /** Den Echo Art, hotbaren har valgt til Attack; null er det valgte våben (Feature-028 AGG-01). */
-  chosenArt: EchoArt | null;
-  /** Det våben, Attack bruger, når ingen Echo Art er valgt: nærkamp eller afstand (Feature-028). */
+  /** Det våben, Attack (Space) bruger: nærkamp eller afstand (Feature-028). */
   chosenWeapon: WeaponSlot;
   stats: DerivedStats;
   depth: number;
@@ -668,7 +666,7 @@ function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
   const stats = derivedStats(s.character, t.B, chosenWeapon);
   return {
     kind: 'player', id: s.userId, partyId: s.userId, userId: s.userId, userName: s.userName, characterId: s.characterId, name: s.character.name,
-    ch: s.character, hotbar: s.hotbar, chosenArt: null, chosenWeapon, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
+    ch: s.character, hotbar: s.hotbar, chosenWeapon, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
     attackCd: 0, artCd: {}, talentCd: 0, buffs: [], recentKills: [], dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, focusPotionCd: 0, drawT: 0, slowT: 0, stunT: 0, corrodeT: 0,
@@ -1217,10 +1215,7 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
       const slot = equipItem(ch, a.itemId, t.B, a.ring === 'ring1' || a.ring === 'ring2' ? a.ring : undefined);
       if (!slot) return 'invalid';
       // Feature-028 AGG-01: et våben, der tages på, vælges til Attack.
-      if (slot === 'melee' || slot === 'ranged') {
-        p.chosenWeapon = slot;
-        p.chosenArt = null;
-      }
+      if (slot === 'melee' || slot === 'ranged') p.chosenWeapon = slot;
       break;
     }
     case 'unequip':
@@ -1287,22 +1282,15 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
     default:
       return 'invalid';
   }
-  // Fjernes den valgte Echo Art fra hotbaren, bruger Attack igen våbnet i hånden.
-  if (p.chosenArt && !HOTBAR_KEYS.some((k) => {
-    const slot = p.hotbar[k];
-    return !!slot && 'echoArt' in slot && slot.echoArt === p.chosenArt;
-  })) p.chosenArt = null;
   refreshStats(t, p);
   return null;
 }
 
-/** Feature-028 VIEW-01: tasten med det, Attack bruger, fremhæves. */
+/** Feature-028 VIEW-01: tasten med det våben, Attack bruger, fremhæves. */
 export function chosenKey(p: Player): HotbarKey | null {
   return HOTBAR_KEYS.find((k) => {
     const slot = p.hotbar[k];
-    if (!slot) return false;
-    if (p.chosenArt) return 'echoArt' in slot && slot.echoArt === p.chosenArt;
-    return 'weapon' in slot && slot.weapon === p.ch.equipment[p.chosenWeapon]?.id;
+    return !!slot && 'weapon' in slot && slot.weapon === p.ch.equipment[p.chosenWeapon]?.id;
   }) ?? null;
 }
 
@@ -1430,13 +1418,10 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
     const speed = s.moveSpeed * (p.slowT > 0 ? B.monsters.traits.slowFactor : 1) * (1 + buffValue(p, 'crown')) * (1 + buffValue(p, 'haste'));
     moveWithCollision(dep.map, p, mx * speed * dt, my * speed * dt);
   }
-  // Feature-028 EVT-01: Attack bruger det valgte – våbnet i hånden eller den valgte Echo Art.
+  // Feature-028 EVT-01: Attack (Space) slår altid med det valgte våben.
   if (p.input.attack && p.dodgeT <= 0) {
-    if (p.chosenArt) castArt(t, p, dep, p.chosenArt);
-    else {
-      const w = s.weapon;
-      if (p.attackCd <= 0 && p.stamina >= w.staminaCost && p.drawT <= 0) playerAttack(t, p, dep);
-    }
+    const w = s.weapon;
+    if (p.attackCd <= 0 && p.stamina >= w.staminaCost && p.drawT <= 0) playerAttack(t, p, dep);
   }
 }
 
@@ -1475,15 +1460,17 @@ function eatRation(t: Tithe, p: Player): void {
 }
 
 /**
- * Feature-028 CMD-01 Choose hotbar key: tasten vælger, hvad Attack bruger. Et våben, der er taget på, vælges; et våben
- * i pakken trækkes til sin plads – nærkamp eller afstand. At skifte våben tager 0,3 sekunder. En Echo Art vælges uden
- * at blive kastet. En tom tast gør intet.
+ * Feature-028 CMD-01 Choose hotbar key: en tast med et våben vælger det våben, Attack bruger. Et våben, der er taget på,
+ * vælges; et våben i pakken trækkes til sin plads – nærkamp eller afstand – på 0,3 sekunder. En tast med en Echo Art
+ * eller talentet bruger den med det samme og ændrer ikke våbnet. En tom tast gør intet.
  */
 function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   const slot = p.hotbar[key];
   if (!slot) return;
+  // Feature-028/-047: en tast med en Echo Art kaster den med det samme; våbnet til Attack bliver valgt.
   if ('echoArt' in slot) {
-    p.chosenArt = slot.echoArt;
+    const dep = t.depths[p.depth];
+    if (dep) castArt(t, p, dep, slot.echoArt);
     return;
   }
   // Feature-028/-049: en tast med talentet bruger det med det samme og vælger intet.
@@ -1493,7 +1480,6 @@ function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   }
   const eq = p.ch.equipment;
   const worn: WeaponSlot | null = eq.melee?.id === slot.weapon ? 'melee' : eq.ranged?.id === slot.weapon ? 'ranged' : null;
-  p.chosenArt = null;
   if (worn) {
     if (p.chosenWeapon === worn) return;
     p.chosenWeapon = worn;

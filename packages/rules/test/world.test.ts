@@ -112,32 +112,30 @@ test('F011 scenario "No focus, no bolt"', () => {
   quiet(t);
   const p = player(t);
   p.focus = 5;
-  queueAct(t, p.id, { act: 'hotkey', key: '2' }); // Echo Bolt is chosen …
-  setInput(t, p.id, { moveX: 0, moveY: 0, attack: true }); // … and Attack casts it
+  queueAct(t, p.id, { act: 'hotkey', key: '2' }); // pressing Echo Bolt's key casts it at once …
   stepTithe(t, DT);
-  assert.equal(depth(t, p).projectiles.length, 0);
+  assert.equal(depth(t, p).projectiles.length, 0); // … but not without focus
   p.focus = 20;
+  queueAct(t, p.id, { act: 'hotkey', key: '2' });
   stepTithe(t, DT);
   assert.equal(depth(t, p).projectiles.length, 1);
 });
 
-test('F028 scenario "Choosing Echo Bolt"', () => {
+test('F028 scenario "Casting Echo Bolt with its key": Echo Bolt is cast, and Attack still strikes with the Pickaxe', () => {
   const t = tithe(1);
   quiet(t);
   const p = player(t);
   const pickaxe = p.ch.equipment.melee!;
   queueAct(t, p.id, { act: 'hotkey', key: '2' });
   stepTithe(t, DT);
-  assert.equal(depth(t, p).projectiles.length, 0); // no Echo Bolt is cast
+  assert.equal(depth(t, p).projectiles[0]?.kind, 'bolt'); // Echo Bolt is cast
   assert.equal(p.ch.equipment.melee?.id, pickaxe.id); // Kael still wears the Pickaxe
-  assert.equal(chosenKey(p), '2');
+  assert.equal(chosenKey(p), '1'); // the weapon key stays highlighted
+  depth(t, p).projectiles = [];
   setInput(t, p.id, { moveX: 0, moveY: 0, attack: true });
   stepTithe(t, DT);
-  assert.equal(depth(t, p).projectiles[0]?.kind, 'bolt'); // Attack casts Echo Bolt
-  // Key 1 chooses the Pickaxe again, and Attack swings it.
-  queueAct(t, p.id, { act: 'hotkey', key: '1' });
-  stepTithe(t, DT);
-  assert.equal(chosenKey(p), '1');
+  assert.equal(depth(t, p).projectiles.length, 0); // Attack strikes with the Pickaxe, no bolt
+  assert.ok(p.swing > 0);
 });
 
 test('F012 scenario "Kael descends": depth 2, its start room and 20 Renown', () => {

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  BALANCE as B, ECHO_ARTS, FLOOR, artRequirement, castArt, createCharacter, createRng, createTithe, knowsArt, sheetAction, stepTithe,
+  BALANCE as B, ECHO_ARTS, FLOOR, artRequirement, castArt, createCharacter, createRng, createTithe, knowsArt, queueAct, sheetAction, stepTithe,
   testing, type EchoArt, type Monster, type Player, type Tithe,
 } from '../src/index.ts';
 
@@ -107,15 +107,20 @@ test('F047 CMD-01: an art the character does not know is not cast', () => {
   assert.equal(kael(t).focus, 100);
 });
 
-test('F047 CMD-01: the chosen art is cast with Attack (Space)', () => {
+test('F047/F028 scenario "Casting Echo Bolt with its key": the key casts at once, and Space keeps the weapon', () => {
   const t = tithe();
   const p = kael(t);
+  p.hotbar = { '2': { echoArt: 'Echo Bolt' }, '4': { echoArt: 'Shatterpulse' } };
   const g = monster(t, 'gnawer', 4);
-  p.chosenArt = 'Shatterpulse';
-  p.input = { moveX: 0, moveY: 0, attack: true };
+  queueAct(t, p.id, { act: 'hotkey', key: '4' });
   stepTithe(t, DT);
   assert.ok(g.dead || g.hp < g.maxHp);
   assert.ok((p.artCd.Shatterpulse ?? 0) > 0);
+  p.focus = 20;
+  queueAct(t, p.id, { act: 'hotkey', key: '2' });
+  stepTithe(t, DT);
+  assert.ok((p.artCd['Echo Bolt'] ?? 0) > 0);
+  assert.equal(p.chosenWeapon, 'melee'); // Attack still strikes with the Pickaxe
 });
 
 test('F047 scenario "Hearth Echo heals the party": Kael and Jory heal 20 % of max life over 5 seconds, Vessa does not', () => {

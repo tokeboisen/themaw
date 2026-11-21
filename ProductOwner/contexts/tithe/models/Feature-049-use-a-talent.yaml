@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-21'
 use_case:
@@ -79,7 +79,7 @@ rules:
     text: >-
       Every background has one talent (Characters, Create character): Street Runner Hide, Miner Berserk, Poacher
       Haste and Temple Acolyte Healing Circle. Pressing the talent's key uses it at once (Gear, Use the hotbar); the
-      weapon or Echo Art chosen for Attack stays chosen. It costs stamina or focus and then waits for its cooldown;
+      weapon chosen for Attack stays chosen. It costs stamina or focus and then waits for its cooldown;
       without enough, or before the cooldown is over, nothing happens. The numbers grow with the effective talent
       skill (level + attribute bonus), written s below.
   - applies_to:

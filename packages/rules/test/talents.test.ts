@@ -127,7 +127,7 @@ test('F028/F049: the talent key uses the talent at once, chooses nothing, and tr
   queueAct(t, rook.id, { act: 'hotkey', key: '3' });
   stepTithe(t, DT);
   assert.ok(rook.buffs.some((b) => b.kind === 'hide'));
-  assert.equal(rook.chosenArt, null);
+  assert.equal(rook.chosenWeapon, 'melee'); // the weapon stays chosen
   assert.ok(rook.ch.skills.talent.xp > 0);
 });
 

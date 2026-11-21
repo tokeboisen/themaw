@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-047-cast-an-echo-art.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 2
 status: draft
 created: 2026-11-21
 ```
@@ -14,7 +14,7 @@ created: 2026-11-21
 
 ## 1. Purpose
 
-For the player: fight with the Echo – the Maw's resonance that the Branded learn to shape in their minds – by casting the Echo Art chosen on the hotbar: arts that strike, shield, hold monsters, move the caster or make the party stronger, so a Branded who trains Echo Arts has more to do than throw a bolt.
+For the player: fight with the Echo – the Maw's resonance that the Branded learn to shape in their minds – by casting the Echo Arts on the hotbar with their keys: arts that strike, shield, hold monsters, move the caster or make the party stronger, so a Branded who trains Echo Arts has more to do than throw a bolt.
 
 ## 2. Actors
 
@@ -79,7 +79,7 @@ For the player: fight with the Echo – the Maw's resonance that the Branded lea
 
 ### US-01: Cast an Echo Art (CMD-01 → EVT-01)
 
-As a player I want to cast the Echo Art chosen on my hotbar, so that I fight with the Echo – alone or for my party.
+As a player I want to cast an Echo Art by pressing its key, so that I fight with the Echo – alone or for my party.
 
 ```gherkin
 Scenario: Kael casts Shatterpulse
@@ -90,7 +90,7 @@ Scenario: Kael casts Shatterpulse
   And Kael has 6 focus left
 
 Scenario: Not enough focus
-  Given Kael has 5 focus and Shatterpulse is chosen
+  Given Kael has 5 focus and Shatterpulse is on key 4
   When the player performs CMD-01 "Cast an Echo Art" with Shatterpulse
   Then nothing is recorded
 ```
@@ -103,7 +103,7 @@ Scenario: Not enough focus
 
 ### Rules
 
-- An Echo Art is cast with Attack (Space) when its key is chosen on the hotbar (Gear, Use the hotbar) and the character knows it (Characters, Read the spellbook). It costs focus and then waits for its cooldown; without enough focus, or before the cooldown is over, nothing happens. An art aimed at a spot aims at the nearest enemy in range, otherwise at a spot 4 tiles straight ahead. Echo Chain, Last Words and The Maw Remembers need a target and are not cast without one. Echo Bolt is cast as Fight in the depths describes. (CMD-01)
+- An Echo Art is cast at once when its key on the hotbar is pressed (Gear, Use the hotbar) and the character knows it (Characters, Read the spellbook); Attack (Space) keeps striking with the weapon. It costs focus and then waits for its cooldown; without enough focus, or before the cooldown is over, nothing happens. An art aimed at a spot aims at the nearest enemy in range, otherwise at a spot 4 tiles straight ahead. Echo Chain, Last Words and The Maw Remembers need a target and are not cast without one. Echo Bolt is cast as Fight in the depths describes. (CMD-01)
 - Damage from an Echo Art grows with the Echo Arts skill as Echo Bolt's does, and it trains Echo Arts. Party arts reach the caster and the party members within 6 tiles – in the arena the caster's side; alone, the caster gets them. Control arts work on monsters only. A slowed monster is 40 % slower; a rooted one cannot move but can still strike; a stunned one can do neither. (AGG-01)
 - Level 1. Echo Bolt (8 focus, 0.55 s): as Fight in the depths describes. Ringing Ward (10 focus, 8 s): for 4 seconds the next blow on the caster loses 75 % of its damage. Hollow Call (8 focus, 10 s): the monsters within 6 tiles of a spot up to 7 tiles away walk to it for 3 seconds. Shared Breath (8 focus, 12 s, party): 15 stamina back. (AGG-01)
 - Level 2. Crystal Cage (12 focus, 10 s): the monsters within 2 tiles of a spot up to 7 tiles away are rooted for 3 seconds. Step Through the Echo (10 focus, 6 s): the caster steps up to 4 tiles ahead, stopped by walls. Rally Toll (12 focus, 20 s, party): 15 % more damage for 10 seconds. (AGG-01)
@@ -127,7 +127,7 @@ Scenario: Not enough focus
 |---|---|---|---|
 | VIEW-01 | Depth | (starting point) | CMD-01 |
 
-**VIEW-01:** The chosen Echo Art is cast with Attack (Space). Areas burst in the Echo's pale light, flames, echoes and mirror images stand on the floor while they last, and a party art lights up everyone it reaches. The hotbar shows the cooldown left on each art's key, and the HUD shows the effects on the player (Warded, Rallied, Quickened, Mantled, Refused, Mirrored, Courageous, Crowned).
+**VIEW-01:** An Echo Art is cast by pressing its number key. Areas burst in the Echo's pale light, flames, echoes and mirror images stand on the floor while they last, and a party art lights up everyone it reaches. The hotbar shows the cooldown left on each art's key, and the HUD shows the effects on the player (Warded, Rallied, Quickened, Mantled, Refused, Mirrored, Courageous, Crowned).
 
 ```gherkin
 Scenario: Hearth Echo heals the party
@@ -144,7 +144,7 @@ Scenario: Brand's Refusal
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 2
 
 | # | Question | Resolution |
 |---|---|---|

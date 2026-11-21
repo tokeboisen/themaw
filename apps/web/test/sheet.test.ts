@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { BALANCE as B, createCharacter, createRng, generateItem } from '@maw/rules';
 import { firstFreeKey, statRows, statsTable, withItem } from '../src/sheet.ts';
 
-test('F007 scenario "Comparing before equipping": the War Axe\'s melee damage is shown in yellow under the Pickaxe\'s', () => {
+test('F007 scenario "Comparing before equipping": the Pickaxe\'s melee damage turns into the War Axe\'s, in yellow', () => {
   const kael = createCharacter('Kael', 'miner', createRng(1), B);
   const axe = generateItem(createRng(2), 1, B, { baseId: 'war_axe', rarity: 'common' });
   kael.inventory.push(axe);
@@ -16,8 +16,10 @@ test('F007 scenario "Comparing before equipping": the War Axe\'s melee damage is
   const html = statsTable(now, statRows(withAxe));
   const melee = now.findIndex((r) => r.label === 'Melee damage');
   const row = html.split('<tr>')[melee + 1]!;
-  assert.ok(row.includes(now[melee]!.value) && row.includes('class="cmp"'), row);
-  // Only the values that change get a yellow line.
+  // The Pickaxe's value is replaced by the War Axe's, in yellow – no new line.
+  assert.ok(row.includes(`<span class="cmp">${statRows(withAxe)[melee]!.value}</span>`) && !row.includes(now[melee]!.value), row);
+  assert.equal(html.split('<tr>').length, statsTable(now, null).split('<tr>').length);
+  // Only the values that change turn yellow.
   assert.equal(html.split('class="cmp"').length - 1, now.filter((r, i) => r.value !== statRows(withAxe)[i]!.value).length);
 });
 

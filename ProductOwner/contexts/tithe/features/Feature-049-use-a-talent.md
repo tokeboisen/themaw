@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-049-use-a-talent.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-21
 ```
@@ -102,7 +102,7 @@ Scenario: Not enough stamina
 
 ### Rules
 
-- Every background has one talent (Characters, Create character): Street Runner Hide, Miner Berserk, Poacher Haste and Temple Acolyte Healing Circle. Pressing the talent's key uses it at once (Gear, Use the hotbar); the weapon or Echo Art chosen for Attack stays chosen. It costs stamina or focus and then waits for its cooldown; without enough, or before the cooldown is over, nothing happens. The numbers grow with the effective talent skill (level + attribute bonus), written s below. (CMD-01)
+- Every background has one talent (Characters, Create character): Street Runner Hide, Miner Berserk, Poacher Haste and Temple Acolyte Healing Circle. Pressing the talent's key uses it at once (Gear, Use the hotbar); the weapon chosen for Attack stays chosen. It costs stamina or focus and then waits for its cooldown; without enough, or before the cooldown is over, nothing happens. The numbers grow with the effective talent skill (level + attribute bonus), written s below. (CMD-01)
 - Hide (Street Runner; 12 focus, 12 s): works anywhere, also in plain sight. For 5 + 0.2 × s seconds (at most 15) the candidate is 50 + s % transparent (at most 90 %). Others – monsters, rivals and players outside the party – only see and strike it within (100 − transparency) / 10 tiles: 5 tiles at 50 %, 1 tile at 90 %; beyond that it is invisible. Striking or casting ends Hide. Attributes: Dexterity 60 %, Intelligence 40 %. (AGG-01)
 - Berserk (Miner; 25 stamina, 20 s): for 6 + 0.1 × s seconds (at most 12) melee blows reach 20 + s % farther (at most 60 %) and swing 60 + 6 × s degrees wider than the weapon, up to 360 degrees all around the candidate. Attributes: Strength 60 %, Constitution 40 %. (AGG-01)
 - Haste (Poacher; 20 stamina, 18 s): for 6 + 0.1 × s seconds (at most 12) the candidate moves, shoots and its arrows fly 15 + 0.5 × s % faster (at most 50 %). Attributes: Dexterity 60 %, Stamina 40 %. (AGG-01)
@@ -139,7 +139,7 @@ Scenario: The Healing Circle heals the party
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

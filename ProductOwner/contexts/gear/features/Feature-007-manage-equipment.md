@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-007-manage-equipment.drawio
 semantics: event-modeling-semantik.md
-version: 10
+version: 11
 status: draft
 created: 2026-11-19
 ```
@@ -186,14 +186,14 @@ Scenario: A dropped item lands on the floor
 |---|---|---|---|
 | VIEW-01 | Inventory | (starting point) | CMD-01, CMD-02, CMD-03 |
 
-**VIEW-01:** Lists the equipped melee weapon, ranged weapon, armour, two rings and an amulet with Unequip, and the items in the pack with Equip – a ring with Ring 1 and Ring 2 when both ring slots are taken – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this Tithe – lost if you fall" when that applies. It is the Equipment tab of the character sheet. Beside the items stand the character's stats – the five attributes with the bonus from items, life, stamina, focus, armour, melee, ranged and Echo Bolt damage, critical chance, load and stamina costs – in white. Pointing at or marking an item shows, under each value that would change, the value with the item equipped in yellow; for an item that is already equipped, the value without it.
+**VIEW-01:** Lists the equipped melee weapon, ranged weapon, armour, two rings and an amulet with Unequip, and the items in the pack with Equip – a ring with Ring 1 and Ring 2 when both ring slots are taken – and with Drop during a Tithe. Each item shows its slot, rarity, damage or armour and its affixes, and "Found this Tithe – lost if you fall" when that applies. It is the Equipment tab of the character sheet. Beside the items stand the character's stats – the five attributes with the bonus from items, life, stamina, focus, armour, melee, ranged and Echo Bolt damage, critical chance, load and stamina costs – in white. Pointing at or marking an item replaces each value that would change with the value with the item equipped, in yellow – for an item that is already equipped, the value without it – so nothing moves on the screen.
 
 ```gherkin
 Scenario: Comparing before equipping
   Given Kael wears a Pickaxe and has a War Axe in the pack
   When the player points at the War Axe in VIEW-01 "Inventory"
-  Then the melee damage with the Pickaxe is shown in white
-  And the melee damage with the War Axe is shown under it in yellow
+  Then the melee damage with the Pickaxe turns into the melee damage with the War Axe, in yellow
+  And no new line is added
 
 Scenario: Gear adds up
   Given Kael wears a War Axe with + 8 % damage and two rings with + 3 Strength each
@@ -209,7 +209,7 @@ Scenario: A heavy pack tires
 
 ## 10. Validation and open questions
 
-### Resolved in version 10
+### Resolved in version 11
 
 | # | Question | Resolution |
 |---|---|---|

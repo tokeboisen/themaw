@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-011-fight-in-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 14
+version: 15
 status: draft
 created: 2026-11-19
 ```
@@ -146,7 +146,7 @@ Scenario: No focus, no bolt
 
 - Aim is automatic: the nearest monster or hostile NPC rival within reach and in sight; another player or a peaceful NPC rival only when nothing else is near. Party members are never aimed at. A melee weapon hits everything in its arc (blades 80–100°, heavy weapons 140–150°); a bow shoots an arrow. (CMD-01)
 - A strike costs stamina and cannot be repeated before the weapon's attack time has passed. A heavy load makes strikes, dodges and talents cost more stamina (Gear, Manage equipment), and an amulet's haste shortens the attack time and Echo Art cooldowns. Damage is the weapon's damage × (1 + 1.5 % per effective skill level) × (1 + % damage from items). Critical hits – 5 % + 0.5 % per Dexterity above 10 – deal 1.6 times the damage. (CMD-01)
-- Every character can cast Echo Bolt: its hotbar key chooses it, and Attack (Space) casts it (Gear, Use the hotbar). It costs 8 focus, flies 8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts. (CMD-02)
+- Every character can cast Echo Bolt: pressing its hotbar key casts it at the automatic target (Gear, Use the hotbar). It costs 8 focus, flies 8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts. (CMD-02)
 - Players may strike players outside their party, never members of their own party; a player without a party can be struck by every other player once the grace is over. A player who is struck down by another player is defeated: the player falls and leaves the Tithe (End the Tithe). (CMD-01, EVT-06)
 - A defeated player spills 10–20 % of the gold in the wallet on the floor where the player fell, for anyone to pick up (Market, Keep the wallet), and the one who struck the player down gets a Player kill (Characters, Keep player statistics). (EVT-06)
 - A rival that is struck becomes hostile to the player. A defeated rival is dragged back by the Brand and drops gold and perhaps an item. (EVT-03)
@@ -171,7 +171,7 @@ Scenario: No focus, no bolt
 
 ## 10. Validation and open questions
 
-### Resolved in version 14
+### Resolved in version 15
 
 | # | Question | Resolution |
 |---|---|---|
