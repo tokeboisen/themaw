@@ -23,6 +23,7 @@ bounded_context:
       use_cases:
         - Manage equipment
         - Stock the inventory
+        - Reveal an item
     - name: Hotbar
       description: Weapons and Echo Arts on the keys 1–8.
       lifecycle: planned

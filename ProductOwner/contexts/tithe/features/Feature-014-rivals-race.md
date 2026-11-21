@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-014-rivals-race.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -99,7 +99,7 @@ No user stories.
 
 ### Rules
 
-- Rivals walk toward the stairs – in The Broken City toward the foundry – in bursts and search on the way, so a depth takes them about 110 seconds and the city about 11 minutes (±15 %, a little faster at a higher level). In a sealed depth they move three times as fast. Rivals the player cannot see move on at the same pace without being shown. (SVC-01)
+- Rivals walk toward the stairs – in The Broken City toward the foundry, in The Woods toward the heart – in bursts and search on the way, so a depth takes them about 110 seconds and the city or the woods about 11 minutes (±15 %, a little faster at a higher level). In a sealed depth they move three times as fast. Rivals the player cannot see move on at the same pace without being shown. (SVC-01)
 - An NPC rival fights monsters within 5 tiles (the Warden within 9). A hostile NPC rival also fights players within 6 tiles once the grace is over. NPC rivals never fight each other. Each drinks one potion below 30 % life. (SVC-01)
 - The NPC rivals are Cassian Morrow (heavy weapons, one Mark above the players, hostile 90 %), Vessa Thorne (bows, 35 %), Ash and Rook Kell (blades, 60 %), Mira Silvertongue (Echo Arts, 20 %), Silent Odo (blades, 15 %) and Garrick Vane, champion of House Vane (heavy weapons, one Mark above the players, 80 %); the percentage is the chance that the rival is hostile, decided when the Tithe starts. Every NPC rival a player strikes becomes hostile to that player. (AGG-01)
 - An NPC rival who reaches The Foreman while no player is in The Foreman's Hall fights him for 20 seconds and wins with 15 % + 4 % per level (at most 70 %), more when The Foreman is wounded. The winner claims the Tithe, and it ends for every player. A rival who loses falls, and The Foreman keeps the wounds: 75 % of his life for the next. (EVT-05, EVT-06)
@@ -131,7 +131,7 @@ Scenario: A sealed depth makes the rivals hurry
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|

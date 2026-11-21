@@ -5,7 +5,7 @@ bounded_context: Gear
 product: The Maw
 source: models/Feature-006-pick-up-loot.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 6
 status: draft
 created: 2026-11-19
 ```
@@ -44,7 +44,7 @@ For the player: items, gold and supplies on the floor of the Maw are picked up b
 | ID | Description |
 |---|---|
 | VIEW-01 | The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons. |
-| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
+| AGG-01 | Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe. |
 
 ## 4. Flows
 
@@ -72,6 +72,7 @@ For the player: items, gold and supplies on the floor of the Maw are picked up b
 | Items › Item |
 | Items › Found in Tithe |
 | Potions |
+| Focus potions |
 | Rations |
 | Gold found |
 
@@ -122,7 +123,7 @@ Scenario: Another candidate's dropped item is found loot
 
 ### Rules
 
-- Loot is picked up by walking over it; there is no button. An item needs room in the pack; with a full pack the item stays on the floor and "Inventory full" is shown over it. Potions and rations stop at 9. (CMD-01)
+- Loot is picked up by walking over it; there is no button. An item needs room in the pack; with a full pack the item stays on the floor and "Inventory full" is shown over it. Potions, focus potions and rations stop at 9. (CMD-01)
 - Items and gold picked up during a Tithe are marked as found in that Tithe until it ends (Settle found gear): a fall loses them. (AGG-01)
 - Gold found is not added to the wallet during the Tithe; it is kept or lost when the Tithe ends. (EVT-03)
 - A dropped item (Manage equipment) is loot like any other. The candidate who dropped it does not pick it up again before stepping away from it. Picked up again by that candidate, it keeps whether it was found in this Tithe or brought; picked up by another candidate, it is found in this Tithe. (CMD-01)
@@ -139,11 +140,11 @@ Scenario: Another candidate's dropped item is found loot
 |---|---|---|---|
 | VIEW-01 | Depth | (starting point) | CMD-01 |
 
-**VIEW-01:** Loot lies on the floor as small shapes: items as diamonds in the colour of their rarity (common white, magic blue, rare gold), gold as coins, potions red and rations brown. Picked-up items are named over the candidate in their rarity's colour.
+**VIEW-01:** Loot lies on the floor as small shapes: items as diamonds in the colour of their rarity (common white, magic blue, rare gold), gold as coins, potions red, focus potions blue and rations brown. Picked-up items are named over the candidate in their rarity's colour.
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 6
 
 | # | Question | Resolution |
 |---|---|---|

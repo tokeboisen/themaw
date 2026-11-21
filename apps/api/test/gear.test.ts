@@ -48,8 +48,9 @@ describe('Gear', { skip: !hasDatabase }, () => {
     assert.equal(inv.equipment.ranged, null);
     assert.equal(inv.equipment.armour.baseId, 'padded_coat');
     assert.equal(inv.potions, 2);
+    assert.equal(inv.focusPotions, 1); // F005 v5: 1 focus potion
     assert.equal(inv.rations, 3);
-    assert.deepEqual(inv.hotbar, { '1': { weapon: inv.equipment.melee.id }, '2': { echoArt: 'Echo Bolt' } });
+    assert.deepEqual(inv.hotbar, { '1': { weapon: inv.equipment.melee.id }, '2': { echoArt: 'Echo Bolt' }, '3': { talent: 'berserk' } });
     assert.deepEqual(inv.pack, []);
     assert.equal(inv.capacity, 13); // 12 + 1 for Strength 13
   });
@@ -153,6 +154,16 @@ describe('Gear', { skip: !hasDatabase }, () => {
     const hotbar = response.json().hotbar;
     assert.deepEqual(hotbar['5'], { echoArt: 'Echo Bolt' });
     assert.equal(hotbar['2'], undefined); // key 2 is empty
+  });
+
+  test('F027 scenario "An unknown Echo Art cannot be put on a key"; a known one can (Feature-048)', async () => {
+    const cookie = await signUp(app, named('g8b'));
+    const id = await createCharacter(app, pool, cookie);
+    const unknown = await app.inject({ method: 'PUT', url: `/api/characters/${id}/hotbar/6`, headers: { cookie }, payload: { echoArt: 'Echo Chain' } });
+    assert.equal(unknown.statusCode, 400);
+    const known = await app.inject({ method: 'PUT', url: `/api/characters/${id}/hotbar/4`, headers: { cookie }, payload: { echoArt: 'Ringing Ward' } });
+    assert.equal(known.statusCode, 200);
+    assert.deepEqual(known.json().hotbar['4'], { echoArt: 'Ringing Ward' });
   });
 
   test('F027 CMD-01/CMD-02: only owned weapons go on a key, and Clear empties it', async () => {

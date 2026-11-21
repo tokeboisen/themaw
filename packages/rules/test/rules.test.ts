@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   BALANCE as B, SQUARE_CHEST, acceptGift, addEcho, addSkillXp, buyConsumable, bfs, createCharacter, createRng, derivedStats, describeItem,
-  itemRequirements, meetsRequirements, placeAt, squareMap,
+  itemBonuses, itemRequirements, meetsRequirements, placeAt, squareMap,
   echoToNextMark, effectiveSkill, equipItem, finishTithe, generateDepth, generateItem, isSolid, newSave, sellItem,
   skillXpToNext, spendAttributePoint, spendSkillPoint, type TitheResult,
 } from '../src/index.ts';
@@ -18,7 +18,7 @@ function result(t: Partial<TitheResult> & Pick<TitheResult, 'outcome'>): TitheRe
     seed: 99,
     time: 120,
     record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
-    start: { level: 1, skills: { blades: 3, heavy: 10, bows: 1, echo: 1 } },
+    start: { level: 1, skills: { blades: 3, heavy: 10, bows: 1, echo: 1, talent: 0, reveal: 0 } },
     ...t,
   };
 }
@@ -92,7 +92,7 @@ test('F007 AGG-01: rarity decides the number of affixes, and rings are never com
   const rng = createRng(7);
   for (let i = 0; i < 200; i++) {
     const item = generateItem(rng, 3, B);
-    const [min, max] = { common: [0, 0], magic: [1, 2], rare: [3, 3] }[item.rarity];
+    const [min, max] = { common: [0, 0], magic: [1, 1], rare: [2, 2] }[item.rarity];
     assert.ok(item.affixes.length >= min! && item.affixes.length <= max!, item.name);
     if (item.slot === 'ring') assert.notEqual(item.rarity, 'common');
     assert.ok(item.value > 0);
@@ -135,7 +135,7 @@ test('F009 CMD-01: falling costs the gold and items found in that Tithe, never w
   const gold = ch.gold;
   const t = result({ outcome: { kind: 'fell', name: 'Gnawer' } });
   t.record.goldFound = 100;
-  t.record.renown = 250;
+  t.record.renown = 300; // two gifts at 150 Renown each
   const summary = finishTithe(save, t, B);
   assert.deepEqual(summary.lostItems, [found.name]);
   assert.equal(summary.goldLost, 100);
@@ -205,6 +205,35 @@ test('F007 scenarios "A bow goes into the ranged slot" and "A second ring"', () 
   assert.equal(equipItem(ch, ring3.id, B, 'ring2'), 'ring2');
   assert.equal(ch.equipment.ring1, ring1);
   assert.ok(ch.inventory.includes(ring2));
+});
+
+test('F007 scenario "Gear adds up": + 14 % damage and + 6 Strength', () => {
+  const ch = fresh();
+  const axe = generateItem(createRng(3), 6, B, { baseId: 'war_axe', rarity: 'magic' });
+  axe.affixes = [{ stat: 'damagePct', value: 8 }];
+  const bow = generateItem(createRng(4), 6, B, { baseId: 'hunting_bow', rarity: 'magic' });
+  bow.affixes = [{ stat: 'damagePct', value: 6 }];
+  const rings = [5, 6].map((seed) => {
+    const ring = generateItem(createRng(seed), 6, B, { baseId: 'iron_ring', rarity: 'magic' });
+    ring.affixes = [{ stat: 'strength', value: 3 }];
+    return ring;
+  });
+  Object.assign(ch.equipment, { melee: axe, ranged: bow, ring1: rings[0], ring2: rings[1] });
+  const bonuses = itemBonuses(ch, B);
+  assert.equal(bonuses.damagePct, 14);
+  assert.equal(bonuses.attributes.strength, 6);
+});
+
+test('F007 AGG-01: magic items have 1 small affix, rare 2; % damage only on weapons', () => {
+  const rng = createRng(21);
+  for (let i = 0; i < 300; i++) {
+    const item = generateItem(rng, 10, B, { rarity: i % 2 ? 'magic' : 'rare' });
+    for (const a of item.affixes) {
+      const def = B.items.affixes[a.stat]!;
+      assert.ok(a.value <= Math.round(def.max + def.perLevel * 9), `${a.stat} ${a.value}`);
+      if (a.stat === 'damagePct') assert.equal(item.slot, 'weapon');
+    }
+  }
 });
 
 test('F007 AGG-01: every equipped item gives its affixes, also the weapon that is not chosen', () => {

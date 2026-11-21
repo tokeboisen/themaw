@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 8
 status: draft
 created: '2026-11-19'
 use_case:
@@ -67,6 +67,15 @@ elements:
       bounded_context: Gear
       use_case: Use consumables
       event: EVT-02
+  - id: EVT-12
+    type: event
+    name: Focus potion drunk
+    col: 1
+    stack: 7
+    stimulus:
+      bounded_context: Gear
+      use_case: Use consumables
+      event: EVT-03
   - id: SVC-01
     type: service
     name: Monsters
@@ -105,6 +114,14 @@ elements:
     fields:
       - name: Candidate
       - name: Hunger
+  - id: CMD-04
+    type: command
+    name: Restore focus
+    col: 3
+    stack: 6
+    fields:
+      - name: Candidate
+      - name: Focus
   - id: AGG-01
     type: aggregate
     name: Tithe
@@ -118,6 +135,7 @@ elements:
         attributes:
           - name: Name
           - name: Life
+          - name: Focus
           - name: Hunger
           - name: Status
         many: true
@@ -148,6 +166,11 @@ elements:
     stack: 5
     description: A rival fell to monsters, the collapse of a sealed depth or the Warden, not by the player's
       hand.
+  - id: EVT-13
+    type: event
+    name: Focus restored
+    col: 5
+    stack: 6
 flows:
   - from: EVT-01
     to: SVC-01
@@ -161,6 +184,14 @@ flows:
     to: SVC-02
   - from: EVT-06
     to: SVC-02
+  - from: EVT-12
+    to: SVC-02
+  - from: SVC-02
+    to: CMD-04
+  - from: CMD-04
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-13
   - from: SVC-01
     to: CMD-01
   - from: SVC-02
@@ -189,9 +220,9 @@ rules:
   - applies_to:
       - SVC-01
     text: >-
-      Monsters are many – 2–5 in every room of the mines, groups in the corridors, and bands in the streets and
-      houses of The Broken City. They sleep until a candidate comes into sight, then hunt the nearest candidate,
-      also around walls.
+      Monsters are many – 2–5 in every room of the mines, groups in the corridors, bands in the streets and
+      houses of The Broken City, and packs on the paths, brigands at the campfires and beasts in the huts of The
+      Woods. They sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls.
       Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot
       be hit, for 20 stamina.
   - applies_to:
@@ -214,7 +245,10 @@ rules:
       sidesteps a blow 30 % of the time, at most every 3 seconds; a Hollow rises once with 40 % of its life; the
       Cultist of the Maw heals the monsters within 5 tiles by 15 % every 6 seconds; a Gargoyle stands still until a
       candidate is within 3 tiles; Harpies fly over rubble; and the Scrap Golem takes double damage from Echo
-      Bolt.
+      Bolt. In The Woods: Grey Wolves hunt in packs like Feral Hounds; the Brigand sidesteps like the Cutthroat; the
+      Wild Boar's charge stuns for 0.6 seconds; the Thornling's thorns slow for 1.5 seconds; the Bog Wisp flies over
+      furniture and drains stamina and focus; the Barrow Wight rises once; the Briar Treant heals unless an Echo Bolt
+      hit it and takes half damage from arrows; and the Fen Witch heals the monsters around her.
   - applies_to:
       - SVC-02
       - CMD-03
@@ -224,12 +258,23 @@ rules:
   - applies_to:
       - SVC-02
     text: >-
-      A sealed depth – or a sealed district of The Broken City, with the floors of its houses – wounds every
-      candidate in it by 3 % of max life per second until they leave it.
+      A sealed depth – or a sealed district of The Broken City, with the floors of its houses, or of The Woods –
+      wounds every candidate in it by 3 % of max life per second until they leave it.
+  - applies_to:
+      - SVC-01
+    text: >-
+      In The Woods a candidate standing in a bush is hidden – from monsters, rivals and other players outside its
+      party – unless they are within 2 tiles, or the candidate has struck or cast in the last 1.5 seconds. Others see
+      it fade in as they come closer: invisible beyond 3 tiles, then less and less transparent, 80 % transparent at 1
+      tile. A hidden candidate can sneak past sleeping monsters, and a monster that loses sight of its prey stops the
+      hunt. Hide hides in plain sight as well (Use a talent).
   - applies_to:
       - CMD-02
       - CMD-03
     text: A potion heals 40 % of max life, and a ration restores 45 hunger (Gear, Use consumables).
+  - applies_to:
+      - CMD-04
+    text: A focus potion restores 40 % of max focus (Gear, Use consumables).
   - applies_to:
       - EVT-10
       - EVT-11
@@ -271,3 +316,11 @@ open_questions:
     resolution: >-
       Decided 2026-11-20: yes – slowing, stunning, corroding, draining, area attacks, fleeing, healing,
       regeneration, resistances and weaknesses, as the rules list them.
+  - topic: Hiding in The Woods
+    question: Should the bushes of The Woods hide candidates, as in the arena?
+    status: resolved
+    applies_to:
+      - SVC-01
+    resolution: >-
+      Decided 2026-11-20: yes, from players, rivals and monsters alike, unless they come within 2 tiles or the
+      candidate strikes.

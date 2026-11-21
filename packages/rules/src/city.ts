@@ -48,6 +48,8 @@ export interface CityPlan {
   floors: FloorPlan[];
   /** Husene i yderringen, hvor kandidaterne starter. */
   startRooms: Room[];
+  /** The Woods: lysningerne med et bål, hvor en bande brigander slår lejr. */
+  camps?: Room[];
 }
 
 /** Områdernes numre: gadeplan er 1, etagerne 100 og op. */

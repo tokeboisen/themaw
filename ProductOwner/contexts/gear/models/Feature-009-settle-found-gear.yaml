@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -43,7 +43,7 @@ elements:
     col: 4
     stack: 1
     description: >-
-      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the
       items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:

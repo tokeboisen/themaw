@@ -53,7 +53,7 @@ describe('Lobby', { skip: !hasDatabase }, () => {
     assert.equal(response.statusCode, 201);
     assert.equal(response.json().tithe.reachName, 'The Broken City');
     const board = await get(kael.cookie, '/api/tithes');
-    assert.deepEqual(board.reaches.map((r: { name: string }) => r.name), ['The Old Mines', 'The Broken City']);
+    assert.deepEqual(board.reaches.map((r: { name: string }) => r.name), ['The Old Mines', 'The Broken City', 'The Woods']);
     assert.equal(board.tithes.find((t: { name: string }) => t.name === name).reach, 'city');
     await post(kael.cookie, `/api/tithes/${encodeURIComponent(name)}/launch`);
     assert.equal((await launchedEvent(name)).reach, 'city'); // F037: "Tithe launched" carries the Reach

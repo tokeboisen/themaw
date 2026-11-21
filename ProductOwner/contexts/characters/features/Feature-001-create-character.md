@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-001-create-character.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 5
 status: draft
 created: 2026-11-19
 ```
@@ -129,6 +129,7 @@ Scenario: All points must be placed
 ### Rules
 
 - A user can have several characters. Each belongs to one user and is kept on the Maw Server. (AGG-01)
+- Every background has a talent, a fifth skill that only it has: Street Runner Hide, Miner Berserk, Poacher Haste and Temple Acolyte Healing Circle (Tithe, Use a talent). It starts at 0 and is not placed at creation; it grows by use and with skill points. Every character also has the skill Reveal, which reads unidentified items (Gear, Reveal an item) and gets its bonus from Intelligence; it too starts at 0. (AGG-01)
 - The five attributes add up to 55 points and the four skills (Blades, Heavy Weapons, Bows, Echo Arts) to 16. Every attribute and skill must lie between the background's minimum and maximum, and all points must be placed before the character can be created; otherwise "Place all your points first." is shown. (CMD-01)
 - Miner: strengths Strength, Constitution and Heavy Weapons; weaknesses Dexterity, Intelligence and Echo Arts. Suggestion: Strength 13, Dexterity 10, Stamina 10, Constitution 12, Intelligence 10; Blades 3, Heavy Weapons 10, Bows 2, Echo Arts 1. Limits: Strength 11–16, Dexterity 7–12, Stamina 9–13, Constitution 10–15, Intelligence 7–12; Blades 0–8, Heavy Weapons 6–12, Bows 0–6, Echo Arts 0–4. Starting weapon: Pickaxe. (CMD-01)
 - Poacher: strengths Dexterity and Bows; weaknesses Constitution and Heavy Weapons. Suggestion: Strength 10, Dexterity 14, Stamina 11, Constitution 10, Intelligence 10; Blades 4, Heavy Weapons 1, Bows 10, Echo Arts 1. Limits: Strength 8–13, Dexterity 12–17, Stamina 9–14, Constitution 7–12, Intelligence 8–13; Blades 0–8, Heavy Weapons 0–4, Bows 6–12, Echo Arts 0–6. Starting weapon: Short Bow. (CMD-01)
@@ -150,11 +151,11 @@ Scenario: All points must be placed
 |---|---|---|---|
 | VIEW-01 | Create character | (starting point) | CMD-01 |
 
-**VIEW-01:** Opened with New character, and right away for a user without characters. The four backgrounds are shown as cards; each card has the background's story, its strengths and weaknesses, its starting weapon and the minimum and maximum of every attribute and skill. Choosing a background places its suggested points. A − and a + stand by every attribute and skill, disabled at the background's minimum and maximum, and "Points left" counts the attribute points and the skill points. A name field and "Take the Brand" create the character.
+**VIEW-01:** Opened with New character, and right away for a user without characters. The four backgrounds are shown as cards; each card has the background's story, its strengths and weaknesses, its starting weapon, its talent and the minimum and maximum of every attribute and skill. Choosing a background places its suggested points. A − and a + stand by every attribute and skill, disabled at the background's minimum and maximum, and "Points left" counts the attribute points and the skill points. A name field and "Take the Brand" create the character.
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 5
 
 | # | Question | Resolution |
 |---|---|---|

@@ -22,7 +22,7 @@
         <mxCell id="DESCRIPTION" parent="1" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;strokeColor=none;fillColor=none;align=left;verticalAlign=top;" value="&lt;div&gt;&lt;b&gt;Description&lt;/b&gt;&lt;/div&gt;For the player: put weapons and Echo Arts on the keys 1–8, so the player can switch weapon or cast in the middle of a fight with one key." vertex="1">
           <mxGeometry x="-110" y="-200" width="400" height="140" as="geometry" />
         </mxCell>
-        <UserObject id="VIEW-01" label="Inventory&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The equipped melee weapon, ranged weapon, armour and two rings, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet.">
+        <UserObject id="VIEW-01" label="Inventory&lt;br&gt;&lt;br&gt;&lt;i&gt;Player&lt;/i&gt;" tooltip="The equipped melee weapon, ranged weapon, armour, two rings and an amulet, the items in the pack and the hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#7CDE7C;strokeColor=#006600;" vertex="1">
             <mxGeometry x="0" y="0" width="120" height="120" as="geometry" />
           </mxCell>
@@ -42,7 +42,7 @@
         <mxCell id="CMD-02-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
           <mxGeometry x="200" y="180" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
             <mxGeometry x="400" y="0" width="120" height="120" as="geometry" />
           </mxCell>

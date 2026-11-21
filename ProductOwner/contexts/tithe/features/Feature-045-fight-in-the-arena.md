@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-045-fight-in-the-arena.drawio
 semantics: event-modeling-semantik.md
-version: 1
+version: 3
 status: draft
 created: 2026-11-20
 ```
@@ -134,8 +134,8 @@ Scenario: Nothing but the stake
 
 ### Rules
 
-- The arena is an oval of sand, 36 × 24 tiles, ringed by the stands. Rocks, trees and bushes are laid out the same on both halves. Rocks and trees block both fighters and missiles; bushes block neither. (AGG-01)
-- A fighter standing in a bush is hidden from the other side unless one of them is within 2 tiles, or the fighter has struck in the last 1.5 seconds. A fighter's own side always sees it. (AGG-01)
+- The arena is an oval of sand, 36 × 24 tiles, ringed by the stands. Rocks, trees of one tile, big trees of four (2 × 2) and bushes are laid out the same on both halves. Rocks and trees block both fighters and missiles; bushes block neither. (AGG-01)
+- A fighter standing in a bush is hidden from the other side unless one of them is within 2 tiles, or the fighter has struck or cast in the last 1.5 seconds; the other side sees it fade in as in The Woods (Survive the depths). A fighter's own side always sees it. (AGG-01)
 - Each side starts at its end of the oval. The fighters of a side are a party: they never hurt each other. For the first 5 seconds no one can be hurt. (CMD-01)
 - The fighters fight as in a Tithe (Fight in the depths) with their own characters, gear, hotbar, potions and rations. Nothing from the match is kept: no Echo, no skill training, no loot, used potions and rations come back, nothing can be dropped, and hunger does not drain. (CMD-02)
 - After 2 minutes the ring closes in from the stands; at 3½ minutes only the middle quarter is left. Outside the ring a fighter loses 8 % of max life every second. (AGG-02)
@@ -178,7 +178,7 @@ Scenario: The ring closes
 
 ## 10. Validation and open questions
 
-### Resolved in version 1
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

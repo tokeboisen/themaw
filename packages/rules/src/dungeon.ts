@@ -15,6 +15,12 @@ export const RUBBLE = 7;
 // Arenaen (Feature-045): træer spærrer for kæmpere og projektiler; buske skjuler den, der står i dem.
 export const TREE = 8;
 export const BUSH = 9;
+// Store træer fylder 2 × 2 felter (Feature-045, -010).
+export const TREE_BIG = 10;
+// The Woods (Feature-010): møbler og ildsteder i hytterne og bål i lysningerne.
+export const FURNITURE = 11;
+export const HEARTH = 12;
+export const CAMPFIRE = 13;
 export const MAP_SIZE = 64;
 
 export interface Point {
@@ -163,7 +169,7 @@ export function tileAt(map: DepthMap, x: number, y: number): number {
 
 export function isSolid(map: DepthMap, x: number, y: number): boolean {
   const t = tileAt(map, x, y);
-  return t === WALL || t === RUBBLE || t === TREE || (t === GATE && !map.gateOpen);
+  return t === WALL || t === RUBBLE || t === TREE || t === TREE_BIG || t === FURNITURE || t === HEARTH || t === CAMPFIRE || (t === GATE && !map.gateOpen);
 }
 
 /** Et felt, man kan stå og gå på, uden at det er en trappe, en udgang eller en port. */
@@ -215,7 +221,8 @@ export function collides(map: DepthMap, x: number, y: number, r: number, flying 
     for (let tx = Math.floor(x - r); tx <= Math.floor(x + r); tx++) {
       if (!isSolid(map, tx, ty)) continue;
       // Feature-013: Harpies flyver over murbrokker.
-      if (flying && tileAt(map, tx, ty) === RUBBLE) continue;
+      // Flyvende monstre flyver over murbrokker og møbler (Feature-013).
+      if (flying && (tileAt(map, tx, ty) === RUBBLE || tileAt(map, tx, ty) === FURNITURE)) continue;
       const nx = Math.max(tx, Math.min(x, tx + 1));
       const ny = Math.max(ty, Math.min(y, ty + 1));
       if ((x - nx) ** 2 + (y - ny) ** 2 < r * r) return true;

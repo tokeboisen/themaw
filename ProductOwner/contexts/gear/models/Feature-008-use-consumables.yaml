@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -10,8 +10,8 @@ use_case:
   purpose:
     derived: false
     text: >-
-      For the player: drink a potion or eat a ration in the middle of a Tithe, so the candidate survives longer
-      in the Maw.
+      For the player: drink a potion – for life or for focus – or eat a ration in the middle of a Tithe, so the
+      candidate survives longer in the Maw and can keep casting Echo Arts.
 elements:
   - id: VIEW-01
     type: view
@@ -22,7 +22,7 @@ elements:
       - Player
     description: >-
       The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
-    behavior: Potion and Ration buttons show how many are left (keys Q and R on a keyboard).
+    behavior: Potion, Focus and Ration buttons show how many are left (keys Q, E and R on a keyboard).
   - id: CMD-01
     type: command
     name: Drink potion
@@ -35,17 +35,24 @@ elements:
     col: 2
     stack: 2
     story: As a player I want to eat a ration, so that I do not starve deep in the Maw.
+  - id: CMD-03
+    type: command
+    name: Drink focus potion
+    col: 2
+    stack: 3
+    story: As a player I want to drink a focus draught, so that I can keep casting Echo Arts in a long fight.
   - id: AGG-01
     type: aggregate
     name: Inventory
     col: 3
     stack: 1
     description: >-
-      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the
       items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
       - name: Potions
+      - name: Focus potions
       - name: Rations
   - id: EVT-01
     type: event
@@ -57,6 +64,11 @@ elements:
     name: Ration eaten
     col: 4
     stack: 2
+  - id: EVT-03
+    type: event
+    name: Focus potion drunk
+    col: 4
+    stack: 3
 flows:
   - from: VIEW-01
     to: CMD-01
@@ -70,6 +82,12 @@ flows:
     to: EVT-01
   - from: AGG-01
     to: EVT-02
+  - from: VIEW-01
+    to: CMD-03
+  - from: CMD-03
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
 rules:
   - applies_to:
       - CMD-01
@@ -80,11 +98,17 @@ rules:
       - CMD-02
     text: A ration restores 45 hunger and is only eaten when hunger is below 95 of 100.
   - applies_to:
+      - CMD-03
+    text: >-
+      A focus potion restores 40 % of the candidate's max focus, like a potion restores life. It can be drunk once per
+      second, and only when focus is not full.
+  - applies_to:
       - EVT-01
       - EVT-02
+      - EVT-03
     text: >-
-      The candidate's life and hunger belong to the Tithe, which reacts to EVT-01 and EVT-02 (Tithe, Survive
-      the depths).
+      The candidate's life, focus and hunger belong to the Tithe, which reacts to EVT-01, EVT-02 and EVT-03 (Tithe,
+      Survive the depths).
 scenarios:
   - title: A potion is drunk
     applies_to:
@@ -101,6 +125,14 @@ scenarios:
       Given Kael has full life
       When the player performs CMD-01 "Drink potion"
       Then nothing is recorded
+  - title: A focus potion is drunk
+    applies_to:
+      - CMD-03
+    gherkin: |-
+      Given Kael has 4 of 20 focus and 1 focus potion
+      When the player performs CMD-03 "Drink focus potion"
+      Then EVT-03 "Focus potion drunk" is recorded
+      And Kael has 0 focus potions
   - title: A ration is eaten
     applies_to:
       - CMD-02

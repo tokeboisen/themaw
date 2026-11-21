@@ -68,6 +68,8 @@ export const ROUTES: Route[] = [
   r('Item sold', 'Market', 'Gear', 'F005', 'bus'),
   r('Potion bought', 'Market', 'Gear', 'F005', 'bus'),
   r('Ration bought', 'Market', 'Gear', 'F005', 'bus'),
+  r('Focus potion bought', 'Market', 'Gear', 'F005', 'bus'),
+  r('Identification bought', 'Market', 'Gear', 'F005', 'bus'),
   r('Item gift accepted', 'Patronage', 'Gear', 'F005', 'bus'),
   r('Gold gift accepted', 'Patronage', 'Market', 'F018', 'bus'),
   r('Purse paid', 'Patronage', 'Market', 'F018', 'bus'),
@@ -109,6 +111,7 @@ export const ROUTES: Route[] = [
   r('Depth sealed', 'Spectacle', 'Tithe', 'F014', 'in-process'),
   r('Potion drunk', 'Gear', 'Tithe', 'F013', 'in-process'),
   r('Ration eaten', 'Gear', 'Tithe', 'F013', 'in-process'),
+  r('Focus potion drunk', 'Gear', 'Tithe', 'F013', 'in-process'),
 ];
 
 /** Events, der ikke står i modellen, men som driften har brug for. */

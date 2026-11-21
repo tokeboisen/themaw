@@ -60,7 +60,7 @@ export function cookieOf(header: string | string[] | undefined): string {
 }
 
 export async function outboxTypes(pool: Pool, match: string): Promise<string[]> {
-  const { rows } = await pool.query<{ type: string }>(`select type from platform.outbox where payload::text like $1`, [`%${match}%`]);
+  const { rows } = await pool.query<{ type: string }>(`select type from platform.outbox where payload::text like $1 order by occurred_at`, [`%${match}%`]);
   return rows.map((r) => r.type);
 }
 

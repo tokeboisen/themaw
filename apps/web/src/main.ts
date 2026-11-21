@@ -7,8 +7,8 @@
 
 import { MESSAGES, type ArenaEndedMessage, type EndedMessage } from '@maw/contracts';
 import {
-  ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, SKILLS, SKILL_NAMES, canLower, canRaise, isValidPassword, isValidUserName,
-  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EquipSlot, type HotbarKey, type PointKind, type SquarePlace,
+  ATTRIBUTES, ATTRIBUTE_NAMES, BALANCE as B, CREATION_SKILLS, displayName, HOTBAR_KEYS, SKILL_NAMES, canLower, isEchoArt, canRaise, isValidPassword, isValidUserName,
+  lower, pointsLeft, raise, suggestedAllocation, type Allocation, type EchoArt, type TalentId, type EquipSlot, type Hotbar, type HotbarKey, type PointKind, type SquarePlace,
 } from '@maw/rules';
 import {
   api, type ArenaBoard, type ArenaMatchView, type BackgroundView, type CharacterView, type CurrentTithe, type LobbyView, type PlayerRow, type ReachView,
@@ -22,7 +22,9 @@ import { othersHtml } from './others.ts';
 import { RESULTS_DELAY_MS, deleteConfirmation, escapeAction, screenAfterSignIn, screenOnReload, type Screen } from './logic.ts';
 import { resultsHtml } from './results.ts';
 import { apothecaryHtml, chestHtml, forgeHtml, patronsHtml, type RimData, type RimTab } from './rim.ts';
-import { asCharacter, sheetHtml } from './sheet.ts';
+import {
+  NO_FREE_KEY, asCharacter, compareIdOf, firstFreeKey, markOf, sheetHtml, statsHtmlFor, type SheetTab,
+} from './sheet.ts';
 import { statisticsHtml } from './statistics.ts';
 import { SquareView } from './square/view.ts';
 import { Game } from './tithe/game.ts';
@@ -38,7 +40,8 @@ const state = {
   backgrounds: [] as BackgroundView[],
   create: { background: 'miner', alloc: null as Allocation | null, name: '', message: '' },
   overlay: null as Overlay,
-  rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', hotbarKey: null as string | null },
+  rim: { tab: 'forge' as RimTab, data: { gold: 0, stock: [], inventory: null, gifts: [] } as RimData, message: '', sheetMessage: '', mark: null as string | null,
+    sheetTab: 'character' as SheetTab, spellPage: 0, helpTab: 'keys' },
   lobby: { list: [] as TitheListItem[], reaches: [] as ReachView[], current: null as LobbyView | ArenaMatchView | null, message: '', nameDraft: '', reach: 'mines' },
   // Feature-044: arena-tavlen og formularen til en ny arenakamp.
   arena: { board: null as ArenaBoard | null, message: '', form: { name: '', format: '1v1', stake: '0', side: '1' } as ArenaForm },
@@ -167,9 +170,9 @@ function createHtml(): string {
     .map((b) => `<button class="card ${b.id === background ? 'selected' : ''}" data-act="background" data-id="${b.id}">
       <h3>${esc(b.name)}</h3>
       <p>${esc(b.text)}</p>
-      <p><b>Strengths:</b> ${esc(b.strengths.join(', '))}<br><b>Weaknesses:</b> ${esc(b.weaknesses.join(', '))}<br><b>Starting weapon:</b> ${esc(b.weaponName)}</p>
+      <p><b>Strengths:</b> ${esc(b.strengths.join(', '))}<br><b>Weaknesses:</b> ${esc(b.weaknesses.join(', '))}<br><b>Starting weapon:</b> ${esc(b.weaponName)}<br><b>Talent:</b> ${esc(B.talents[b.talent].name)} – ${esc(B.talents[b.talent].text)}</p>
       <p class="limits">${ATTRIBUTES.map((a) => `${ATTRIBUTE_NAMES[a]} ${rangeText('attributes', a, b)}`).join(' · ')}<br>
-        ${SKILLS.map((s) => `${SKILL_NAMES[s]} ${rangeText('skills', s, b)}`).join(' · ')}</p>
+        ${CREATION_SKILLS.map((s) => `${SKILL_NAMES[s]} ${rangeText('skills', s, b)}`).join(' · ')}</p>
     </button>`)
     .join('');
   const rows = (kind: PointKind, keys: string[], names: Record<string, string>) =>
@@ -187,7 +190,7 @@ function createHtml(): string {
     <div class="cards">${cards}</div>
     <div class="cols">
       <div class="box"><h3>Attributes</h3><p class="points">Points left: ${left.attributes}</p><table class="stats">${rows('attributes', ATTRIBUTES, ATTRIBUTE_NAMES)}</table></div>
-      <div class="box"><h3>Skills</h3><p class="points">Points left: ${left.skills}</p><table class="stats">${rows('skills', SKILLS, SKILL_NAMES)}</table></div>
+      <div class="box"><h3>Skills</h3><p class="points">Points left: ${left.skills}</p><table class="stats">${rows('skills', CREATION_SKILLS, SKILL_NAMES)}</table></div>
     </div>
     <label class="field">Name <input id="char-name" maxlength="${B.creation.nameMax}" value="${esc(name)}" autocomplete="off" required></label>
     <div class="msg">${esc(message)}</div>
@@ -202,17 +205,17 @@ function overlayHtml(): string {
     if (state.screen === 'tithe') {
       // Under en Tithe kommer karakterskærmen fra tithe-server, og Tithen fortsætter bag den (Feature-004 VIEW-01).
       const s = state.game?.sheetData;
-      return s ? sheetHtml(s.character, backgroundName(s.character.background), s.inventory, state.rim.hotbarKey, state.rim.sheetMessage, { found: s.found }) : '';
+      return s ? sheetHtml(s.character, backgroundName(s.character.background), s.inventory, state.rim.mark, state.rim.sheetMessage, { found: s.found }, sheetView()) : '';
     }
     const c = active();
-    return c ? sheetHtml(c, backgroundName(c.background), state.rim.data.inventory, state.rim.hotbarKey, state.rim.sheetMessage) : '';
+    return c ? sheetHtml(c, backgroundName(c.background), state.rim.data.inventory, state.rim.mark, state.rim.sheetMessage, null, sheetView()) : '';
   }
   if (o === 'help') {
     const inGame = state.screen === 'tithe';
     const inv = inGame ? state.game?.sheetData?.inventory : state.rim.data.inventory;
     const hotbar = inGame ? state.game?.hotbar ?? {} : inv?.hotbar ?? {};
     const weapons = inv ? [inv.equipment.melee, inv.equipment.ranged, ...inv.pack] : [];
-    return helpHtml(hotbar, (id) => weapons.find((w) => w?.id === id)?.name ?? 'a weapon');
+    return helpHtml(hotbar, (id) => { const w = weapons.find((x) => x?.id === id); return w ? displayName(w, B) : 'a weapon'; }, state.rim.helpTab);
   }
   if (o === 'others') return othersHtml(state.others, state.screen === 'tithe' ? state.game?.party ?? null : null);
   // Feature-042: stederne på Mustering Square åbnes som overlays; pladsen ses bag dem.
@@ -390,7 +393,7 @@ async function follow(current: CurrentTithe): Promise<void> {
 function startGame(ticket: string): void {
   state.game?.unmount();
   state.ended = null;
-  state.rim.hotbarKey = null;
+  state.rim.mark = null;
   state.rim.sheetMessage = '';
   state.game = new Game(ticket, {
     sheet: () => {
@@ -534,24 +537,74 @@ overlay.addEventListener('submit', async (event) => {
   await follow(result.data);
 });
 
+/**
+ * Feature-027 CMD-01: det markerede våben eller den markerede Echo Art lægges på tasten. Markeringen bliver stående, så
+ * det samme kan flyttes videre med en anden tast.
+ */
+async function assignMarked(key: string): Promise<void> {
+  const target = markOf(state.rim.mark);
+  if (target) await assignTo(key, target);
+}
+
+/** Feature-027 CMD-01 Assign hotbar key, i the Rim gennem api'et og under en Tithe gennem tithe-server. */
+async function assignTo(key: string, target: { itemId: string } | { echoArt: EchoArt } | { talent: TalentId }): Promise<void> {
+  if (!(HOTBAR_KEYS as readonly string[]).includes(key)) return;
+  if (state.screen === 'tithe' && state.game) {
+    state.rim.sheetMessage = '';
+    state.game.sheetAction({ action: 'hotbar', key: key as HotbarKey, ...target });
+    return renderOverlay();
+  }
+  const c = active();
+  if (!c) return;
+  const result = await api.assignHotbar(c.id, key, target);
+  if (result.ok) state.rim.data.inventory = result.data;
+  state.rim.sheetMessage = result.ok ? '' : result.refusal.message;
+  render();
+}
+
+/** Hotbaren, som karakterskærmen viser den: fra tithe-server under en Tithe, ellers fra Gear. */
+function sheetHotbar(): Hotbar {
+  return (state.screen === 'tithe' ? state.game?.sheetData?.inventory.hotbar : state.rim.data.inventory?.hotbar) ?? {};
+}
+
+/** Feature-027: Equip i spellbooken lægger Echo Art'en på den første tomme tast. */
+async function equipArt(art: string | undefined): Promise<void> {
+  if (!isEchoArt(art)) return;
+  const key = firstFreeKey(sheetHotbar());
+  if (!key) {
+    state.rim.sheetMessage = NO_FREE_KEY;
+    return renderOverlay();
+  }
+  await assignTo(key, { echoArt: art });
+}
+
+function sheetView() {
+  return { tab: state.rim.sheetTab, spellPage: state.rim.spellPage };
+}
+
+/** Feature-027 VIEW-01: et klik markerer et våben eller en kendt Echo Art; et klik mere fjerner markeringen. */
+function toggleMark(id: string | undefined): void {
+  state.rim.mark = !id || state.rim.mark === id ? null : id;
+  renderOverlay();
+}
+
 /** Karakterskærmen under en Tithe: handlingerne går til tithe-server (Feature-004, -007, -027). */
 function titheSheetAction(action: string, id: string | undefined): boolean {
   const game = state.game;
   if (state.screen !== 'tithe' || !game) return false;
-  const key = state.rim.hotbarKey as HotbarKey | null;
   state.rim.sheetMessage = '';
   if (action === 'equip') {
     const [itemId, ring] = id!.split('|') as [string, 'ring1' | 'ring2' | undefined];
     game.sheetAction(ring ? { action: 'equip', itemId, ring } : { action: 'equip', itemId });
   } else if (action === 'unequip') game.sheetAction({ action: 'unequip', slot: id as EquipSlot });
   else if (action === 'drop') game.sheetAction({ action: 'drop', itemId: id! });
-  else if (action === 'hotbar-weapon' && key) game.sheetAction({ action: 'hotbar', key, itemId: id! });
-  else if (action === 'hotbar-art' && key) game.sheetAction({ action: 'hotbar', key, echoArt: 'Echo Bolt' });
-  else if (action === 'hotbar-clear' && key) game.sheetAction({ action: 'clear', key });
+  else if (action === 'reveal') game.sheetAction({ action: 'reveal', itemId: id! }); // Feature-050 CMD-01
+  else if (action === 'mark') toggleMark(id);
+  else if (action === 'hotbar-key') void assignMarked(id ?? '');
+  else if (action === 'hotbar-clear') game.sheetAction({ action: 'clear', key: id as HotbarKey });
   else if (action === 'spend-attribute') game.sheetAction({ action: 'attribute', attribute: id as never });
   else if (action === 'spend-skill') game.sheetAction({ action: 'skill', skill: id as never });
   else return false;
-  if (action.startsWith('hotbar')) state.rim.hotbarKey = null;
   renderOverlay();
   return true;
 }
@@ -626,6 +679,10 @@ async function act(action: string, id: string | undefined): Promise<void> {
     }
     case 'help':
       return show(state.screen, 'help');
+    // Feature-030 VIEW-01: et emne i Helps faner; næste gang åbner Help på det.
+    case 'help-tab':
+      state.rim.helpTab = id ?? 'keys';
+      return renderOverlay();
     case 'leave':
       return show(state.screen, 'leave');
     case 'confirm-leave':
@@ -635,7 +692,7 @@ async function act(action: string, id: string | undefined): Promise<void> {
       state.game?.hotkey(id as HotbarKey);
       return;
     case 'game-act':
-      state.game?.act(id as 'potion' | 'ration' | 'interact' | 'dodge');
+      state.game?.act(id as 'potion' | 'focusPotion' | 'ration' | 'interact' | 'dodge');
       return;
     case 'arena-join': {
       // Feature-044 CMD-02 Join a side
@@ -677,10 +734,11 @@ async function act(action: string, id: string | undefined): Promise<void> {
     case 'account':
       return show(state.screen, 'account');
     case 'sheet':
-      state.rim.hotbarKey = null;
+      state.rim.mark = null;
       state.rim.sheetMessage = '';
       return show(state.screen, 'sheet');
     case 'close':
+      state.rim.mark = null; // Feature-027: at lukke karakterskærmen fjerner markeringen
       return show(state.screen);
     case 'logout': {
       await api.logOut();
@@ -746,16 +804,18 @@ async function act(action: string, id: string | undefined): Promise<void> {
     }
     case 'buy':
     case 'sell':
+    case 'forge-identify':
     case 'buy-consumable':
     case 'accept-gift':
     case 'chest-put':
     case 'chest-take': {
       const c = active()!;
       const result = action === 'buy' ? await api.buy(c.id, id!)
+        : action === 'forge-identify' ? await api.identifyAll(c.id)
         : action === 'sell' ? await api.sell(c.id, id!)
         : action === 'chest-put' ? await api.putInChest(c.id, id!)
         : action === 'chest-take' ? await api.takeFromChest(c.id, id!)
-        : action === 'buy-consumable' ? await api.buyConsumable(c.id, id as 'potion' | 'ration')
+        : action === 'buy-consumable' ? await api.buyConsumable(c.id, id as 'potion' | 'focusPotion' | 'ration')
         : await api.acceptGift(c.id, id!);
       // F019 VIEW-01: "A refusal is shown above the lists."
       state.rim.message = result.ok ? '' : result.refusal.message;
@@ -765,26 +825,43 @@ async function act(action: string, id: string | undefined): Promise<void> {
     }
     case 'equip':
     case 'unequip':
-    case 'hotbar-weapon':
-    case 'hotbar-art':
     case 'hotbar-clear': {
       const c = active()!;
-      const key = state.rim.hotbarKey ?? '';
       const [itemId, ring] = (id ?? '').split('|') as [string, 'ring1' | 'ring2' | undefined];
       const result = action === 'equip' ? await api.equip(c.id, itemId, ring)
         : action === 'unequip' ? await api.unequip(c.id, id!)
-        : action === 'hotbar-weapon' ? await api.assignHotbar(c.id, key, { itemId: id! })
-        : action === 'hotbar-art' ? await api.assignHotbar(c.id, key, { echoArt: id! })
-        : await api.clearHotbar(c.id, key);
+        : await api.clearHotbar(c.id, id!);
       if (result.ok) state.rim.data.inventory = result.data;
       // F007 scenario "Unequipping needs room": "Your inventory is full." vises på karakterskærmen.
       state.rim.sheetMessage = result.ok ? '' : result.refusal.message;
-      if (action.startsWith('hotbar')) state.rim.hotbarKey = null;
       return render();
     }
+    case 'mark':
+      return toggleMark(id);
+    // Feature-004 VIEW-01: karakterskærmens faner; Feature-048: spellbookens sider.
+    case 'sheet-tab':
+      state.rim.sheetTab = (id as SheetTab) ?? 'character';
+      state.rim.sheetMessage = '';
+      return renderOverlay();
+    case 'spell-page':
+      state.rim.spellPage = Number(id) || 0;
+      return renderOverlay();
+    case 'art-equip':
+      return equipArt(id);
+    // Feature-027/-049: Equip på talentet lægger det på den første tomme tast.
+    case 'talent-equip': {
+      if (!id || !(id in B.talents)) return;
+      const key = firstFreeKey(sheetHotbar());
+      if (!key) {
+        state.rim.sheetMessage = NO_FREE_KEY;
+        return renderOverlay();
+      }
+      return assignTo(key, { talent: id as TalentId });
+    }
+    case 'art-unequip':
+      return act('hotbar-clear', id);
     case 'hotbar-key':
-      state.rim.hotbarKey = state.rim.hotbarKey === id ? null : id!;
-      return render();
+      return assignMarked(id ?? '');
     case 'spend-attribute':
     case 'spend-skill': {
       const c = active()!;
@@ -798,6 +875,20 @@ async function act(action: string, id: string | undefined): Promise<void> {
 onAction(app, (action, id) => void act(action, id));
 onAction(overlay, (action, id) => void act(action, id));
 
+// Feature-007 VIEW-01: at pege på en ting viser værdierne med den i gult under de nuværende; uden peg følger de det
+// markerede. Kun tabellen skiftes, så resten af karakterskærmen bliver stående.
+let comparing: string | null | undefined;
+overlay.addEventListener('mouseover', (event) => {
+  const box = overlay.querySelector<HTMLElement>('#sheet-stats');
+  if (!box) return;
+  const el = (event.target as HTMLElement).closest<HTMLElement>('[data-compare]');
+  const id = el?.dataset.compare ?? compareIdOf(state.rim.mark);
+  if (id === comparing && box.dataset.shown === '1') return;
+  comparing = id;
+  box.innerHTML = statsHtmlFor(id);
+  box.dataset.shown = '1';
+});
+
 window.addEventListener('keydown', (event) => {
   const typing = (event.target as HTMLElement).tagName === 'INPUT';
   if (event.key === 'Escape') {
@@ -810,6 +901,14 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   if (typing || event.ctrlKey || event.metaKey || event.altKey) return;
+  // Feature-027: med noget markeret på karakterskærmen lægger 1–8 det på en tast i stedet for at vælge en (Feature-028).
+  const digit = /^Digit([1-8])$/.exec(event.code);
+  if (digit && state.overlay === 'sheet' && markOf(state.rim.mark)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat) void assignMarked(digit[1]!);
+    return;
+  }
   const playing = state.screen === 'rim' || state.screen === 'tithe';
   // F004 VIEW-01: karakterskærmen åbnes med C; F030 VIEW-01: Help med H, i the Rim og under en Tithe.
   if ((event.key === 'c' || event.key === 'C') && playing) void act(state.overlay === 'sheet' ? 'close' : 'sheet', undefined);

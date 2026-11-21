@@ -8,6 +8,7 @@ export interface Inventory {
   characterId: string;
   userId: string;
   potions: number;
+  focusPotions: number;
   rations: number;
   hotbar: Hotbar;
   equipment: Equipment;
@@ -19,8 +20,8 @@ export interface Inventory {
 type Db = Pool | Client;
 
 export async function loadInventory(db: Db, characterId: string, lock = false): Promise<Inventory | undefined> {
-  const inv = await db.query<{ user_id: string; potions: number; rations: number; hotbar: Hotbar }>(
-    `select user_id, potions, rations, hotbar from gear.inventories where character_id = $1${lock ? ' for update' : ''}`,
+  const inv = await db.query<{ user_id: string; potions: number; focus_potions: number; rations: number; hotbar: Hotbar }>(
+    `select user_id, potions, focus_potions, rations, hotbar from gear.inventories where character_id = $1${lock ? ' for update' : ''}`,
     [characterId],
   );
   const row = inv.rows[0];
@@ -37,7 +38,10 @@ export async function loadInventory(db: Db, characterId: string, lock = false): 
     else if (item.location === 'chest') chest.push(item.data);
     else equipment[item.location] = item.data;
   }
-  return { characterId, userId: row.user_id, potions: row.potions, rations: row.rations, hotbar: row.hotbar, equipment, pack, chest };
+  return {
+    characterId, userId: row.user_id, potions: row.potions, focusPotions: row.focus_potions, rations: row.rations, hotbar: row.hotbar, equipment, pack,
+    chest,
+  };
 }
 
 /** Karakteren med sit udstyr, som reglerne regner med (Characters' egenskaber og skills, Gears udstyr). */
@@ -47,7 +51,8 @@ export async function characterOf(db: Db, inv: Inventory): Promise<Character | u
   return {
     name: core.name, background: core.background, level: core.mark, echo: core.echo, attributes: core.attributes,
     skills: core.skills, attributePoints: core.attributePoints, skillPoints: core.skillPoints, gold: 0,
-    potions: inv.potions, rations: inv.rations, equipment: inv.equipment, inventory: inv.pack, tithes: 0, championships: 0,
+    potions: inv.potions, focusPotions: inv.focusPotions, rations: inv.rations, equipment: inv.equipment, inventory: inv.pack, tithes: 0,
+    championships: 0,
   };
 }
 
@@ -66,9 +71,13 @@ export async function roomLeft(db: Db, characterId: string): Promise<number> {
   return (await capacity(db, inv)) - inv.pack.length;
 }
 
-export async function consumables(db: Db, characterId: string): Promise<{ potions: number; rations: number } | undefined> {
-  const { rows } = await db.query<{ potions: number; rations: number }>('select potions, rations from gear.inventories where character_id = $1', [characterId]);
-  return rows[0];
+export async function consumables(db: Db, characterId: string): Promise<{ potions: number; focusPotions: number; rations: number } | undefined> {
+  const { rows } = await db.query<{ potions: number; focus_potions: number; rations: number }>(
+    'select potions, focus_potions, rations from gear.inventories where character_id = $1',
+    [characterId],
+  );
+  const row = rows[0];
+  return row && { potions: row.potions, focusPotions: row.focus_potions, rations: row.rations };
 }
 
 /** En ting i pakken (ikke en, der er taget på); kun dem kan sælges (Feature-019 CMD-02). */

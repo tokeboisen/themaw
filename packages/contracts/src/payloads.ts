@@ -10,6 +10,8 @@ export const EVENT = {
   itemSold: routingKey('Market', 'Item sold'),
   potionBought: routingKey('Market', 'Potion bought'),
   rationBought: routingKey('Market', 'Ration bought'),
+  focusPotionBought: routingKey('Market', 'Focus potion bought'),
+  identificationBought: routingKey('Market', 'Identification bought'),
   itemGiftAccepted: routingKey('Patronage', 'Item gift accepted'),
   goldGiftAccepted: routingKey('Patronage', 'Gold gift accepted'),
   pursePaid: routingKey('Patronage', 'Purse paid'),
@@ -51,6 +53,11 @@ export interface ItemSold {
 
 /** Feature-020 EVT-01 og EVT-02 */
 export interface ConsumableBought {
+  characterId: string;
+}
+
+/** Feature-019 EVT-04 Identification bought: Gear identificerer alle karakterens ting (Feature-005 CMD-05). */
+export interface IdentificationBought {
   characterId: string;
 }
 
@@ -136,7 +143,8 @@ export interface TitheEnded {
   record: TitheRecord;
   start: { mark: number; skills: Record<SkillId, number> };
   character: Pick<Character, 'level' | 'echo' | 'attributes' | 'skills' | 'attributePoints' | 'skillPoints'>;
-  gear: { equipment: Equipment; pack: Item[]; potions: number; rations: number; hotbar: Hotbar };
+  /** focusPotions mangler i en Tithe, der startede før focus potions (Feature-008 v4). */
+  gear: { equipment: Equipment; pack: Item[]; potions: number; focusPotions?: number; rations: number; hotbar: Hotbar };
 }
 
 /** Feature-011 EVT-06: en spiller er slået ned af en anden spiller (fase 4). */

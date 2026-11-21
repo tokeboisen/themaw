@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -104,8 +104,8 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      The new stock is 7 items with the character's Mark as item level: 10 % rare, otherwise 45 % magic, otherwise
-      common. The old stock is replaced.
+      The new stock is 7 items with the character's Mark as item level: 2 % rare, otherwise 12 % magic, otherwise
+      common, so a magic weapon at the Forge is rare and dear. The old stock is replaced.
   - applies_to:
       - CMD-02
     text: Every character has its own Forge stock; it is cleared when the character is deleted.

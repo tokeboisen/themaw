@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -21,7 +21,7 @@ elements:
       - Player
     description: The Noble Houses' agents in the Patrons' Hall on the Mustering Square, with the sponsor gifts that wait.
     behavior: >-
-      Explains that the Houses give one gift for every 100 Renown (at most 4) and what the crowd loves, shows
+      Explains that the Houses give one gift for every 150 Renown (at most 4) and what the crowd loves, shows
       the Renown of the last Tithe and lists the waiting gifts – each item with its house, an item gift with
       its description – with Accept.
   - id: CMD-01

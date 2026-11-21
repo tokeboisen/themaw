@@ -30,6 +30,11 @@ bounded_context:
       use_cases:
         - Earn Marks
         - Spend points
+    - name: Spellbook
+      description: The Echo Arts a character knows in its mind, learned as Echo Arts grows.
+      lifecycle: planned
+      use_cases:
+        - Read the spellbook
     - name: Player statistics
       description: What every character has done in the Tithes, Player kills included.
       lifecycle: planned

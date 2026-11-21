@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 6
 status: draft
 created: '2026-11-19'
 use_case:
@@ -24,7 +24,8 @@ elements:
       The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
     behavior: >-
       Loot lies on the floor as small shapes: items as diamonds in the colour of their rarity (common white,
-      magic blue, rare gold), gold as coins, potions red and rations brown. Picked-up items are named over
+      magic blue, rare gold), gold as coins, potions red, focus potions
+      blue and rations brown. Picked-up items are named over
       the candidate in their rarity's colour.
   - id: CMD-01
     type: command
@@ -42,7 +43,7 @@ elements:
     col: 3
     stack: 1
     description: >-
-      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the
       items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
@@ -52,6 +53,7 @@ elements:
           - name: Found in Tithe
         many: true
       - name: Potions
+      - name: Focus potions
       - name: Rations
       - name: Gold found
   - id: EVT-01
@@ -85,7 +87,8 @@ rules:
       - CMD-01
     text: >-
       Loot is picked up by walking over it; there is no button. An item needs room in the pack; with a full
-      pack the item stays on the floor and "Inventory full" is shown over it. Potions and rations stop at 9.
+      pack the item stays on the floor and "Inventory full" is shown over it. Potions, focus potions and rations stop at
+      9.
   - applies_to:
       - AGG-01
     text: >-

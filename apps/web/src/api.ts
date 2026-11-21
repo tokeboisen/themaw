@@ -26,6 +26,7 @@ export interface InventoryView {
   equipment: Equipment;
   pack: Item[];
   potions: number;
+  focusPotions: number;
   rations: number;
   hotbar: Hotbar;
   capacity: number;
@@ -165,15 +166,17 @@ export const api = {
   unequip: (id: string, slot: string) => call<InventoryView>('POST', `/api/characters/${id}/unequip`, { slot }),
   putInChest: (id: string, itemId: string) => call<InventoryView>('POST', `/api/characters/${id}/chest/put`, { itemId }),
   takeFromChest: (id: string, itemId: string) => call<InventoryView>('POST', `/api/characters/${id}/chest/take`, { itemId }),
-  assignHotbar: (id: string, key: string, target: { itemId: string } | { echoArt: string }) =>
+  assignHotbar: (id: string, key: string, target: { itemId: string } | { echoArt: string } | { talent: string }) =>
     call<InventoryView>('PUT', `/api/characters/${id}/hotbar/${key}`, target),
   clearHotbar: (id: string, key: string) => call<InventoryView>('DELETE', `/api/characters/${id}/hotbar/${key}`),
   // Market (F018, F019, F020)
   wallet: (id: string) => call<{ gold: number }>('GET', `/api/characters/${id}/wallet`),
   forge: (id: string) => call<{ gold: number; stock: Item[] }>('GET', `/api/characters/${id}/forge`),
   buy: (id: string, itemId: string) => call<{ gold: number; stock: Item[] }>('POST', `/api/characters/${id}/forge/buy`, { itemId }),
+  /** Feature-019 CMD-03 Pay for identification. */
+  identifyAll: (id: string) => call<{ gold: number }>('POST', `/api/characters/${id}/forge/identify`),
   sell: (id: string, itemId: string) => call<{ gold: number; sold: number }>('POST', `/api/characters/${id}/forge/sell`, { itemId }),
-  buyConsumable: (id: string, kind: 'potion' | 'ration') => call<{ gold: number }>('POST', `/api/characters/${id}/apothecary/buy`, { kind }),
+  buyConsumable: (id: string, kind: 'potion' | 'focusPotion' | 'ration') => call<{ gold: number }>('POST', `/api/characters/${id}/apothecary/buy`, { kind }),
   // Patronage (F024)
   gifts: (id: string) => call<{ gifts: GiftView[] }>('GET', `/api/characters/${id}/gifts`),
   acceptGift: (id: string, giftId: string) => call<GiftView>('POST', `/api/characters/${id}/gifts/${giftId}/accept`),

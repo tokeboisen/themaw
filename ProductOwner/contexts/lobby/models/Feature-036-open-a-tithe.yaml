@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 4
 status: draft
 created: '2026-11-19'
 use_case:
@@ -81,7 +81,7 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      A Tithe is opened in one of the Reaches: The Old Mines or The Broken City (Tithe, Enter the Tithe). The Tithe
+      A Tithe is opened in one of the Reaches: The Old Mines, The Broken City or The Woods (Tithe, Enter the Tithe). The Tithe
       Board shows them with a short description.
   - applies_to:
       - CMD-01

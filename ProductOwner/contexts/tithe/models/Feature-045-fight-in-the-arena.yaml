@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 1
+version: 3
 status: draft
 created: '2026-11-20'
 use_case:
@@ -146,13 +146,15 @@ rules:
   - applies_to:
       - AGG-01
     text: >-
-      The arena is an oval of sand, 36 × 24 tiles, ringed by the stands. Rocks, trees and bushes are laid out the
-      same on both halves. Rocks and trees block both fighters and missiles; bushes block neither.
+      The arena is an oval of sand, 36 × 24 tiles, ringed by the stands. Rocks, trees of one tile, big trees of four
+      (2 × 2) and bushes are laid out the same on both halves. Rocks and trees block both fighters and missiles;
+      bushes block neither.
   - applies_to:
       - AGG-01
     text: >-
       A fighter standing in a bush is hidden from the other side unless one of them is within 2 tiles, or the fighter
-      has struck in the last 1.5 seconds. A fighter's own side always sees it.
+      has struck or cast in the last 1.5 seconds; the other side sees it fade in as in The Woods (Survive the depths).
+      A fighter's own side always sees it.
   - applies_to:
       - CMD-01
     text: >-

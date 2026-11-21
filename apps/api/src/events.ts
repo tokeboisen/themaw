@@ -27,6 +27,8 @@ export const HANDLERS: Record<string, Record<string, Handler>> = {
     [EVENT.itemSold]: gear.onItemSold,
     [EVENT.potionBought]: gear.onConsumableBought('potions'),
     [EVENT.rationBought]: gear.onConsumableBought('rations'),
+    [EVENT.focusPotionBought]: gear.onConsumableBought('focus_potions'),
+    [EVENT.identificationBought]: gear.onIdentificationBought,
     [EVENT.characterDeleted]: gear.onCharacterDeleted,
     [EVENT.titheEnded]: gear.onTitheEnded,
   },

@@ -2,7 +2,12 @@
 // Overført fra prototype/js/client/render.js. Bevidst enkelt: felter, cirkler og farver.
 
 import type { SnapshotEntity, YouView } from '@maw/contracts';
-import { BUSH, EXIT, GATE, INDOOR, RARITY_COLORS, ROAD, RUBBLE, STAIRS, TREE, WALL, inOval, type Rarity } from '@maw/rules';
+import {
+  BUSH, CAMPFIRE, EXIT, FLOOR, FURNITURE, GATE, HEARTH, INDOOR, RARITY_COLORS, ROAD, RUBBLE, STAIRS, TREE, TREE_BIG, WALL, inOval, type Rarity,
+} from '@maw/rules';
+
+/** Det, der står på jorden og tegnes efter den. */
+const DECOR = new Set([TREE, TREE_BIG, BUSH, FURNITURE, HEARTH, CAMPFIRE]);
 
 const MONSTER_COLORS: Record<string, string> = { gnawer: '#8d7b68', spitter: '#9b6bd1', brute: '#8a3a2f', foreman: '#b0602d' };
 const UNKNOWN = 255;
@@ -16,6 +21,8 @@ export interface Frame {
   you: YouView;
   ents: SnapshotEntity[];
   proj: { x: number; y: number; vx: number; vy: number; kind: string }[];
+  /** Feature-047: flammer, ekkoer og spejlbilleder på gulvet. */
+  zones: { x: number; y: number; r: number; kind: string; t: number }[];
   loot: { x: number; y: number; kind: string; rarity?: string }[];
   caches: { x: number; y: number; opened: boolean }[];
   gate: { x: number; y: number; open: boolean } | null;
@@ -23,6 +30,8 @@ export interface Frame {
   radius: number;
   /** Partiets andre medlemmer på samme dybde, til minikortet (Feature-034 AGG-01). */
   party: { name: string; x: number; y: number }[];
+  /** Stedet: minerne, byen, skoven eller arenaen (Feature-010). */
+  reach: string;
   /** Feature-045 VIEW-01: arenaen – spillerens side og ringen, når den lukker sig. */
   arena: { you: 1 | 2 | null; ring: { cx: number; cy: number; rx: number; ry: number } | null } | null;
 }
@@ -51,6 +60,10 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
   let tile = 40;
   const floaters: Floater[] = [];
   const puffs: { x: number; y: number; t: number; color?: string; size?: number }[] = [];
+  /** Feature-047: en Echo Arts område som en ring, der vokser, og Echo Chains stråler. */
+  const rings: { x: number; y: number; r: number; t: number; color: string }[] = [];
+  const beams: { x: number; y: number; x2: number; y2: number; t: number; color: string }[] = [];
+  let clock = 0;
   let shake = 0;
   let minimapAge = 1;
   let edges: Uint8Array | null = null;
@@ -126,6 +139,86 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
     ctx.fillText(text, x, y);
   }
 
+  /** Jordens farve: sand i arenaen, skovbund og stier i skoven, ellers gulvene i minerne og byen. */
+  function ground(f: Frame, x: number, y: number, tt = FLOOR): string {
+    const odd = (x + y) % 2 === 1;
+    if (f.arena) return odd ? '#9e8a62' : '#988459';
+    if (f.reach === 'woods') {
+      if (tt === ROAD) return odd ? '#4a3b28' : '#463826';
+      if (tt === INDOOR) return odd ? '#5e3c22' : '#583820';
+      return odd ? '#2c3322' : '#29301f';
+    }
+    if (tt === ROAD) return odd ? '#2b2620' : '#29241f';
+    if (tt === INDOOR || tt === STAIRS) return odd ? '#33271c' : '#30251b';
+    return odd ? '#251e18' : '#221b16';
+  }
+
+  /** Træer (1 og 2 × 2 felter), buske, møbler, ildsteder og bål (Feature-045, -010). */
+  function drawDecor(f: Frame, x: number, y: number, tt: number, px: number, py: number): void {
+    const at = (dx: number, dy: number) => f.tiles[(y + dy) * f.mapW + (x + dx)];
+    const t = performance.now() / 1000;
+    if (tt === TREE) {
+      ctx.fillStyle = '#523419';
+      ctx.fillRect(px + tile * 0.42, py + tile * 0.55, tile * 0.16, tile * 0.4);
+      circle(px + tile / 2, py + tile * 0.42, tile * 0.48, '#34452a', '#1f2a1a', 2);
+      circle(px + tile * 0.38, py + tile * 0.32, tile * 0.18, '#52663d', null);
+    } else if (tt === TREE_BIG) {
+      // Kronen tegnes én gang fra feltet øverst til venstre og dækker alle fire felter.
+      if (at(-1, 0) === TREE_BIG || at(0, -1) === TREE_BIG) return;
+      const cx = px + tile;
+      const cy = py + tile * 0.92;
+      ctx.fillStyle = '#523419';
+      ctx.fillRect(cx - tile * 0.14, cy + tile * 0.3, tile * 0.28, tile * 0.7);
+      circle(cx, cy, tile * 0.98, '#2b3a22', '#1f2a1a', 2.5);
+      circle(cx - tile * 0.35, cy - tile * 0.3, tile * 0.42, '#34452a', null);
+      circle(cx + tile * 0.3, cy - tile * 0.1, tile * 0.38, '#3f5232', null);
+      circle(cx - tile * 0.25, cy - tile * 0.45, tile * 0.2, '#52663d', null);
+    } else if (tt === BUSH) {
+      circle(px + tile * 0.32, py + tile * 0.58, tile * 0.32, '#3f5232', null);
+      circle(px + tile * 0.68, py + tile * 0.55, tile * 0.3, '#465a37', null);
+      circle(px + tile * 0.5, py + tile * 0.35, tile * 0.3, '#52663d', null);
+    } else if (tt === FURNITURE) {
+      // Et bord, en seng eller en tønde, efter feltet.
+      const kind = (x * 7 + y * 13) % 3;
+      if (kind === 0) {
+        ctx.fillStyle = '#774c26';
+        ctx.fillRect(px + 3, py + 4, tile - 6, tile - 10);
+        ctx.fillStyle = '#523419';
+        ctx.fillRect(px + 5, py + tile - 7, 3, 5);
+        ctx.fillRect(px + tile - 8, py + tile - 7, 3, 5);
+      } else if (kind === 1) {
+        ctx.fillStyle = '#7d7066';
+        ctx.fillRect(px + 2, py + 3, tile - 4, tile - 6);
+        ctx.fillStyle = '#c8bba8';
+        ctx.fillRect(px + 4, py + 5, tile * 0.35, tile * 0.3);
+        ctx.fillStyle = '#6b2420';
+        ctx.fillRect(px + 2, py + tile * 0.5, tile - 4, tile * 0.5 - 3);
+      } else {
+        circle(px + tile / 2, py + tile / 2, tile * 0.32, '#774c26', '#33200f', 2);
+        ctx.fillStyle = '#5d6876';
+        ctx.fillRect(px + tile * 0.2, py + tile * 0.42, tile * 0.6, 2);
+      }
+    } else if (tt === HEARTH || tt === CAMPFIRE) {
+      const big = tt === CAMPFIRE;
+      const cx = px + tile / 2;
+      const cy = py + tile / 2;
+      circle(cx, cy, tile * (big ? 1.4 : 0.9) * (0.95 + 0.05 * Math.sin(t * 7)), 'rgba(255,176,74,0.14)', null);
+      if (big) {
+        for (let k = 0; k < 6; k++) circle(cx + Math.cos(k) * tile * 0.38, cy + Math.sin(k) * tile * 0.38, tile * 0.1, '#5f534b', null);
+        ctx.fillStyle = '#523419';
+        ctx.fillRect(cx - tile * 0.3, cy - 2, tile * 0.6, 4);
+      } else {
+        ctx.fillStyle = '#5f534b';
+        ctx.fillRect(px + 2, py + 2, tile - 4, tile - 4);
+        ctx.fillStyle = '#241a17';
+        ctx.fillRect(px + 5, py + 5, tile - 10, tile - 10);
+      }
+      const flick = 0.85 + 0.15 * Math.sin(t * 11 + x);
+      circle(cx, cy, tile * 0.22 * flick, '#d0601e', null);
+      circle(cx, cy - 2, tile * 0.12 * flick, '#ffb04a', null);
+    }
+  }
+
   function draw(f: Frame, dt: number): void {
     if (canvas.clientWidth !== W || canvas.clientHeight !== H) resize();
     const p = f.you;
@@ -141,11 +234,15 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
     const sx = (x: number) => x * tile - camX;
     const sy = (y: number) => y * tile - camY;
 
-    // Felter: det, der ikke er set, er sort; det uden for synsradius er mørkt.
-    const x0 = Math.max(0, Math.floor(camX / tile));
+    // Felter: det, der ikke er set, er sort; det uden for synsradius er mørkt. Først jorden, så det, der står på den
+    // (træer, store træer, buske, møbler, ildsteder og bål), så et stort træs krone ikke dækkes af nabofelterne, og til
+    // sidst mørket.
+    const x0 = Math.max(0, Math.floor(camX / tile) - 1);
     const x1 = Math.min(f.mapW - 1, Math.ceil((camX + W) / tile));
-    const y0 = Math.max(0, Math.floor(camY / tile));
+    const y0 = Math.max(0, Math.floor(camY / tile) - 1);
     const y1 = Math.min(f.mapH - 1, Math.ceil((camY + H) / tile));
+    const woods = f.reach === 'woods';
+    const decor: [number, number, number][] = [];
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const i = y * f.mapW + x;
@@ -153,52 +250,67 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         if (tt === UNKNOWN || tt === undefined) continue;
         const px = sx(x);
         const py = sy(y);
+        if (f.arena && tt === WALL && !inOval(x + 0.5, y + 0.5)) {
+          // Feature-045 VIEW-01: tribunerne udenfor ovalen.
+          ctx.fillStyle = (y % 2) ? '#3d2716' : '#4a2f1c';
+          ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.fillRect(px, py + tile - 4, tile + 0.5, 4);
+          continue;
+        }
+        if (DECOR.has(tt)) {
+          const indoor = tt === FURNITURE || tt === HEARTH;
+          ctx.fillStyle = indoor ? ((x + y) % 2 ? '#5e3c22' : '#583820') : ground(f, x, y);
+          ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+          decor.push([x, y, tt]);
+          continue;
+        }
         if (f.arena) {
-          // Feature-045 VIEW-01: sand, tribunerne udenfor ovalen, klipper, træer og buske.
-          const inside = inOval(x + 0.5, y + 0.5);
-          if (tt === WALL && !inside) {
-            ctx.fillStyle = (y % 2) ? '#3d2716' : '#4a2f1c';
-            ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
-            ctx.fillStyle = 'rgba(0,0,0,0.25)';
-            ctx.fillRect(px, py + tile - 4, tile + 0.5, 4);
-            continue;
-          }
-          ctx.fillStyle = (x + y) % 2 ? '#9e8a62' : '#988459';
+          // Feature-045 VIEW-01: sand og klipper.
+          ctx.fillStyle = ground(f, x, y);
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
           if (tt === WALL) {
             ctx.fillStyle = '#5f534b';
             ctx.fillRect(px + 2, py + 3, tile - 4, tile - 5);
             ctx.fillStyle = '#7d7066';
             ctx.fillRect(px + 2, py + 3, tile - 4, 4);
-          } else if (tt === TREE) {
-            ctx.fillStyle = '#523419';
-            ctx.fillRect(px + tile * 0.42, py + tile * 0.55, tile * 0.16, tile * 0.4);
-            circle(px + tile / 2, py + tile * 0.42, tile * 0.48, '#34452a', '#1f2a1a', 2);
-            circle(px + tile * 0.38, py + tile * 0.32, tile * 0.18, '#52663d', null);
-          } else if (tt === BUSH) {
-            circle(px + tile * 0.32, py + tile * 0.58, tile * 0.32, '#3f5232', null);
-            circle(px + tile * 0.68, py + tile * 0.55, tile * 0.3, '#465a37', null);
-            circle(px + tile * 0.5, py + tile * 0.35, tile * 0.3, '#52663d', null);
           }
           continue;
         }
         if (tt === WALL) {
           if (!edge[i]) continue;
-          ctx.fillStyle = '#3b3029';
+          // I skoven er murene hytternes bjælkevægge.
+          ctx.fillStyle = woods ? '#3d2716' : '#3b3029';
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
-          ctx.fillStyle = '#4b3d33';
+          ctx.fillStyle = woods ? '#774c26' : '#4b3d33';
           ctx.fillRect(px, py, tile + 0.5, 3);
+          if (woods) {
+            ctx.fillStyle = '#33200f';
+            ctx.fillRect(px, py + tile * 0.5, tile + 0.5, 2);
+          }
         } else if (tt === RUBBLE) {
-          // The Broken City: murbrokker – lave, spærrer vejen.
-          ctx.fillStyle = (x + y) % 2 ? '#2b2620' : '#29241f';
+          // The Broken City: murbrokker; The Woods: hjertets stående sten.
+          ctx.fillStyle = woods ? ground(f, x, y) : (x + y) % 2 ? '#2b2620' : '#29241f';
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
-          ctx.fillStyle = '#5b5046';
-          ctx.fillRect(px + tile * 0.15, py + tile * 0.35, tile * 0.4, tile * 0.35);
-          ctx.fillStyle = '#4a4038';
-          ctx.fillRect(px + tile * 0.5, py + tile * 0.2, tile * 0.32, tile * 0.3);
+          if (woods) {
+            ctx.fillStyle = '#5f534b';
+            ctx.fillRect(px + tile * 0.25, py + tile * 0.1, tile * 0.5, tile * 0.8);
+            ctx.fillStyle = '#7d7066';
+            ctx.fillRect(px + tile * 0.25, py + tile * 0.1, tile * 0.5, tile * 0.18);
+          } else {
+            ctx.fillStyle = '#5b5046';
+            ctx.fillRect(px + tile * 0.15, py + tile * 0.35, tile * 0.4, tile * 0.35);
+            ctx.fillStyle = '#4a4038';
+            ctx.fillRect(px + tile * 0.5, py + tile * 0.2, tile * 0.32, tile * 0.3);
+          }
         } else {
-          ctx.fillStyle = tt === ROAD ? ((x + y) % 2 ? '#2b2620' : '#29241f') : tt === INDOOR || tt === STAIRS ? ((x + y) % 2 ? '#33271c' : '#30251b') : (x + y) % 2 ? '#251e18' : '#221b16';
+          ctx.fillStyle = ground(f, x, y, tt);
           ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+          if (woods && tt === INDOOR) {
+            ctx.fillStyle = 'rgba(0,0,0,0.18)';
+            ctx.fillRect(px, py + tile * 0.33, tile + 0.5, 1);
+            ctx.fillRect(px, py + tile * 0.66, tile + 0.5, 1);
+          }
           if (tt === STAIRS) {
             // Feature-041: trapperne i husene.
             ctx.fillStyle = '#8a6a44';
@@ -222,11 +334,18 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
             }
           }
         }
-        const dx = x + 0.5 - p.x;
-        const dy = y + 0.5 - p.y;
-        if (!f.arena && dx * dx + dy * dy > R * R) {
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.fillRect(px, py, tile + 0.5, tile + 0.5);
+      }
+    }
+    for (const [x, y, tt] of decor) drawDecor(f, x, y, tt, sx(x), sy(y));
+    if (!f.arena) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          const tt = f.tiles[y * f.mapW + x];
+          if (tt === UNKNOWN || tt === undefined) continue;
+          const dx = x + 0.5 - p.x;
+          const dy = y + 0.5 - p.y;
+          if (dx * dx + dy * dy > R * R) ctx.fillRect(sx(x), sy(y), tile + 0.5, tile + 0.5);
         }
       }
     }
@@ -262,6 +381,7 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       const y = sy(l.y);
       if (l.kind === 'gold') circle(x, y, tile * 0.12, '#ffd84a', '#7a5c00', 1);
       else if (l.kind === 'potion') circle(x, y, tile * 0.14, '#d0453c', '#fff', 1.5);
+      else if (l.kind === 'focusPotion') circle(x, y, tile * 0.14, '#4a7fd6', '#fff', 1.5); // Feature-006: focus potions blå
       else if (l.kind === 'ration') {
         ctx.fillStyle = '#c9a26a';
         ctx.fillRect(x - tile * 0.13, y - tile * 0.1, tile * 0.26, tile * 0.2);
@@ -281,21 +401,36 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       }
     }
 
+    // Feature-047: flammer, ekkoer og spejlbilleder på gulvet.
+    clock += dt;
+    for (const z of f.zones) {
+      const x = sx(z.x);
+      const y = sy(z.y);
+      const fade = Math.min(1, z.t / 0.6);
+      if (z.kind === 'fire') {
+        const flicker = 0.85 + Math.sin(clock * 18 + z.x * 7) * 0.15;
+        circle(x, y, z.r * tile * flicker, `rgba(255,120,40,${0.35 * fade})`, `rgba(255,200,80,${0.5 * fade})`, 1.5);
+        circle(x, y, z.r * tile * 0.45 * flicker, `rgba(255,220,120,${0.55 * fade})`, null);
+      } else if (z.kind === 'echo') {
+        circle(x, y, z.r * tile, `rgba(180,140,224,${0.12 * fade})`, `rgba(180,140,224,${0.45 * fade})`, 1.5);
+        circle(x, y, tile * 0.3, `rgba(200,170,240,${0.55 * fade})`, `rgba(240,230,255,${0.8 * fade})`, 1.5);
+      } else if (z.kind === 'heal') {
+        // Feature-049 Healing Circle: en grøn, lysende cirkel.
+        const pulse = 0.85 + Math.sin(clock * 4) * 0.15;
+        circle(x, y, z.r * tile, `rgba(110,230,140,${0.12 * fade * pulse})`, `rgba(150,255,170,${0.6 * fade})`, 2);
+      } else {
+        circle(x, y, tile * 0.35, `rgba(150,200,255,${0.4 * fade})`, `rgba(230,245,255,${0.85 * fade})`, 2);
+      }
+    }
+
     // Monstre, rivaler og andre spillere. Et angreb på vej viser rækkevidden i rødt (Feature-011 VIEW-01).
     for (const e of f.ents) {
       const x = sx(e.x);
       const y = sy(e.y);
       const r = e.r * tile;
       if (e.windup) {
-        if (e.windup.aimX !== undefined && e.windup.aimY !== undefined) {
-          ctx.strokeStyle = 'rgba(200,120,255,0.6)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(sx(e.windup.aimX), sy(e.windup.aimY));
-          ctx.stroke();
-        } else if (e.warden) circle(x, y, (e.windup.reach ?? 1) * tile, 'rgba(255,60,40,0.18)', 'rgba(255,60,40,0.6)', 2);
-        else circle(x, y, (e.windup.reach ?? 1) * tile, 'rgba(255,60,40,0.15)', null);
+        if (e.warden) circle(x, y, e.windup.reach * tile, 'rgba(255,60,40,0.18)', 'rgba(255,60,40,0.6)', 2);
+        else circle(x, y, e.windup.reach * tile, 'rgba(255,60,40,0.15)', null);
       }
       if (e.kind === 'monster') {
         circle(x, y, r, e.flash ? '#fff' : e.color ?? MONSTER_COLORS[e.type ?? ''] ?? '#888', e.veteran ? '#ffd84a' : '#000', e.veteran ? 2.5 : 1.5);
@@ -306,6 +441,16 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
           label(`${e.name} · L${e.level}`, x, y + r + 12, color, 10);
         }
         if (e.type === 'spitter') circle(x, y, r * 0.4, '#d9b8ff', null);
+        // Feature-047: lammet, rodfæstet, langsomt og mærket.
+        if (e.held === 'rooted') circle(x, y, r + 4, null, '#bfe6ff', 3);
+        else if (e.held === 'slowed') circle(x, y, r + 3, null, 'rgba(120,170,255,0.8)', 2);
+        else if (e.held === 'stunned') {
+          for (let i = 0; i < 3; i++) {
+            const a = clock * 4 + (i * Math.PI * 2) / 3;
+            circle(x + Math.cos(a) * r * 0.8, y - r - 4 + Math.sin(a) * 3, 2.5, '#ffd84a', null);
+          }
+        }
+        if (e.marked) circle(x, y, r + 7, null, `rgba(180,140,224,${0.6 + Math.sin(clock * 6) * 0.3})`, 2);
         if (e.warden) {
           ctx.fillStyle = '#ffd84a';
           ctx.beginPath();
@@ -324,16 +469,20 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
         label(e.name, x, y - r - 10, e.color ?? '#ccc', 12);
         bar(x, y - r - 7, tile * 0.8, e.hp / e.maxHp, '#c8423a');
       } else if (e.side) {
-        // Feature-045 VIEW-01: kæmperne i deres sides farve.
+        // Feature-045 VIEW-01: kæmperne i deres sides farve; Feature-013/-049: en skjult kæmper ses svagt.
+        ctx.globalAlpha = e.alpha ?? 1;
         const c = SIDE_COLORS[e.side];
         circle(x, y, r, e.flash ? '#fff' : c.fill, c.ring, 2);
         label(e.name, x, y - r - 10, c.text, 12);
         bar(x, y - r - 7, tile * 0.8, e.hp / e.maxHp, '#c8423a');
+        ctx.globalAlpha = 1;
       } else {
         // Feature-010 VIEW-01: andre spillere i syne viser deres brugernavn over hovedet; partiet i grønblåt, andre i rav.
+        ctx.globalAlpha = e.alpha ?? 1;
         circle(x, y, r, e.flash ? '#fff' : e.party ? '#3fc7c0' : '#e0905a', e.party ? '#e8fffd' : '#ff4a3a', 2);
         label(e.name, x, y - r - 10, e.party ? '#9ff3ee' : '#ffc29a', 12);
         bar(x, y - r - 7, tile * 0.8, e.hp / e.maxHp, '#c8423a');
+        ctx.globalAlpha = 1;
       }
     }
 
@@ -353,13 +502,27 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
     }
     if (p.dodge > 0) circle(px - p.dodgeDir[0] * tile * 0.5, py - p.dodgeDir[1] * tile * 0.5, pr, 'rgba(120,180,255,0.3)', null);
     const mine = f.arena?.you ? SIDE_COLORS[f.arena.you] : null;
+    // Feature-013/-049: skjult tegnes spilleren selv halvt gennemsigtig.
+    ctx.globalAlpha = p.hidden ? 0.45 : 1;
     circle(px, py, pr, p.flash ? '#fff' : mine ? mine.fill : '#4fa3ff', mine ? mine.ring : '#e8f2ff', 2);
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = '#e8f2ff';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(px + p.facing[0] * pr * 0.5, py + p.facing[1] * pr * 0.5);
     ctx.lineTo(px + p.facing[0] * pr * 1.4, py + p.facing[1] * pr * 1.4);
     ctx.stroke();
+
+    // Feature-047: virkningerne på spilleren – skjold, krystal, krone og tre spejlbilleder.
+    if (p.status.includes('Warded')) circle(px, py, pr + 5, null, 'rgba(191,230,255,0.8)', 2);
+    if (p.status.includes('Mantled')) circle(px, py, pr + 8, null, 'rgba(191,230,255,0.45)', 3);
+    if (p.status.includes('Crowned')) circle(px, py - pr - 6, 4, '#ffd84a', null);
+    if (p.status.includes('Mirrored')) {
+      for (let i = 0; i < 3; i++) {
+        const a = clock * 2 + (i * Math.PI * 2) / 3;
+        circle(px + Math.cos(a) * tile * 0.8, py + Math.sin(a) * tile * 0.8, pr * 0.85, 'rgba(150,200,255,0.35)', 'rgba(230,245,255,0.7)', 1.5);
+      }
+    }
 
     for (const pj of f.proj) {
       const x = sx(pj.x);
@@ -374,6 +537,15 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       } else if (pj.kind === 'bolt') circle(x, y, tile * 0.13, '#8fc1ff', '#fff', 1);
       else if (pj.kind === 'fire') circle(x, y, tile * 0.15, '#ff8a3a', '#ffd84a', 1.5);
       else if (pj.kind === 'web') circle(x, y, tile * 0.13, 'rgba(230,230,240,0.8)', '#9a9aa8', 1);
+      else if (pj.kind === 'tone') {
+        // Feature-047 Resonant Line: en bølge på tværs af retningen.
+        ctx.strokeStyle = 'rgba(190,225,255,0.9)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x - pj.vy * tile * 0.35, y + pj.vx * tile * 0.35);
+        ctx.lineTo(x + pj.vy * tile * 0.35, y - pj.vx * tile * 0.35);
+        ctx.stroke();
+      } else if (pj.kind === 'note') circle(x, y, tile * 0.18, '#ffe9a0', '#fff', 2);
       else circle(x, y, tile * 0.11, '#b67be8', null);
     }
 
@@ -383,6 +555,23 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       circle(sx(fl.x), sy(fl.y), tile * ((fl.size ?? 0.3) + fl.t), `rgba(${color},${Math.max(0, 0.45 - fl.t * 0.8)})`, null);
     }
     for (let i = puffs.length - 1; i >= 0; i--) if (puffs[i]!.t > 0.5) puffs.splice(i, 1);
+    for (const rg of rings) {
+      rg.t += dt;
+      const k = Math.min(1, rg.t / 0.25);
+      const alpha = Math.max(0, 1 - rg.t / 0.5);
+      circle(sx(rg.x), sy(rg.y), Math.max(2, rg.r * tile * (0.3 + 0.7 * k)), `rgba(${rg.color},${0.18 * alpha})`, `rgba(${rg.color},${0.85 * alpha})`, 2.5);
+    }
+    for (let i = rings.length - 1; i >= 0; i--) if (rings[i]!.t > 0.5) rings.splice(i, 1);
+    for (const bm of beams) {
+      bm.t += dt;
+      ctx.strokeStyle = `rgba(${bm.color},${Math.max(0, 1 - bm.t / 0.3)})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(sx(bm.x), sy(bm.y));
+      ctx.lineTo(sx(bm.x2), sy(bm.y2));
+      ctx.stroke();
+    }
+    for (let i = beams.length - 1; i >= 0; i--) if (beams[i]!.t > 0.3) beams.splice(i, 1);
 
     // Tal og tekster, der stiger op: kritiske slag i guld, skade på spilleren i rødt.
     for (const fl of floaters) {
@@ -419,7 +608,10 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
       for (let x = 0; x < f.mapW; x++) {
         const v = f.tiles[y * f.mapW + x];
         if (v === UNKNOWN || v === WALL || v === undefined) continue;
-        mctx.fillStyle = v === EXIT || v === STAIRS ? '#ff9a3a' : v === GATE ? '#ffd84a' : v === RUBBLE ? '#3a332c' : v === INDOOR ? '#6b5640' : '#5a4e44';
+        // Træer og møbler er mørke på kortet; buske og skovbund grønlige; bål og ildsteder gløder (Feature-010).
+        mctx.fillStyle = v === EXIT || v === STAIRS ? '#ff9a3a' : v === GATE ? '#ffd84a' : v === RUBBLE ? '#3a332c' : v === INDOOR ? '#6b5640'
+          : v === TREE || v === TREE_BIG ? '#1f2a1a' : v === BUSH ? '#3f5232' : v === FURNITURE ? '#3d2716' : v === HEARTH || v === CAMPFIRE ? '#d0601e'
+          : f.reach === 'woods' && v === ROAD ? '#6b5640' : f.reach === 'woods' ? '#3f4a30' : '#5a4e44';
         const big = v === EXIT || v === GATE ? 2 : v === STAIRS ? 1 : 0;
         mctx.fillRect(x * s - big, y * s - big, s + big * 2, s + big * 2);
       }
@@ -455,6 +647,15 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
     blast(x: number, y: number, radius: number): void {
       puffs.push({ x, y, t: 0, color: '255,140,60', size: radius * 0.7 });
     },
+    /** Feature-047: en Echo Arts område eller et partis lys. */
+    ring(x: number, y: number, radius: number, color: string): void {
+      rings.push({ x, y, r: radius, t: 0, color: rgb(color) });
+      if (rings.length > 40) rings.shift();
+    },
+    /** Feature-047 Echo Chain. */
+    beam(x: number, y: number, x2: number, y2: number, color: string): void {
+      beams.push({ x, y, x2, y2, t: 0, color: rgb(color) });
+    },
     shake(amount: number): void {
       shake = Math.max(shake, amount);
     },
@@ -465,3 +666,9 @@ export function createRenderer(canvas: HTMLCanvasElement, minimap: HTMLCanvasEle
 }
 
 export type Renderer = ReturnType<typeof createRenderer>;
+
+/** '#rrggbb' som 'r,g,b' til rgba(). */
+function rgb(hex: string): string {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+}

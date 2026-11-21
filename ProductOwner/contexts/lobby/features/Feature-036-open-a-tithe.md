@@ -5,7 +5,7 @@ bounded_context: Lobby
 product: The Maw
 source: models/Feature-036-open-a-tithe.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 4
 status: draft
 created: 2026-11-19
 ```
@@ -109,7 +109,7 @@ Scenario: The name is taken
 
 ### Rules
 
-- A Tithe is opened in one of the Reaches: The Old Mines or The Broken City (Tithe, Enter the Tithe). The Tithe Board shows them with a short description. (CMD-01)
+- A Tithe is opened in one of the Reaches: The Old Mines, The Broken City or The Woods (Tithe, Enter the Tithe). The Tithe Board shows them with a short description. (CMD-01)
 - The name is 3–30 characters and must be unique among the Tithes that are open or running on the server ("A Tithe with this name already exists."). (CMD-01)
 - The player who opens a Tithe is in it with the chosen character, and the Tithe shows in the list for everyone. (EVT-01)
 
@@ -132,7 +132,7 @@ Scenario: The name is taken
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 4
 
 | # | Question | Resolution |
 |---|---|---|

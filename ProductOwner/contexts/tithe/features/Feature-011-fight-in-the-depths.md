@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-011-fight-in-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 8
+version: 14
 status: draft
 created: 2026-11-19
 ```
@@ -145,15 +145,15 @@ Scenario: No focus, no bolt
 ### Rules
 
 - Aim is automatic: the nearest monster or hostile NPC rival within reach and in sight; another player or a peaceful NPC rival only when nothing else is near. Party members are never aimed at. A melee weapon hits everything in its arc (blades 80–100°, heavy weapons 140–150°); a bow shoots an arrow. (CMD-01)
-- A strike costs stamina and cannot be repeated before the weapon's attack time has passed. Damage is the weapon's damage × (1 + 1.5 % per effective skill level) × (1 + % damage from items). Critical hits – 5 % + 0.5 % per Dexterity above 10 – deal 1.6 times the damage. (CMD-01)
+- A strike costs stamina and cannot be repeated before the weapon's attack time has passed. A heavy load makes strikes, dodges and talents cost more stamina (Gear, Manage equipment), and an amulet's haste shortens the attack time and Echo Art cooldowns. Damage is the weapon's damage × (1 + 1.5 % per effective skill level) × (1 + % damage from items). Critical hits – 5 % + 0.5 % per Dexterity above 10 – deal 1.6 times the damage. (CMD-01)
 - Every character can cast Echo Bolt: its hotbar key chooses it, and Attack (Space) casts it (Gear, Use the hotbar). It costs 8 focus, flies 8 tiles and trains Echo Arts; its damage grows with the effective Echo Arts. (CMD-02)
 - Players may strike players outside their party, never members of their own party; a player without a party can be struck by every other player once the grace is over. A player who is struck down by another player is defeated: the player falls and leaves the Tithe (End the Tithe). (CMD-01, EVT-06)
 - A defeated player spills 10–20 % of the gold in the wallet on the floor where the player fell, for anyone to pick up (Market, Keep the wallet), and the one who struck the player down gets a Player kill (Characters, Keep player statistics). (EVT-06)
 - A rival that is struck becomes hostile to the player. A defeated rival is dragged back by the Brand and drops gold and perhaps an item. (EVT-03)
 - EVT-02 "Monster slain" is recorded for every monster, The Foreman included. Only the player who slays The Foreman opens the gate (Claim the Tithe); if a rival slays him, the rival claims the Tithe (Rivals race). (EVT-02, EVT-04)
-- A monster slain by the player drops gold (40 %), an item (12 %, Tunnel Brute 30 %) and a potion or a ration (15 %); The Foreman drops gold, a rare and two magic items. Monsters called by the Mirrormaster or The Foreman drop nothing. A cache drops gold, one or two items and perhaps a supply when the candidate walks into it. (EVT-05)
-- The monsters of The Old Mines: the Gnawer, the Tunnel Goblin, the Kobold Sapper, the Crystal Spitter, the Cave Spider, the Skeleton Miner, the Ghoul, the Rust Ooze, the Tunnel Brute and the Cave Troll, and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The monsters of The Broken City: the Sewer Rat, the Feral Hound, the Cutthroat, the Bandit Archer, the Hollow, the Cultist of the Maw, the Gargoyle, the Harpy, the Scrap Golem and the Wraith, and The Smelter in the foundry, who fights like The Foreman. Each fights in its own way – a swarm, a skirmisher, a ranged fighter, a tank or a caster – and some only live in the deeper depths or the inner districts. (AGG-01)
-- A monster's level is the area's level – the Tithe's level + 1 for every depth or district after the first – minus 1 to plus 2; about 8 % are Veterans, 3 levels above the area, with better loot. Life grows by 40 % and damage by 30 % per level. (AGG-01)
+- A monster slain by the player drops gold (20 %), an item (5 %; the Tunnel Brute, Cave Troll, Scrap Golem, Mossback Bear and Briar Treant 15 %) and a supply (4 %): a potion, a focus potion or a ration, a third each. A Veteran drops gold (60 %), an item (50 %, magic one time in twelve and rare one in a hundred) and a supply (15 %). Otherwise an item is magic 2 % and rare 0.3 % of the time, a little more in the deeper depths and districts, so a magic weapon is a real find. The Warden drops gold and one magic item – a rare one in one of ten. Magic and rare items that drop are unidentified (Gear, Reveal an item). Monsters called by the Mirrormaster or The Foreman drop nothing. A cache drops gold, one item and perhaps a supply when the candidate walks into it. (EVT-05)
+- The monsters of The Old Mines: the Gnawer, the Tunnel Goblin, the Kobold Sapper, the Crystal Spitter, the Cave Spider, the Skeleton Miner, the Ghoul, the Rust Ooze, the Tunnel Brute and the Cave Troll, and The Foreman (the Warden: a slam around him, calls Gnawers every 14 seconds, never leaves his hall). The monsters of The Broken City: the Sewer Rat, the Feral Hound, the Cutthroat, the Bandit Archer, the Hollow, the Cultist of the Maw, the Gargoyle, the Harpy, the Scrap Golem and the Wraith, and The Smelter in the foundry, who fights like The Foreman. The monsters of The Woods: the Grey Wolf, the Brigand, the Brigand Archer, the Wild Boar, the Thornling, the Bog Wisp, the Mossback Bear, the Barrow Wight, the Briar Treant and the Fen Witch, and The Antlered King in the heart, who fights like The Foreman and calls Grey Wolves. Each fights in its own way – a swarm, a skirmisher, a ranged fighter, a tank or a caster – and some only live in the deeper depths or the inner districts. (AGG-01)
+- A monster's level is the area's level – the Tithe's level + 1 for every depth or district after the first – minus 1 to plus 2; about 8 % are Veterans, 3 levels above the area, with better loot. Life grows by 40 % and damage by 30 % per level. For every level above 1 a monster also gets 1 more armour for every 2 levels, strikes 2 % faster (at most 30 %) and moves 1 % faster (at most 20 %), so a high-level monster is tougher, quicker and harder to hurt. (AGG-01)
 
 ## 8. Integrations
 
@@ -167,17 +167,19 @@ Scenario: No focus, no bolt
 |---|---|---|---|
 | VIEW-01 | Depth | (starting point) | CMD-01, CMD-02 |
 
-**VIEW-01:** A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to the player in red). Monsters about to attack show their reach in red, and the Foreman's slam a red circle. Under every monster a small text shows its name and level, e.g. "Goblin · L4", grey when it is easy for the player's Mark, white when even, orange when hard and red when deadly; Veterans are named in gold.
+**VIEW-01:** A melee swing shows a pale arc; damage numbers rise over the one hit (critical hits in gold, damage to the player in red). Monsters about to strike in melee show their reach in red, and the Foreman's slam a red circle; monsters that shoot show no aim line – they just shoot. Under every monster a small text shows its name and level, e.g. "Goblin · L4", grey when it is easy for the player's Mark, white when even, orange when hard and red when deadly; Veterans are named in gold.
 
 ## 10. Validation and open questions
 
-### Resolved in version 8
+### Resolved in version 14
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Players fighting players:** May players strike players outside their party? | Decided 2026-11-19: yes, players in other parties and players without a party; never members of their own party. |
 | 2 | **What a defeated player drops:** Proposal: a player defeated by another player spills 10–20 % of the gold in the wallet on the floor, and the one who struck the player down gets a Player kill, shown in the player statistics. Is it 10–20 % or a fixed 10–20 gold? | Decided 2026-11-19: the defeated player spills 10–20 % of the gold in the wallet on the floor, and the one who struck the player down gets a Player kill, shown in the player statistics. |
 | 3 | **Monster levels:** Which Mark should the monsters match? | Decided 2026-11-20: the Mark of the player who launched the Tithe; each monster's level varies around the area's level. |
+| 4 | **Supplies:** How often should monsters, caches and sponsors give potions and rations? | Decided 2026-11-20: a quarter as often as before, because there were far too many and the game became too easy: monsters 4 %, Veterans and rivals 15 %, caches 20 %; the Warden still always drops some. |
+| 5 | **Loot and magic items:** How much loot and gold should fall, and how often should items be magic? | Decided 2026-11-21: much less – gold from 20 % of the monsters at 1–3 × level, items from 5 %, magic 5 % and rare 1 % – so getting a magic weapon is a real event. Veterans, caches, the Warden, sponsor gifts, the Forge and the Noble Houses give magic items far more rarely too. Made rarer still the same day: magic 2 % and rare 0.3 %, a Veteran's item magic one time in twelve, the Warden's item rare one in ten; the Forge, common items, gold and Renown stay as they are. |
 
 ### Still open
 

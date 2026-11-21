@@ -5,7 +5,7 @@ bounded_context: Market
 product: The Maw
 source: models/Feature-021-restock-the-forge.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -98,7 +98,7 @@ No user stories.
 
 ### Rules
 
-- The new stock is 7 items with the character's Mark as item level: 10 % rare, otherwise 45 % magic, otherwise common. The old stock is replaced. (CMD-01)
+- The new stock is 7 items with the character's Mark as item level: 2 % rare, otherwise 12 % magic, otherwise common, so a magic weapon at the Forge is rare and dear. The old stock is replaced. (CMD-01)
 - Every character has its own Forge stock; it is cleared when the character is deleted. (CMD-02)
 
 ```gherkin
@@ -123,7 +123,7 @@ Scenario: New stock after a Tithe
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

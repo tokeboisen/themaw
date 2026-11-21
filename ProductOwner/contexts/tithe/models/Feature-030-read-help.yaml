@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 8
+version: 12
 status: draft
 created: '2026-11-19'
 use_case:
@@ -23,11 +23,14 @@ elements:
     description: Shortcut keys and short help texts about the game.
     behavior: >-
       Opened with the Help button or H, in the Rim and during a Tithe, as a see-through overlay like the character
-      sheet; the Tithe goes on behind it. It lists the shortcut keys – move (WASD or arrows), attack with what is
-      chosen on the hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), ration
-      (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other players
-      (O), help (H) and close or go back (Esc) – and short texts on: The Tithe, The Reaches, Fighting, Skills and Marks, Gear
-      and loot, Hunger and supplies, The Mirrormaster, The Rim, Playing with others and The Arena. A Bestiary lists the
+      sheet; the Tithe goes on behind it. Tabs down the left side show one subject at a time: first Keys, after that
+      the tab last read. Keys lists the shortcut keys – move (WASD or arrows), attack with what is chosen on the
+      hotbar (Space), choose on the hotbar (1–8, or click a slot), dodge (Shift), potion (Q), focus potion (E),
+      ration (R), descend, climb the stairs, the gate and the places on the square (F), character (C), other
+      players (O), help (H) and close or go back (Esc) – and what is on the hotbar. Then come short texts on: The
+      Tithe, The Reaches, Fighting, Hiding, Skills and Marks, Talents, Echo Arts, The character
+      sheet, Gear and loot, Hunger
+      and supplies, The Mirrormaster, The Rim, Playing with others and The Arena. The last tab, Bestiary, lists the
       monsters of each Reach with their levels, how they fight, their traits and what they are weak against.
 flows: []
 rules:
@@ -50,8 +53,15 @@ scenarios:
     gherkin: |-
       Given Kael is in a Tithe
       When the player opens VIEW-01 "Help"
-      Then the shortcut keys and the help topics are shown
+      Then the Keys tab is shown with the tabs of the other subjects down the left side
       And the Tithe goes on behind the help
+  - title: Reading about hiding
+    applies_to:
+      - VIEW-01
+    gherkin: |-
+      Given Kael has Help open on Keys
+      When the player opens VIEW-01 "Help" on the tab Hiding
+      Then the text on hiding in bushes is shown
   - title: Esc closes what is open
     applies_to:
       - VIEW-01

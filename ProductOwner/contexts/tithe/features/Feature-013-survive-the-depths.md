@@ -5,7 +5,7 @@ bounded_context: Tithe
 product: The Maw
 source: models/Feature-013-survive-the-depths.drawio
 semantics: event-modeling-semantik.md
-version: 5
+version: 8
 status: draft
 created: 2026-11-19
 ```
@@ -32,17 +32,20 @@ For the player: the Maw fights back – monsters hunt the candidates, a sealed d
 | EVT-04 | Event | Depth sealed | 1 | 4 | – |
 | EVT-05 | Event | Potion drunk | 1 | 5 | – |
 | EVT-06 | Event | Ration eaten | 1 | 6 | – |
+| EVT-12 | Event | Focus potion drunk | 1 | 7 | – |
 | SVC-01 | Application Service | Monsters | 2 | 2 | – |
 | SVC-02 | Application Service | Condition keeper | 2 | 5 | – |
 | CMD-01 | Command | Wound candidate | 3 | 2 | – |
 | CMD-02 | Command | Heal candidate | 3 | 4 | – |
 | CMD-03 | Command | Feed candidate | 3 | 5 | – |
+| CMD-04 | Command | Restore focus | 3 | 6 | – |
 | AGG-01 | Aggregate | Tithe | 4 | 3 | – |
 | EVT-07 | Event | Candidate wounded | 5 | 1 | – |
 | EVT-08 | Event | Candidate healed | 5 | 2 | – |
 | EVT-09 | Event | Candidate fed | 5 | 3 | – |
 | EVT-10 | Event | Player fell | 5 | 4 | – |
 | EVT-11 | Event | Rival fell | 5 | 5 | – |
+| EVT-13 | Event | Focus restored | 5 | 6 | – |
 
 ### Stimuli
 
@@ -54,6 +57,7 @@ For the player: the Maw fights back – monsters hunt the candidates, a sealed d
 | EVT-04 | Feature-017 Run the show | EVT-11 Depth sealed |
 | EVT-05 | Feature-008 Use consumables | EVT-01 Potion drunk |
 | EVT-06 | Feature-008 Use consumables | EVT-02 Ration eaten |
+| EVT-12 | Feature-008 Use consumables | EVT-03 Focus potion drunk |
 
 ### Descriptions
 
@@ -74,6 +78,10 @@ For the player: the Maw fights back – monsters hunt the candidates, a sealed d
 | EVT-04 Depth sealed | SVC-02 Condition keeper |
 | EVT-05 Potion drunk | SVC-02 Condition keeper |
 | EVT-06 Ration eaten | SVC-02 Condition keeper |
+| EVT-12 Focus potion drunk | SVC-02 Condition keeper |
+| SVC-02 Condition keeper | CMD-04 Restore focus |
+| CMD-04 Restore focus | AGG-01 Tithe |
+| AGG-01 Tithe | EVT-13 Focus restored |
 | SVC-01 Monsters | CMD-01 Wound candidate |
 | SVC-02 Condition keeper | CMD-01 Wound candidate |
 | SVC-02 Condition keeper | CMD-02 Heal candidate |
@@ -110,13 +118,21 @@ For the player: the Maw fights back – monsters hunt the candidates, a sealed d
 | Candidate |
 | Hunger |
 
-### AGG-01 Tithe (CMD-01, CMD-02, CMD-03 → EVT-07, EVT-08, EVT-09, EVT-10, EVT-11)
+### CMD-04 Restore focus (SVC-02 → AGG-01)
+
+| Field |
+|---|
+| Candidate |
+| Focus |
+
+### AGG-01 Tithe (CMD-04, CMD-01, CMD-02, CMD-03 → EVT-13, EVT-07, EVT-08, EVT-09, EVT-10, EVT-11)
 
 | Field |
 |---|
 | Candidates (many) |
 | Candidates › Name |
 | Candidates › Life |
+| Candidates › Focus |
 | Candidates › Hunger |
 | Candidates › Status |
 
@@ -128,18 +144,20 @@ No user stories.
 
 | Application Service | Triggered by | Performs | Results in |
 |---|---|---|---|
-| SVC-01 Monsters | EVT-01, EVT-02, EVT-03 | CMD-01 | EVT-07, EVT-08, EVT-09, EVT-10, EVT-11 |
-| SVC-02 Condition keeper | EVT-04, EVT-05, EVT-06 | CMD-01, CMD-02, CMD-03 | EVT-07, EVT-08, EVT-09, EVT-10, EVT-11 |
+| SVC-01 Monsters | EVT-01, EVT-02, EVT-03 | CMD-01 | EVT-13, EVT-07, EVT-08, EVT-09, EVT-10, EVT-11 |
+| SVC-02 Condition keeper | EVT-04, EVT-05, EVT-06, EVT-12 | CMD-04, CMD-01, CMD-02, CMD-03 | EVT-13, EVT-07, EVT-08, EVT-09, EVT-10, EVT-11 |
 
 ### Rules
 
-- Monsters are many – 2–5 in every room of the mines, groups in the corridors, and bands in the streets and houses of The Broken City. They sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls. Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot be hit, for 20 stamina. (SVC-01)
+- Monsters are many – 2–5 in every room of the mines, groups in the corridors, bands in the streets and houses of The Broken City, and packs on the paths, brigands at the campfires and beasts in the huts of The Woods. They sleep until a candidate comes into sight, then hunt the nearest candidate, also around walls. Before each attack they wind up, so a dodge avoids it: a dash of 3 tiles in 0.18 seconds that cannot be hit, for 20 stamina. (SVC-01)
 - Damage to a candidate is reduced by armour / (armour + 50). (CMD-01)
 - Some monsters harm more than life: the Cave Spider's web and the Harpy's shriek make a player 40 % slower for 2 and 1.5 seconds, the Ghoul's claws stun for 0.6 seconds, the Rust Ooze eats 3 armour for 10 seconds, the Wraith drains 20 stamina and 8 focus, and the Kobold Sapper's fire pots burst over 1.3 tiles. The HUD shows when the player is slowed, stunned or corroded. (CMD-01, SVC-01)
-- Some monsters fight in a way of their own: the Tunnel Goblin flees below 25 % life; the Skeleton Miner takes half damage from arrows; the Cave Troll heals 2 % of its life per second unless an Echo Bolt hit it within 5 seconds; Feral Hounds hit 20 % harder for every other hound within 3 tiles, at most 60 %; the Cutthroat sidesteps a blow 30 % of the time, at most every 3 seconds; a Hollow rises once with 40 % of its life; the Cultist of the Maw heals the monsters within 5 tiles by 15 % every 6 seconds; a Gargoyle stands still until a candidate is within 3 tiles; Harpies fly over rubble; and the Scrap Golem takes double damage from Echo Bolt. (SVC-01)
+- Some monsters fight in a way of their own: the Tunnel Goblin flees below 25 % life; the Skeleton Miner takes half damage from arrows; the Cave Troll heals 2 % of its life per second unless an Echo Bolt hit it within 5 seconds; Feral Hounds hit 20 % harder for every other hound within 3 tiles, at most 60 %; the Cutthroat sidesteps a blow 30 % of the time, at most every 3 seconds; a Hollow rises once with 40 % of its life; the Cultist of the Maw heals the monsters within 5 tiles by 15 % every 6 seconds; a Gargoyle stands still until a candidate is within 3 tiles; Harpies fly over rubble; and the Scrap Golem takes double damage from Echo Bolt. In The Woods: Grey Wolves hunt in packs like Feral Hounds; the Brigand sidesteps like the Cutthroat; the Wild Boar's charge stuns for 0.6 seconds; the Thornling's thorns slow for 1.5 seconds; the Bog Wisp flies over furniture and drains stamina and focus; the Barrow Wight rises once; the Briar Treant heals unless an Echo Bolt hit it and takes half damage from arrows; and the Fen Witch heals the monsters around her. (SVC-01)
 - Hunger falls by 0.25 per second, 2 % slower per Stamina above 10. At 0 the candidate starves: stamina recovers at 40 % and life does not recover. Otherwise life recovers 0.3 per second. (SVC-02, CMD-03)
-- A sealed depth – or a sealed district of The Broken City, with the floors of its houses – wounds every candidate in it by 3 % of max life per second until they leave it. (SVC-02)
+- A sealed depth – or a sealed district of The Broken City, with the floors of its houses, or of The Woods – wounds every candidate in it by 3 % of max life per second until they leave it. (SVC-02)
+- In The Woods a candidate standing in a bush is hidden – from monsters, rivals and other players outside its party – unless they are within 2 tiles, or the candidate has struck or cast in the last 1.5 seconds. Others see it fade in as they come closer: invisible beyond 3 tiles, then less and less transparent, 80 % transparent at 1 tile. A hidden candidate can sneak past sleeping monsters, and a monster that loses sight of its prey stops the hunt. Hide hides in plain sight as well (Use a talent). (SVC-01)
 - A potion heals 40 % of max life, and a ration restores 45 hunger (Gear, Use consumables). (CMD-02, CMD-03)
+- A focus potion restores 40 % of max focus (Gear, Use consumables). (CMD-04)
 - When a player's life reaches 0, the player falls and the Brand drags them back: the player's part of the Tithe ends (End the Tithe), and the other candidates go on. An NPC rival whose life reaches 0 falls and leaves the Tithe. (EVT-10, EVT-11)
 
 ```gherkin
@@ -176,11 +194,12 @@ Scenario: A sealed depth collapses
 
 ## 10. Validation and open questions
 
-### Resolved in version 5
+### Resolved in version 8
 
 | # | Question | Resolution |
 |---|---|---|
 | 1 | **Monster traits:** Should the monsters have traits of their own beyond how they fight? | Decided 2026-11-20: yes – slowing, stunning, corroding, draining, area attacks, fleeing, healing, regeneration, resistances and weaknesses, as the rules list them. |
+| 2 | **Hiding in The Woods:** Should the bushes of The Woods hide candidates, as in the arena? | Decided 2026-11-20: yes, from players, rivals and monsters alike, unless they come within 2 tiles or the candidate strikes. |
 
 ### Still open
 

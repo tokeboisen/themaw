@@ -3,7 +3,7 @@
 
 import type { ArenaEndedMessage, ArenaMatchEnded, ArenaView, CandidateView, EndedMessage, PartyView, SheetMessage, Snapshot, SnapshotEntity, TitheEnded } from '@maw/contracts';
 import {
-  BALANCE, arenaPayout, arenaRing, chosenKey, crownsPurse, districtAt, echoToNextMark, giftCount, hiddenFrom, losesFound, sameParty, sealInfoAt,
+  BALANCE, BUFF_NAMES, arenaPayout, displayName, concealed, transparencyFor, arenaRing, chosenKey, crownsPurse, districtAt, echoToNextMark, giftCount, hiddenFrom, losesFound, sameParty, sealInfoAt,
   shownDepth, type Item, type Player, type SkillId, type Tithe, type TitheSummary,
 } from '@maw/rules';
 
@@ -58,7 +58,7 @@ function area(t: Tithe, p: Player): Snapshot['area'] {
   return {
     reach: t.reach,
     reachName: t.reach === 'arena' ? 'The Arena' : B.reaches.find((r) => r.id === t.reach)?.name ?? '',
-    ward: d === null ? null : B.city.wards[d - 1] ?? null,
+    ward: d === null ? null : (t.reach === 'woods' ? B.woods : B.city).wards[d - 1] ?? null,
     floor: t.depths[p.depth]?.floor ?? 1,
   };
 }
@@ -89,7 +89,11 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
       level: m.level, ...(m.def.color ? { color: m.def.color } : {}), ...(m.veteran ? { veteran: true } : {}),
     };
     if (m.def.warden) e.warden = true;
-    if (m.windup > 0) e.windup = m.def.ranged && m.aim ? { aimX: r2(m.aim.x), aimY: r2(m.aim.y) } : { reach: (m.def.reach ?? 1) + (m.def.warden ? 0 : 0.2) };
+    const held = m.stunT > 0 ? 'stunned' : m.rootT > 0 ? 'rooted' : m.slowT > 0 ? 'slowed' : null;
+    if (held) e.held = held;
+    if (m.markT > 0) e.marked = true;
+    // Feature-011 VIEW-01: kun nærkamp viser rækkevidden; monstre, der skyder, viser ingen sigtelinje.
+    if (m.windup > 0 && !m.def.ranged) e.windup = { reach: (m.def.reach ?? 1) + (m.def.warden ? 0 : 0.2) };
     ents.push(e);
   }
   for (const r of t.rivals) {
@@ -102,11 +106,14 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
     ents.push(e);
   }
   for (const o of t.players) {
-    if (o === p || o.end || o.depth !== p.depth || !seen(o) || hiddenFrom(t, o, p)) continue;
+    if (o === p || o.end || o.depth !== p.depth || !seen(o)) continue;
+    // Feature-013/-049: en skjult kandidat toner frem, når man kommer tættere på; længere væk ses den slet ikke.
+    const clear = transparencyFor(t, o, p);
+    if (clear >= 1) continue;
     // Feature-010 VIEW-01: spillere i syne viser deres brugernavn over hovedet.
     ents.push({
       id: o.id, kind: 'player', name: o.userName, x: r2(o.x), y: r2(o.y), r: o.r, hp: Math.ceil(o.hp), maxHp: o.maxHp, flash: o.flash > 0,
-      party: sameParty(o, p), ...(o.side ? { side: o.side } : {}),
+      party: sameParty(o, p), ...(o.side ? { side: o.side } : {}), ...(clear > 0 ? { alpha: r2(1 - clear), hidden: hiddenFrom(t, o, p) } : {}),
     });
   }
   const gate = map.gate && explored[map.gate.y * map.w + map.gate.x] ? { x: map.gate.x, y: map.gate.y, open: t.gateOpenFor.has(p.id) } : null;
@@ -128,11 +135,19 @@ export function snapshot(t: Tithe, p: Player, view: ViewState): Snapshot {
       dodgeDir: [r2(p.dodgeDir.x), r2(p.dodgeDir.y)], swing: r2(p.swing), swingDir: [r2(p.swingDir.x), r2(p.swingDir.y)],
       swingArc: p.swingArc, swingReach: p.swingReach, flash: p.flash > 0, drawing: p.drawT > 0, mark: p.ch.level, echo: Math.floor(p.ch.echo),
       echoNext: echoToNextMark(p.ch.level, t.B), points: p.ch.attributePoints + p.ch.skillPoints, potions: p.ch.potions,
-      rations: p.ch.rations, chosenKey: chosenKey(p), hotbar: p.hotbar, starving: p.hunger <= 0,
-      status: [p.slowT > 0 ? 'Slowed' : '', p.stunT > 0 ? 'Stunned' : '', p.corrodeT > 0 ? 'Corroded' : ''].filter(Boolean),
+      focusPotions: p.ch.focusPotions ?? 0, rations: p.ch.rations, chosenKey: chosenKey(p), hotbar: p.hotbar, starving: p.hunger <= 0,
+      status: [
+        p.slowT > 0 ? 'Slowed' : '', p.stunT > 0 ? 'Stunned' : '', p.corrodeT > 0 ? 'Corroded' : '', ...p.buffs.map((b) => BUFF_NAMES[b.kind] ?? ''),
+      ].filter(Boolean),
+      cooldowns: {
+        ...Object.fromEntries(Object.entries(p.artCd).map(([art, left]) => [art, r2(left ?? 0)])),
+        ...(p.talentCd > 0 ? { talent: r2(p.talentCd) } : {}),
+      },
+      hidden: concealed(t, p),
     },
     ents,
     proj: dep.projectiles.filter((x) => seen(x, 1)).map((x) => ({ x: r2(x.x), y: r2(x.y), vx: r2(x.vx), vy: r2(x.vy), kind: x.kind })),
+    zones: dep.zones.filter((z) => seen(z, z.r)).map((z) => ({ x: r2(z.x), y: r2(z.y), r: z.r, kind: z.kind, t: r2(z.t) })),
     loot: dep.loot.filter((l) => seen(l)).map((l) => ({ id: l.id, x: r2(l.x), y: r2(l.y), kind: l.kind, ...(l.item ? { rarity: l.item.rarity } : {}) })),
     caches: dep.caches.filter((c) => explored[Math.floor(c.y) * map.w + Math.floor(c.x)]).map((c) => ({ x: r2(c.x), y: r2(c.y), opened: c.opened })),
     gate,
@@ -160,7 +175,10 @@ export function sheet(t: Tithe, p: Player): SheetMessage {
       id: p.characterId, name: ch.name, background: ch.background, mark: ch.level, echo: ch.echo, attributes: ch.attributes,
       skills: ch.skills, attributePoints: ch.attributePoints, skillPoints: ch.skillPoints,
     },
-    inventory: { equipment: ch.equipment, pack: ch.inventory, potions: ch.potions, rations: ch.rations, hotbar: p.hotbar, capacity: p.stats.capacity },
+    inventory: {
+      equipment: ch.equipment, pack: ch.inventory, potions: ch.potions, focusPotions: ch.focusPotions ?? 0, rations: ch.rations, hotbar: p.hotbar,
+      capacity: p.stats.capacity,
+    },
     found,
   };
 }
@@ -178,7 +196,10 @@ export function titheEnded(t: Tithe, p: Player): TitheEnded {
     record: { ...p.record },
     start: structuredClone(p.start),
     character: { level: ch.level, echo: ch.echo, attributes: ch.attributes, skills: ch.skills, attributePoints: ch.attributePoints, skillPoints: ch.skillPoints },
-    gear: { equipment: ch.equipment, pack: ch.inventory, potions: ch.potions, rations: ch.rations, hotbar: structuredClone(p.hotbar) },
+    gear: {
+      equipment: ch.equipment, pack: ch.inventory, potions: ch.potions, focusPotions: ch.focusPotions ?? 0, rations: ch.rations,
+      hotbar: structuredClone(p.hotbar),
+    },
   };
 }
 
@@ -188,7 +209,7 @@ export function results(t: Tithe, p: Player): EndedMessage {
   const lose = losesFound(end.kind);
   const ch = p.ch;
   const lostItems = lose
-    ? [...ch.inventory, ...Object.values(ch.equipment)].filter((i): i is Item => !!i && i.found === t.id).map((i) => i.name)
+    ? [...ch.inventory, ...Object.values(ch.equipment)].filter((i): i is Item => !!i && i.found === t.id).map((i) => displayName(i, BALANCE))
     : [];
   const outcome = { kind: end.kind, name: end.name };
   const skills: TitheSummary['skills'] = {};

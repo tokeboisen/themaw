@@ -172,7 +172,7 @@ class Room {
       case 'act':
         if (m.act === 'hotkey') {
           if (HOTBAR_KEYS.includes(m.key)) queueAct(t, id, { act: 'hotkey', key: m.key });
-        } else if (['dodge', 'potion', 'ration', 'interact'].includes(m.act)) queueAct(t, id, { act: m.act });
+        } else if (['dodge', 'potion', 'focusPotion', 'ration', 'interact'].includes(m.act)) queueAct(t, id, { act: m.act });
         break;
       case 'sheet': {
         if (!validSheetAction(m.action)) return this.send(seat, { t: 'refused', message: 'Invalid request.' });
@@ -214,9 +214,12 @@ function validSheetAction(a: unknown): a is SheetAction {
     case 'unequip':
       return isEquipSlot(x.slot);
     case 'hotbar':
-      return (HOTBAR_KEYS as readonly unknown[]).includes(x.key) && (typeof x.itemId === 'string' || (ECHO_ARTS as readonly unknown[]).includes(x.echoArt));
+      return (HOTBAR_KEYS as readonly unknown[]).includes(x.key)
+        && (typeof x.itemId === 'string' || (ECHO_ARTS as readonly unknown[]).includes(x.echoArt) || (typeof x.talent === 'string' && x.talent in B.talents));
     case 'clear':
       return (HOTBAR_KEYS as readonly unknown[]).includes(x.key);
+    case 'reveal':
+      return typeof x.itemId === 'string';
     case 'attribute':
       return (ATTRIBUTES as readonly unknown[]).includes(x.attribute);
     case 'skill':
@@ -245,7 +248,7 @@ export class Host {
   /** Feature-037 EVT-01 Tithe launched → Feature-010 CMD-01 Start the Tithe. Kommer det samme event igen, ignoreres det. */
   launch(data: TitheLaunched): void {
     const room = this.open(
-      { id: data.titheId, name: data.name, reach: data.reach === 'city' ? 'city' : 'mines', ...(data.level ? { level: data.level } : {}), players: data.players },
+      { id: data.titheId, name: data.name, reach: data.reach === 'city' || data.reach === 'woods' ? data.reach : 'mines', ...(data.level ? { level: data.level } : {}), players: data.players },
       data.players,
     );
     if (room) this.log(`Started ${data.name} with ${data.players.length} player(s) and ${room.tithe.rivals.length} NPC rivals`);

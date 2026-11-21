@@ -47,9 +47,9 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
         kills: o.kills ?? 4, rivalsDefeated: o.rivals ?? 0, renown: o.renown ?? 0, goldFound: o.goldFound ?? 0, maxDepth: o.maxDepth ?? 1,
         wardenSlain: o.wardenSlain ?? false, itemsFound: found.length, playersDefeated: 0,
       },
-      start: { mark: c.mark, skills: { blades: 1, heavy: 10, bows: 1, echo: 1 } },
+      start: { mark: c.mark, skills: { blades: 1, heavy: 10, bows: 1, echo: 1, talent: 0, reveal: 0 } },
       character: { level: o.mark ?? c.mark, echo: c.echo, attributes: c.attributes, skills: { ...c.skills, heavy: { level: 11, xp: 0.5 } }, attributePoints: c.attributePoints, skillPoints: c.skillPoints },
-      gear: { equipment: inv.equipment, pack: [...inv.pack, ...found], potions: 1, rations: 2, hotbar: inv.hotbar },
+      gear: { equipment: inv.equipment, pack: [...inv.pack, ...found], potions: 1, focusPotions: 3, rations: 2, hotbar: inv.hotbar },
     };
     await enqueue(pool, envelope(EVENT.titheEnded, data));
     await deliverAll(pool); // også "Found gear kept" og "Purse paid" videre til Market
@@ -103,7 +103,7 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     const data: TitheEnded = {
       titheId, titheName: 'Ashfall', characterId: k.id, userId: k.userId, outcome: { kind: 'fell', name: 'Gnawer' }, seconds: 30,
       record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 1, playersDefeated: 0 },
-      start: { mark: 1, skills: { blades: 1, heavy: 10, bows: 1, echo: 1 } },
+      start: { mark: 1, skills: { blades: 1, heavy: 10, bows: 1, echo: 1, talent: 0, reveal: 0 } },
       character: { level: 1, echo: 0, attributes: c.attributes, skills: c.skills, attributePoints: 0, skillPoints: 0 },
       gear: { equipment: inv.equipment, pack: [{ ...axe, found: titheId }], potions: 2, rations: 3, hotbar: { ...inv.hotbar, '3': { weapon: axe.id } } },
     };
@@ -121,7 +121,7 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     const data = {
       titheId: randomUUID(), titheName: 'Ashfall', characterId: k.id, userId: k.userId, outcome: { kind: 'champion', name: 'Kael' }, seconds: 30,
       record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
-      start: { mark: 1, skills: { blades: 1, heavy: 10, bows: 1, echo: 1 } },
+      start: { mark: 1, skills: { blades: 1, heavy: 10, bows: 1, echo: 1, talent: 0, reveal: 0 } },
       character: { level: 1, echo: 0, attributes: c.attributes, skills: c.skills, attributePoints: 0, skillPoints: 0 },
       gear: { equipment: old, pack: [], potions: 2, rations: 3, hotbar: inv.hotbar },
     } as unknown as TitheEnded;
@@ -132,13 +132,13 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     assert.equal(after.equipment.ring1.id, ring!.id);
   });
 
-  test('F023 scenario "Renown brings gifts": a rare item, 64 gold and a magic item at Mark 3 and 324 Renown', async () => {
+  test('F023 scenario "Renown brings gifts": a magic item, 40 gold, a common item and 40 gold at Mark 3 and 640 Renown', async () => {
     const k = await kael('te5');
-    await ended(k, { kind: 'rival-champion', champion: 'Cassian Morrow', renown: 324, mark: 3 });
+    await ended(k, { kind: 'rival-champion', champion: 'Cassian Morrow', renown: 640, mark: 3 });
     const gifts = (await get(k.cookie, `/api/characters/${k.id}/gifts`)).gifts;
-    assert.equal(gifts.length, 3);
+    assert.equal(gifts.length, 4);
     const kinds = gifts.map((g: { kind: string; item: Item | null; gold: number | null }) => (g.kind === 'gold' ? g.gold : g.item!.rarity)).sort();
-    assert.deepEqual(kinds, [64, 'magic', 'rare'].sort());
+    assert.deepEqual(kinds, [40, 40, 'common', 'magic'].sort());
   });
 
   test('F016 and F021: the character is saved, and the Forge is restocked at the new Mark', async () => {
@@ -153,6 +153,7 @@ describe('Tithe ended', { skip: !hasDatabase }, () => {
     assert.ok(after.every((i: Item) => !before.includes(i.id)));
     const inv = await get(k.cookie, `/api/characters/${k.id}/inventory`);
     assert.equal(inv.potions, 1);
+    assert.equal(inv.focusPotions, 3);
     assert.equal(inv.rations, 2);
   });
 

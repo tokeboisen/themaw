@@ -6,7 +6,7 @@ import { MESSAGES, routingKey } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
   ATTRIBUTES, BALANCE as B, SKILLS, backgroundById, emptyEquipment, creationProblems, itemBase, newCharacter, spendAttributePoint,
-  spendSkillPoint, type Attribute, type Character, type SkillId,
+  normalizeSkills, spendSkillPoint, type Attribute, type Character, type SkillId,
 } from '@maw/rules';
 import { transaction, type Client, type Pool } from '../db.ts';
 import { enqueue } from '../outbox.ts';
@@ -27,6 +27,7 @@ interface CharacterRow {
 
 /** Karakteren, som webappen ser den. Udstyr, guld og forsyninger hører til Gear og Market (fase 2). */
 function view(row: CharacterRow) {
+  normalizeSkills(row); // Feature-049: karakterer fra før talentet har det på niveau 0
   return {
     id: row.id,
     name: row.name,
@@ -42,9 +43,10 @@ function view(row: CharacterRow) {
 
 /** Reglerne i @maw/rules regner på en hel karakter; her uden udstyr, indtil Gear findes. */
 function asCharacter(row: CharacterRow): Character {
+  normalizeSkills(row);
   return {
     name: row.name, background: row.background, level: row.mark, echo: row.echo, attributes: row.attributes, skills: row.skills,
-    attributePoints: row.attribute_points, skillPoints: row.skill_points, gold: 0, potions: 0, rations: 0,
+    attributePoints: row.attribute_points, skillPoints: row.skill_points, gold: 0, potions: 0, focusPotions: 0, rations: 0,
     equipment: emptyEquipment(), inventory: [], tithes: 0, championships: 0,
   };
 }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  ATTRIBUTES, BALANCE as B, SKILLS, backgroundById, canLower, canRaise, creationProblems, isValidPassword,
+  ATTRIBUTES, BALANCE as B, CREATION_SKILLS, backgroundById, canLower, canRaise, creationProblems, isValidPassword,
   isValidUserName, lower, newCharacter, pointsLeft, raise, suggestedAllocation, userNameKey,
 } from '../src/index.ts';
 
@@ -68,7 +68,7 @@ test('F001 CMD-01: values outside the limits, a missing name and an unknown back
   assert.deepEqual(creationProblems({ name: 'A'.repeat(21), background: 'runner', ...alloc }, B), ['name']);
   assert.deepEqual(creationProblems({ name: 'R', background: 'knight', ...alloc }, B), ['background']);
   assert.deepEqual(creationProblems({ name: 'R', background: 'runner', ...alloc, attributes: { ...alloc.attributes, luck: 1 } }, B), ['limits']);
-  assert.equal(ATTRIBUTES.length + SKILLS.length, 9);
+  assert.equal(ATTRIBUTES.length + CREATION_SKILLS.length, 9); // the talent is not placed at creation (F001 v4)
 });
 
 test('F031 CMD-01: user names are 3–20 letters, digits or symbols without spaces, unique regardless of case', () => {

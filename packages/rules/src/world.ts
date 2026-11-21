@@ -3,21 +3,24 @@
 // Ingen DOM og intet netværk her: tithe-server kalder stepTithe 30 gange i sekundet og sender hver spiller det, den kan se.
 // Partier dannes i de første 20 sekunder (Feature-034, -035), og spillere slår spillere uden for deres parti (Feature-011).
 
-import type { Balance, MonsterDef, MonsterTrait, ReachId, RivalDef } from './balance.ts';
+import type { Balance, EchoArtDef, MonsterDef, MonsterTrait, ReachId, RivalDef } from './balance.ts';
 import { GROUND_AREA, generateCity, type StairLink } from './city.ts';
+import { generateWoods } from './woods.ts';
 import {
-  addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, equipItem, meetsRequirements, spendAttributePoint, spendSkillPoint, unequipItem,
-  SKILL_NAMES, type DerivedStats,
+  addEcho, addSkillXp, defaultWeapon, derivedStats, dropItem, effectiveSkill, equipItem, meetsRequirements, normalizeSkills, skillName,
+  spendAttributePoint, spendSkillPoint, talentOf, unequipItem, type DerivedStats,
 } from './character.ts';
 import { ARENA_SPAWNS, arenaMap, arenaRing, inOval, type ArenaFormat, type ArenaSide } from './arena.ts';
 import {
-  bfs, BUSH, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, STAIRS, tileAt, type DepthMap, type Room,
+  bfs, BUSH, collides, EXIT, generateDepth, isSolid, lineOfSight, moveWithCollision, randomFloorInRoom, STAIRS, tileAt, type DepthMap, type Room,
 } from './dungeon.ts';
-import { assignHotbarKey, clearHotbarKey, ECHO_ARTS, HOTBAR_KEYS, removeWeaponFromHotbar, type EchoArt, type Hotbar, type HotbarKey } from './gear.ts';
-import { generateItem, isEquipSlot, REQUIREMENTS_NOT_MET, type ItemOptions } from './items.ts';
-import type { OutcomeKind, TitheRecord } from './rim.ts';
+import {
+  assignHotbarKey, clearHotbarKey, ECHO_ARTS, HOTBAR_KEYS, knowsArt, removeWeaponFromHotbar, type EchoArt, type Hotbar, type HotbarKey,
+} from './gear.ts';
+import { displayName, generateItem, isEquipSlot, REQUIREMENTS_NOT_MET, revealChance, type ItemOptions } from './items.ts';
+import { CONSUMABLE_KEYS, type OutcomeKind, type TitheRecord } from './rim.ts';
 import { createRng, type Rng } from './rng.ts';
-import type { Attribute, Character, EquipSlot, Item, Rarity, SkillId, WeaponSlot } from './types.ts';
+import type { Attribute, Character, EquipSlot, Item, Rarity, SkillId, TalentId, WeaponSlot } from './types.ts';
 
 const DIRS8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const;
 
@@ -103,6 +106,19 @@ export interface Monster extends Body {
   dodgeCd: number;
   /** Feature-013: en Hollow, der allerede har rejst sig én gang. */
   risen: boolean;
+  /** Feature-011: højere level slår hurtigere (ganges på ventetiden) og går hurtigere (ganges på farten). */
+  quick: number;
+  fleet: number;
+  /** Feature-047: langsom, rodfæstet og lammet (sekunder tilbage). */
+  slowT: number;
+  rootT: number;
+  stunT: number;
+  /** Feature-047 Hollow Call: stedet, monstret går hen til, og hvor længe. */
+  lure: Vec | null;
+  lureT: number;
+  /** Feature-047 Last Words: mærket af en spiller, og hvor længe. */
+  markT: number;
+  markBy: Player | null;
 }
 
 interface RivalWeapon {
@@ -156,6 +172,7 @@ export type PlayerAct =
   | { act: 'dodge' }
   | { act: 'potion' }
   | { act: 'ration' }
+  | { act: 'focusPotion' }
   | { act: 'interact' }
   | { act: 'hotkey'; key: HotbarKey };
 
@@ -186,11 +203,20 @@ export interface Player extends Body {
   focus: number;
   hunger: number;
   attackCd: number;
-  boltCd: number;
+  /** Feature-047: cooldown tilbage for hver Echo Art, der er kastet. */
+  artCd: Partial<Record<EchoArt, number>>;
+  /** Feature-049: cooldown tilbage for talentet. */
+  talentCd: number;
+  /** Feature-047: virkningerne på spilleren fra Echo Arts. */
+  buffs: Buff[];
+  /** Feature-047 The Maw Remembers: hvor og hvornår spilleren slog monstre for nylig. */
+  recentKills: { x: number; y: number; t: number }[];
   dodgeCd: number;
   dodgeT: number;
   dodgeDir: Vec;
   potionCd: number;
+  /** Feature-008 CMD-03: focus potions har deres egen ventetid. */
+  focusPotionCd: number;
   drawT: number;
   /** Feature-013: langsom, lammet og ætset rustning (sekunder tilbage). */
   slowT: number;
@@ -221,9 +247,45 @@ export interface Player extends Body {
   revealT: number;
 }
 
+/** Feature-047: en virkning fra en Echo Art – hvor længe den varer, og hvor stærk den er. */
+export type BuffKind =
+  | 'ward' | 'rally' | 'hearth' | 'chorus' | 'mantle' | 'cinder' | 'refusal' | 'storm' | 'courage' | 'crown'
+  // Feature-049: talents.
+  | 'hide' | 'berserk' | 'haste';
+
+export interface Buff {
+  kind: BuffKind;
+  t: number;
+  value: number;
+  /** Cinder Echo: tid til næste flamme. */
+  next?: number;
+}
+
+/** Feature-047 VIEW-01: navnene, HUD'en viser for virkningerne. */
+export const BUFF_NAMES: Partial<Record<BuffKind, string>> = {
+  ward: 'Warded', rally: 'Rallied', chorus: 'Quickened', mantle: 'Mantled', refusal: 'Refused', storm: 'Mirrored', courage: 'Courageous',
+  crown: 'Crowned', hide: 'Hidden', berserk: 'Berserk', haste: 'Hasted',
+};
+
+/**
+ * Feature-047: flammer (Cinder Echo), ekkoer (The Maw Remembers) og spejlbilleder (Mirror Double) på gulvet;
+ * Feature-049: en Healing Circle, hvis dps er andelen af max liv, den heler i sekundet.
+ */
+export interface Zone extends Vec {
+  id: string;
+  kind: 'fire' | 'echo' | 'mirror' | 'heal';
+  /** Radius for skaden. */
+  r: number;
+  /** Hvor langt zonen trækker monstre; 0 trækker ingen. */
+  draw: number;
+  dps: number;
+  t: number;
+  owner: Player;
+}
+
 export interface Loot extends Vec {
   id: string;
-  kind: 'item' | 'gold' | 'potion' | 'ration';
+  kind: 'item' | 'gold' | 'potion' | 'focusPotion' | 'ration';
   item?: Item;
   amount?: number;
   /** Feature-006: kandidaten, der droppede tingen (Feature-007 CMD-03). */
@@ -247,9 +309,13 @@ export interface Projectile extends Vec {
   amount: number;
   crit: boolean;
   skill?: SkillId;
-  kind: 'arrow' | 'bolt' | 'spit' | 'fire' | 'web';
+  kind: 'arrow' | 'bolt' | 'spit' | 'fire' | 'web' | 'tone' | 'note';
   /** Feature-013: Kobold Sapperens ildkrukker springer over et område. */
   area?: number;
+  /** Feature-047 Resonant Line: tonen flyver gennem alle, den rammer, én gang hver. */
+  pierce?: Set<Body>;
+  /** Feature-047 Unmaking Note: skaden ganges med dette mod en med rustning. */
+  unmake?: number;
   faction: 'player' | 'rival' | 'monster';
   owner: Body;
   done: boolean;
@@ -278,6 +344,9 @@ export interface Depth {
   /** En etage i et hus: husets distrikt og etagens nummer (2 eller 3). */
   floorDistrict: number | null;
   floor: number;
+  /** Feature-047: flammer, ekkoer og spejlbilleder på gulvet. */
+  zones: Zone[];
+  zoneTick: number;
 }
 
 /** Feature-034 EVT-01 Invitation sent: kan kun besvares i nådetiden (Feature-035). */
@@ -305,10 +374,13 @@ export interface Message {
 }
 
 export interface Fx {
-  type: 'float' | 'death' | 'shake' | 'hurt' | 'blast';
+  type: 'float' | 'death' | 'shake' | 'hurt' | 'blast' | 'beam';
   depth: number;
   x?: number;
   y?: number;
+  /** Feature-047 Echo Chain: strålens anden ende. */
+  x2?: number;
+  y2?: number;
   text?: string;
   color?: string;
   size?: number;
@@ -393,7 +465,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const t: Tithe = {
     id: setup.id, name: setup.name, seed: setup.seed, rng, B, time: 0, depths: {}, players: [], rivals: [], messages: [], fx: [],
     champion: null, closed: false, wardenAlive: true, wardenHpFactor: 1, gateOpenFor: new Set(), wardenSaid: false, mark, nextId: 1,
-    invitations: [], defeats: [], reach: setup.reach === 'city' ? 'city' : 'mines', wardsWarned: new Set(), wardsSealed: new Set(),
+    invitations: [], defeats: [], reach: setup.reach === 'city' || setup.reach === 'woods' ? setup.reach : 'mines', wardsWarned: new Set(), wardsSealed: new Set(),
     arena: null,
   };
   t.players = setup.players.map((s) => makePlayer(t, s));
@@ -402,7 +474,7 @@ export function createTithe(setup: TitheSetup, B: Balance): Tithe {
   const count = Math.max(0, B.tithe.candidates - t.players.length);
   for (let i = 0; i < count && pool.length; i++) t.rivals.push(makeRival(t, pool.splice(Math.floor(rng.next() * pool.length), 1)[0]!));
 
-  const dep = t.reach === 'city' ? buildCity(t) : buildDepth(t, 1);
+  const dep = openReach(t) ? buildOpen(t) : buildDepth(t, 1);
   t.depths[1] = dep;
   // Hver kandidat starter i sit eget rum, omtrent lige langt fra trappen (Feature-010 AGG-01).
   const candidates: (Player | Rival)[] = [...t.players, ...t.rivals];
@@ -441,7 +513,7 @@ function createArena(setup: TitheSetup, B: Balance): Tithe {
   };
   const map = arenaMap();
   t.depths[1] = {
-    level: 1, map, monsters: [], loot: [], caches: [], projectiles: [], toExit: new Int16Array(map.w * map.h), maxExitDist: 1,
+    level: 1, map, monsters: [], loot: [], caches: [], projectiles: [], zones: [], zoneTick: 0, toExit: new Int16Array(map.w * map.h), maxExitDist: 1,
     sealAt: null, warned: false, sealedSaid: false, startRooms: [], warden: false, stairs: [], districts: null, floorDistrict: null, floor: 1,
   };
   const placed: Record<ArenaSide, number> = { 1: 0, 2: 0 };
@@ -472,12 +544,12 @@ function stepArena(t: Tithe, dt: number): void {
     say(t, 'Mirrormaster', LINES.arenaFight);
   }
   for (const p of playersIn(t)) {
-    p.revealT = Math.max(0, p.revealT - dt);
     updatePlayer(t, p, dt);
     p.hunger = t.B.hunger.max; // sulten tærer ikke i arenaen
   }
   const dep = t.depths[1]!;
   updateProjectiles(t, dep, dt);
+  updateZones(t, dep, dt);
   separate(t, dep);
   // Feature-045 AGG-02: ringen lukker sig; udenfor den taber kæmperen 8 % af max liv i sekundet.
   if (t.time >= A.shrinkFrom) {
@@ -523,12 +595,63 @@ function arenaEnd(t: Tithe): void {
   t.closed = true;
 }
 
-/** Feature-045: en kæmper i en busk er skjult for den anden side, undtagen tæt på eller lige efter et slag. */
-export function hiddenFrom(t: Tithe, target: Player, viewer: Player): boolean {
-  if (t.reach !== 'arena' || sameParty(target, viewer)) return false;
+/**
+ * Feature-045 og -013: i arenaen og i The Woods er en kandidat i en busk skjult – for den anden side, for rivaler og i
+ * skoven for monstre – undtagen tæt på eller lige efter et slag.
+ */
+/** Feature-013/-045: kandidaten står i en busk i The Woods eller arenaen. */
+function inBush(t: Tithe, target: Player): boolean {
+  if (t.reach !== 'arena' && t.reach !== 'woods') return false;
   const map = t.depths[target.depth]?.map;
-  if (!map || tileAt(map, Math.floor(target.x), Math.floor(target.y)) !== BUSH || target.revealT > 0) return false;
-  return Math.hypot(target.x - viewer.x, target.y - viewer.y) > t.B.arena.bushSight;
+  return !!map && tileAt(map, Math.floor(target.x), Math.floor(target.y)) === BUSH;
+}
+
+/** Feature-049 Hide: hvor tæt andre skal være for at se kandidaten: (100 − gennemsigtighed) / 10 felter. */
+function hideSight(t: Tithe, hide: Buff): number {
+  return (1 - hide.value) * t.B.talent.hide.sightPerOpen;
+}
+
+/**
+ * Feature-013, -045 og -049: kandidaten kan ikke ses eller rammes af `viewer` – i en busk længere væk end 2 felter,
+ * med Hide længere væk end Hide tillader – undtagen af sit eget parti og lige efter et slag eller et kast.
+ */
+export function hiddenFrom(t: Tithe, target: Player, viewer: Body): boolean {
+  if (isPlayer(viewer) && sameParty(target, viewer)) return false;
+  if (target.revealT > 0) return false;
+  const d = Math.hypot(target.x - viewer.x, target.y - viewer.y);
+  if (inBush(t, target) && d > t.B.arena.bushSight) return true;
+  const hide = target.buffs.find((b) => b.kind === 'hide');
+  return !!hide && d > hideSight(t, hide);
+}
+
+/**
+ * Feature-013 og -049: hvor gennemsigtig kandidaten er for `viewer`: 0 er synlig, 1 usynlig. I en busk toner den frem
+ * fra 3 felter og er 80 % gennemsigtig ved 1 felt; med Hide er den så gennemsigtig, som talentet gør den, og usynlig
+ * længere væk, end Hide tillader.
+ */
+export function transparencyFor(t: Tithe, target: Player, viewer: Body): number {
+  if (isPlayer(viewer) && sameParty(target, viewer)) return 0;
+  if (target.revealT > 0) return 0;
+  const T = t.B.talent;
+  const d = Math.hypot(target.x - viewer.x, target.y - viewer.y);
+  let out = 0;
+  if (inBush(t, target)) {
+    out = d >= T.bushFadeFrom ? 1 : d <= 1 ? T.bushNear : T.bushNear + ((1 - T.bushNear) * (d - 1)) / (T.bushFadeFrom - 1);
+  }
+  const hide = target.buffs.find((b) => b.kind === 'hide');
+  if (hide) out = Math.max(out, d > hideSight(t, hide) ? 1 : hide.value);
+  return out;
+}
+
+/** Feature-013/-049: kandidaten er skjult lige nu (i en busk eller med Hide) – til dens egen visning. */
+export function concealed(t: Tithe, p: Player): boolean {
+  return p.revealT <= 0 && (inBush(t, p) || p.buffs.some((b) => b.kind === 'hide'));
+}
+
+/** Feature-045/-049: et slag eller et kast afslører kandidaten i 1,5 sekund og ender Hide. */
+function unhide(t: Tithe, p: Player): void {
+  p.revealT = t.B.arena.revealSeconds;
+  if (p.buffs.some((b) => b.kind === 'hide')) p.buffs = p.buffs.filter((b) => b.kind !== 'hide');
 }
 
 function nid(t: Tithe, prefix: string): string {
@@ -537,6 +660,9 @@ function nid(t: Tithe, prefix: string): string {
 }
 
 function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
+  // En arbejdskopi fra før focus potions (Feature-008 v4) eller talentet (Feature-049) har ingen.
+  s.character.focusPotions ??= 0;
+  normalizeSkills(s.character);
   // Feature-028 AGG-01: en Tithe starter med nærkampsvåbnet valgt, ellers afstandsvåbnet.
   const chosenWeapon = defaultWeapon(s.character);
   const stats = derivedStats(s.character, t.B, chosenWeapon);
@@ -545,7 +671,7 @@ function makePlayer(t: Tithe, s: TithePlayerSetup): Player {
     ch: s.character, hotbar: s.hotbar, chosenArt: null, chosenWeapon, stats, x: 0, y: 0, r: 0.35, hp: stats.maxHp, maxHp: stats.maxHp, level: s.character.level,
     armour: stats.armour, flash: 0, facing: { x: 1, y: 0 }, dead: false, depth: 1,
     stamina: stats.maxStamina, focus: stats.maxFocus, hunger: t.B.hunger.max,
-    attackCd: 0, boltCd: 0, dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, drawT: 0, slowT: 0, stunT: 0, corrodeT: 0,
+    attackCd: 0, artCd: {}, talentCd: 0, buffs: [], recentKills: [], dodgeCd: 0, dodgeT: 0, dodgeDir: { x: 1, y: 0 }, potionCd: 0, focusPotionCd: 0, drawT: 0, slowT: 0, stunT: 0, corrodeT: 0,
     swing: 0, swingDir: { x: 1, y: 0 }, swingArc: 90, swingReach: 1,
     input: { moveX: 0, moveY: 0, attack: false }, acts: [], end: null,
     record: { kills: 0, rivalsDefeated: 0, renown: 0, goldFound: 0, maxDepth: 1, wardenSlain: false, itemsFound: 0, playersDefeated: 0 },
@@ -579,7 +705,7 @@ function makeRival(t: Tithe, def: RivalDef): Rival {
   const B = t.B;
   const level = Math.max(1, t.mark + def.levelOffset);
   // Byens gader har langt flere monstre; rivalerne får et tillæg, så de kan nå frem (Feature-014).
-  const maxHp = Math.round((B.tithe.rivalHpBase + level * B.tithe.rivalHpPerLevel) * (t.reach === 'city' ? B.city.rivalHpFactor : 1));
+  const maxHp = Math.round((B.tithe.rivalHpBase + level * B.tithe.rivalHpPerLevel) * (openReach(t) ? openCfg(t).rivalHpFactor : 1));
   return {
     kind: 'rival', id: def.id, name: def.name, color: def.color, def, level, x: 0, y: 0, r: 0.38, hp: maxHp, maxHp,
     armour: B.tithe.rivalArmour, weapon: rivalWeapon(def, level, B), aggressive: t.rng.chance(def.aggression), hostileTo: new Set(),
@@ -590,9 +716,23 @@ function makeRival(t: Tithe, def: RivalDef): Rival {
   };
 }
 
-/** Feature-012: minerne har tre dybder; byen er ét område, og dens distrikter tæller som dybder. */
+/** Feature-010: byen og skoven er hver ét stort kort, der forsegles udefra og ind; minerne har dybder. */
+export function openReach(t: Pick<Tithe, 'reach'>): boolean {
+  return t.reach === 'city' || t.reach === 'woods';
+}
+
+/** Indstillingerne for byen eller skoven (Feature-010, -017). */
+function openCfg(t: Tithe): Balance['city'] | Balance['woods'] {
+  return t.reach === 'woods' ? t.B.woods : t.B.city;
+}
+
+/** Feature-011: Warden i hver Reach, og det flokdyr, Warden og Mirrormaster kalder frem. */
+const WARDEN_TYPE: Record<string, string> = { mines: 'foreman', city: 'smelter', woods: 'antlered_king' };
+const SWARM_TYPE: Record<string, string> = { mines: 'gnawer', city: 'sewer_rat', woods: 'grey_wolf' };
+
+/** Feature-012: minerne har tre dybder; byen og skoven er ét område, og deres distrikter tæller som dybder. */
 export function depthCount(t: Tithe): number {
-  return t.reach === 'city' ? 1 : t.B.tithe.depths;
+  return openReach(t) ? 1 : t.B.tithe.depths;
 }
 
 /** Distriktet (1–4) på et sted i byen; null i minerne. */
@@ -607,7 +747,7 @@ export function districtAt(t: Tithe, area: number, x: number, y: number): number
 /** Hvornår stedet forsegles: dybden i minerne, distriktet i byen (Feature-017). */
 function sealAtPos(t: Tithe, area: number, x: number, y: number): number | null {
   const d = districtAt(t, area, x, y);
-  if (d !== null) return t.B.city.sealTimes[d - 1] ?? null;
+  if (d !== null) return openCfg(t).sealTimes[d - 1] ?? null;
   return t.depths[area]?.sealAt ?? null;
 }
 
@@ -633,7 +773,7 @@ function pickMonster(t: Tithe, area: number): string {
     x -= m.weight ?? 1;
     if (x <= 0) return id;
   }
-  return types[0]?.[0] ?? (t.reach === 'city' ? 'sewer_rat' : 'gnawer');
+  return types[0]?.[0] ?? SWARM_TYPE[t.reach] ?? 'gnawer';
 }
 
 /** Et monster af en tilfældig type og level for området. */
@@ -646,7 +786,7 @@ function spawnFor(t: Tithe, area: number, x: number, y: number, type = pickMonst
 
 /** Den svage flokdyrstype, som Wardens og Mirrormaster kalder frem. */
 function summonType(t: Tithe): string {
-  return t.reach === 'city' ? 'sewer_rat' : 'gnawer';
+  return SWARM_TYPE[t.reach] ?? 'gnawer';
 }
 
 /** Startrummene i dybde 1: rum omtrent lige langt fra trappen, helst langt væk (Feature-010 AGG-01). */
@@ -688,42 +828,57 @@ function buildDepth(t: Tithe, d: number): Depth {
  * Reach 2, The Broken City (Feature-010, -041): gadeplan med distrikter og etagerne i de store huse og fabrikker.
  * Monstrenes niveau følger distriktet, som tæller som en dybde.
  */
-function buildCity(t: Tithe): Depth {
+/** Feature-010: byens eller skovens store kort med monstre, flokke, lejre og etager. */
+function buildOpen(t: Tithe): Depth {
   const B = t.B;
-  const plan = generateCity(t.rng, B);
-  const ground = populate(t, 1, plan.ground, true, plan.startRooms, B.city.cachesOnGround);
+  const C = openCfg(t);
+  const plan = t.reach === 'woods' ? generateWoods(t.rng, B) : generateCity(t.rng, B);
+  const ground = populate(t, 1, plan.ground, true, plan.startRooms, C.cachesOnGround);
   ground.districts = plan.districts;
   ground.stairs = plan.groundStairs;
   const at = (x: number, y: number) => plan.districts[Math.floor(y) * plan.ground.w + Math.floor(x)] ?? 1;
   ground.monsters = ground.monsters.map((m) => {
     if (m.def.warden) {
-      const warden = makeMonster(t, m.type, m.x, m.y, monsterLevel(t, B.city.districts));
+      const warden = makeMonster(t, m.type, m.x, m.y, monsterLevel(t, C.districts));
       warden.hp = Math.round(warden.maxHp * t.wardenHpFactor);
       return warden;
     }
     return spawnFor(t, at(m.x, m.y), m.x, m.y);
   });
-  // Bander på vejene: samme slags, 2–4 sammen, flest i de indre distrikter.
+  // Bander på vejene og stierne: samme slags, 2–4 sammen, flest i de indre distrikter.
   const startSet = new Set(ground.startRooms.slice(0, t.players.length));
-  for (let i = 0, tries = 0; i < B.city.streetPacks && tries < 500; tries++) {
+  for (let i = 0, tries = 0; i < C.streetPacks && tries < 500; tries++) {
     const x = t.rng.int(2, plan.ground.w - 3);
     const y = t.rng.int(2, plan.ground.h - 3);
     const d = at(x, y);
-    if (d >= B.city.districts || plan.ground.tiles[y * plan.ground.w + x] !== 5) continue;
+    if (d >= C.districts || plan.ground.tiles[y * plan.ground.w + x] !== 5) continue;
     if ([...startSet].some((r) => Math.hypot(r.cx - x, r.cy - y) < 12)) continue;
     const type = pickMonster(t, d);
     for (let k = 0; k < t.rng.int(2, 4); k++) ground.monsters.push(spawnFor(t, d, x + 0.5 + t.rng.range(-1, 1), y + 0.5 + t.rng.range(-1, 1), type));
     i += 1;
+  }
+  // The Woods: en bande brigander slår lejr ved hvert bål, og halvdelen af lejrene har en cache.
+  for (const camp of plan.camps ?? []) {
+    const inCamp = (m: Monster) => m.x >= camp.x - 1 && m.x <= camp.x + camp.w + 1 && m.y >= camp.y - 1 && m.y <= camp.y + camp.h + 1;
+    ground.monsters = ground.monsters.filter((m) => m.def.warden || !inCamp(m));
+    const d = at(camp.cx, camp.cy);
+    const band = t.rng.int(3, 5);
+    for (let k = 0; k < band; k++) {
+      const a = (k / band) * Math.PI * 2 + 0.4;
+      const type = k === 0 || t.rng.chance(0.3) ? 'brigand_archer' : 'brigand';
+      ground.monsters.push(spawnFor(t, d, camp.cx + 0.5 + Math.cos(a) * 2, camp.cy + 0.5 + Math.sin(a) * 2, type));
+    }
+    if (t.rng.chance(0.5)) ground.caches.push({ id: nid(t, 'c'), x: camp.cx + 1.5, y: camp.cy + 0.5, opened: false });
   }
   for (const f of plan.floors) {
     const map = f.map;
     const room = map.rooms[0]!;
     const toExit = bfs(map, map.exit.x, map.exit.y);
     const dep: Depth = {
-      level: f.area, map, monsters: [], loot: [], caches: [], projectiles: [], toExit, maxExitDist: 1, sealAt: null, warned: false,
+      level: f.area, map, monsters: [], loot: [], caches: [], projectiles: [], zones: [], zoneTick: 0, toExit, maxExitDist: 1, sealAt: null, warned: false,
       sealedSaid: false, startRooms: [room], warden: false, stairs: f.stairs, districts: null, floorDistrict: f.district, floor: f.floor,
     };
-    for (let i = 0; i < t.rng.int(B.city.monstersPerHouse[0] + 1, B.city.monstersPerHouse[1] + 1); i++) {
+    for (let i = 0; i < t.rng.int(C.monstersPerHouse[0] + 1, C.monstersPerHouse[1] + 1); i++) {
       const pos = randomFloorInRoom(t.rng, map, room);
       if (Math.hypot(pos.x - map.start.x, pos.y - map.start.y) < 3) continue;
       dep.monsters.push(spawnFor(t, f.district, pos.x + 0.5, pos.y + 0.5));
@@ -746,8 +901,8 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
     : [map.startRoom];
   const playerRooms = new Set(d === 1 ? startRooms.slice(0, t.players.length) : [map.startRoom]);
   const dep: Depth = {
-    level: d, map, monsters: [], loot: [], caches: [], projectiles: [], toExit, maxExitDist,
-    sealAt: t.reach === 'city' ? null : B.mirrormaster.sealTimes[d - 1] ?? null, warned: false, sealedSaid: false, startRooms,
+    level: d, map, monsters: [], loot: [], caches: [], projectiles: [], zones: [], zoneTick: 0, toExit, maxExitDist,
+    sealAt: openReach(t) ? null : B.mirrormaster.sealTimes[d - 1] ?? null, warned: false, sealedSaid: false, startRooms,
     warden: last, stairs: [], districts: null, floorDistrict: null, floor: 1,
   };
   const level = monsterLevel(t, d);
@@ -762,7 +917,7 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
     }
   }
   // Feature-013: grupper i minernes gange, aldrig tæt på spillernes startrum.
-  if (t.reach !== 'city') {
+  if (!openReach(t)) {
     const inRoom = (x: number, y: number) => map.rooms.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
     const groups = B.monsters.corridorGroups + (d - 1);
     for (let i = 0, tries = 0; i < groups && tries < 400; tries++) {
@@ -777,7 +932,7 @@ function populate(t: Tithe, d: number, map: DepthMap, last: boolean, start: Room
   }
   if (map.wardenRoom) {
     const wr = map.wardenRoom;
-    const foreman = makeMonster(t, t.reach === 'city' ? 'smelter' : 'foreman', wr.cx + 0.5, wr.cy + 0.5, level);
+    const foreman = makeMonster(t, WARDEN_TYPE[t.reach] ?? 'foreman', wr.cx + 0.5, wr.cy + 0.5, level);
     foreman.hp = Math.round(foreman.hp * t.wardenHpFactor);
     dep.monsters.push(foreman);
     for (let i = 0; i < 2; i++) {
@@ -800,16 +955,25 @@ function makeMonster(t: Tithe, type: string, x: number, y: number, level: number
   // Feature-011: liv +40 % og skade +30 % pr. level, fra grundværdier, der er 40 % og 25 % højere.
   const hp = Math.round(def.hp * (def.warden ? 1 : M.hpFactor) * (1 + M.hpPerLevel * (level - 1)));
   const dmg = (def.warden ? 1 : M.damageFactor) * (1 + M.damagePerLevel * (level - 1));
+  // Feature-011: for hvert level over 1 også 1 rustning pr. 2 levels, 2 % hurtigere slag (højst 30 %) og 1 % hurtigere (højst 20 %).
+  const above = Math.max(0, level - 1);
+  const quick = 1 - Math.min(M.maxQuick, M.quickPerLevel * above);
+  const fleet = 1 + Math.min(M.maxFleet, M.fleetPerLevel * above);
   return {
     kind: 'monster', id: nid(t, 'm'), type, def, name: def.name, level, x, y, r: def.radius, hp, maxHp: hp,
-    min: def.min * dmg, max: def.max * dmg, armour: def.armour ?? 0, attackCd: t.rng.range(0, def.cooldown), windup: 0, aim: null,
+    min: def.min * dmg, max: def.max * dmg, armour: (def.armour ?? 0) + Math.floor(above / M.levelsPerArmour), quick, fleet,
+    attackCd: t.rng.range(0, def.cooldown * quick), windup: 0, aim: null,
     flash: 0, awake: false, summonT: def.summonEvery ?? 0, facing: { x: 1, y: 0 }, dead: false, summoned: false, veteran: false,
     regenStopAt: 0, healT: t.B.monsters.traits.healEvery, dodgeCd: 0, risen: false,
+    slowT: 0, rootT: 0, stunT: 0, lure: null, lureT: 0, markT: 0, markBy: null,
   };
 }
 
+/** Feature-050: magiske og sjældne ting, der findes i en Tithe, er uidentificerede. */
 function newItem(t: Tithe, level: number, opts: ItemOptions): Item {
-  return generateItem(t.rng, level, t.B, opts);
+  const item = generateItem(t.rng, level, t.B, opts);
+  if (item.rarity !== 'common') item.identified = false;
+  return item;
 }
 
 // --- Hjælpere -----------------------------------------------------------------------------------
@@ -882,7 +1046,7 @@ function placeRival(t: Tithe, dep: Depth, r: Rival): void {
   const players = playersOn(t, dep.level);
   let pos: { x: number; y: number } | null = null;
   if (r.progress < 0.08) {
-    pos = randomFloorInRoom(t.rng, map, t.reach === 'city' ? t.rng.pick(dep.startRooms) : map.startRoom);
+    pos = randomFloorInRoom(t.rng, map, openReach(t) ? t.rng.pick(dep.startRooms) : map.startRoom);
   } else {
     const target = (1 - r.progress) * dep.maxExitDist;
     let bestScore = Infinity;
@@ -931,12 +1095,12 @@ function syncRivalPresence(t: Tithe): void {
 
 /** Feature-012: i byen er et distrikt tættere på midten en dybere dybde, med Renown første gang. */
 function reachWard(t: Tithe, p: Player): void {
-  if (t.reach !== 'city') return;
+  if (!openReach(t)) return;
   const d = districtAt(t, p.depth, p.x, p.y);
   if (d === null || d <= p.record.maxDepth) return;
   p.record.maxDepth = d;
   addRenown(t, p, t.B.renown.depth);
-  say(t, 'Mirrormaster', fmt(LINES.ward, { ward: t.B.city.wards[d - 1]! }), p.id);
+  say(t, 'Mirrormaster', fmt(LINES.ward, { ward: openCfg(t).wards[d - 1]! }), p.id);
 }
 
 function enterDepth(t: Tithe, p: Player, d: number): void {
@@ -1031,7 +1195,8 @@ export type SheetAction =
   | { action: 'equip'; itemId: string; ring?: 'ring1' | 'ring2' }
   | { action: 'unequip'; slot: EquipSlot }
   | { action: 'drop'; itemId: string }
-  | { action: 'hotbar'; key: HotbarKey; itemId?: string; echoArt?: EchoArt }
+  | { action: 'hotbar'; key: HotbarKey; itemId?: string; echoArt?: EchoArt; talent?: TalentId }
+  | { action: 'reveal'; itemId: string }
   | { action: 'clear'; key: HotbarKey }
   | { action: 'attribute'; attribute: Attribute }
   | { action: 'skill'; skill: SkillId };
@@ -1076,14 +1241,37 @@ export function sheetAction(t: Tithe, playerId: string, a: SheetAction): SheetRe
     }
     case 'hotbar': {
       if (!HOTBAR_KEYS.includes(a.key)) return 'invalid';
-      if (a.echoArt !== undefined) {
-        if (!ECHO_ARTS.includes(a.echoArt)) return 'invalid';
+      if (a.talent !== undefined) {
+        // Feature-027: kun karakterens eget talent (Feature-049).
+        if (a.talent !== talentOf(ch.background, t.B)) return 'invalid';
+        p.hotbar = assignHotbarKey(p.hotbar, a.key, { talent: a.talent });
+      } else if (a.echoArt !== undefined) {
+        // Feature-027: kun en Echo Art, karakteren kender (Feature-048).
+        if (!ECHO_ARTS.includes(a.echoArt) || !knowsArt(ch, a.echoArt, t.B)) return 'invalid';
         p.hotbar = assignHotbarKey(p.hotbar, a.key, { echoArt: a.echoArt });
       } else {
         const item = [...ch.inventory, ch.equipment.melee, ch.equipment.ranged].find((i) => i?.id === a.itemId);
         if (!item || item.slot !== 'weapon' || !owns(item.id)) return 'invalid';
         p.hotbar = assignHotbarKey(p.hotbar, a.key, { weapon: item.id });
       }
+      break;
+    }
+    case 'reveal': {
+      // Feature-050 CMD-01 Reveal item: 10 focus pr. forsøg, chancen vokser med Reveal, og hvert forsøg træner Reveal.
+      const R = t.B.reveal;
+      const item: Item | undefined = [...ch.inventory, ...(Object.values(ch.equipment) as (Item | null | undefined)[])].find((i): i is Item => i?.id === a.itemId);
+      if (!item || item.identified !== false) return 'invalid';
+      if (p.focus < R.focus) return null; // uden focus nok sker intet
+      p.focus -= R.focus;
+      const chance = revealChance(effectiveSkill(ch, 'reveal', t.B), item, t.B);
+      if (t.reach !== 'arena') {
+        const gained = addSkillXp(ch, 'reveal', R.xpPerTry, t.B);
+        if (gained) float(t, p.depth, p.x, p.y - 1, `Reveal ${ch.skills.reveal.level}`, '#7fd1ff', 16, p.id);
+      }
+      if (t.rng.chance(chance)) {
+        item.identified = true;
+        float(t, p.depth, p.x, p.y - 0.6, item.name, RARITY_COLORS[item.rarity], 14, p.id);
+      } else float(t, p.depth, p.x, p.y - 0.6, 'The item keeps its secrets.', '#c9c3b8', 13, p.id);
       break;
     }
     case 'clear':
@@ -1143,6 +1331,7 @@ export function stepTithe(t: Tithe, dt: number): void {
     updateMonsters(t, dep, dt);
     updateRivals(t, dep, dt);
     updateProjectiles(t, dep, dt);
+    updateZones(t, dep, dt);
     dep.monsters = dep.monsters.filter((m) => !m.dead);
     separate(t, dep);
     pickups(t, dep);
@@ -1163,9 +1352,18 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   const s = p.stats;
   const B = t.B;
   p.attackCd = Math.max(0, p.attackCd - dt);
-  p.boltCd = Math.max(0, p.boltCd - dt);
+  p.talentCd = Math.max(0, p.talentCd - dt);
+  // Feature-013/-045: et slag eller et kast afslører kandidaten i 1,5 sekund – også i The Woods.
+  p.revealT = Math.max(0, p.revealT - dt);
+  for (const art of Object.keys(p.artCd) as EchoArt[]) {
+    const left = (p.artCd[art] ?? 0) - dt;
+    if (left > 0) p.artCd[art] = left;
+    else delete p.artCd[art];
+  }
+  updateBuffs(t, p, dt);
   p.dodgeCd = Math.max(0, p.dodgeCd - dt);
   p.potionCd = Math.max(0, p.potionCd - dt);
+  p.focusPotionCd = Math.max(0, p.focusPotionCd - dt);
   p.drawT = Math.max(0, p.drawT - dt);
   p.flash = Math.max(0, p.flash - dt);
   p.swing = Math.max(0, p.swing - dt);
@@ -1184,7 +1382,7 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   const starving = p.hunger <= 0;
   p.stamina = Math.min(s.maxStamina, p.stamina + s.staminaRegen * (starving ? B.hunger.starvingStaminaRegen : 1) * dt);
   p.focus = Math.min(s.maxFocus, p.focus + s.focusRegen * dt);
-  if (!starving) p.hp = Math.min(s.maxHp, p.hp + B.character.hpRegen * dt);
+  if (!starving) p.hp = Math.min(s.maxHp, p.hp + s.hpRegen * dt); // Feature-007: med amulettens liv i sekundet
 
   let mx = p.input.moveX;
   let my = p.input.moveY;
@@ -1195,14 +1393,16 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   }
   const acts = p.acts.splice(0);
   for (const a of acts) {
-    if (a.act === 'dodge' && p.dodgeCd <= 0 && p.dodgeT <= 0 && p.stamina >= B.combat.dodgeCost) {
+    const dodgeCost = B.combat.dodgeCost * s.staminaCostMult; // Feature-007: en tung last gør dodge dyrere
+    if (a.act === 'dodge' && p.dodgeCd <= 0 && p.dodgeT <= 0 && p.stamina >= dodgeCost) {
       const l = Math.hypot(mx, my);
       p.dodgeDir = l > 0.1 ? { x: mx / l, y: my / l } : { ...p.facing };
       p.dodgeT = B.combat.dodgeTime;
       p.dodgeCd = B.combat.dodgeCooldown;
-      p.stamina -= B.combat.dodgeCost;
+      p.stamina -= dodgeCost;
     } else if (a.act === 'potion') drinkPotion(t, p);
     else if (a.act === 'ration') eatRation(t, p);
+    else if (a.act === 'focusPotion') drinkFocusPotion(t, p);
     else if (a.act === 'hotkey') useHotkey(t, p, a.key);
     else if (a.act === 'interact') {
       if (p.interact === 'descend' && p.depth < B.tithe.depths) {
@@ -1226,14 +1426,14 @@ function updatePlayer(t: Tithe, p: Player, dt: number): void {
   } else if (len > 0.05) {
     const l = Math.hypot(mx, my);
     p.facing = { x: mx / l, y: my / l };
-    const speed = s.moveSpeed * (p.slowT > 0 ? B.monsters.traits.slowFactor : 1);
+    // Feature-047 Crown of Echoes: hurtigere til fods.
+    const speed = s.moveSpeed * (p.slowT > 0 ? B.monsters.traits.slowFactor : 1) * (1 + buffValue(p, 'crown')) * (1 + buffValue(p, 'haste'));
     moveWithCollision(dep.map, p, mx * speed * dt, my * speed * dt);
   }
   // Feature-028 EVT-01: Attack bruger det valgte – våbnet i hånden eller den valgte Echo Art.
   if (p.input.attack && p.dodgeT <= 0) {
-    if (p.chosenArt) {
-      if (p.boltCd <= 0 && p.focus >= s.bolt.focusCost) playerBolt(t, p, dep);
-    } else {
+    if (p.chosenArt) castArt(t, p, dep, p.chosenArt);
+    else {
       const w = s.weapon;
       if (p.attackCd <= 0 && p.stamina >= w.staminaCost && p.drawT <= 0) playerAttack(t, p, dep);
     }
@@ -1250,6 +1450,18 @@ function drinkPotion(t: Tithe, p: Player): void {
   p.potionCd = t.B.combat.potionCooldown;
   p.sheetVersion += 1;
   float(t, p.depth, p.x, p.y - 0.6, `+${heal}`, '#6f6', 15);
+}
+
+/** Feature-008 CMD-03 og Feature-013 CMD-04: 40 % af max focus, én gang i sekundet og kun, når focus ikke er fuld. */
+function drinkFocusPotion(t: Tithe, p: Player): void {
+  const s = p.stats;
+  if ((p.ch.focusPotions ?? 0) <= 0 || p.focusPotionCd > 0 || p.focus >= s.maxFocus) return;
+  p.ch.focusPotions -= 1;
+  const gain = Math.round(s.maxFocus * t.B.combat.focusPotionRestore);
+  p.focus = Math.min(s.maxFocus, p.focus + gain);
+  p.focusPotionCd = t.B.combat.potionCooldown;
+  p.sheetVersion += 1;
+  float(t, p.depth, p.x, p.y - 0.6, `+${gain} focus`, '#8fc1ff', 15);
 }
 
 /** Feature-008 CMD-02: 45 sult, og kun når sulten er under 95 af 100. */
@@ -1272,6 +1484,11 @@ function useHotkey(t: Tithe, p: Player, key: HotbarKey): void {
   if (!slot) return;
   if ('echoArt' in slot) {
     p.chosenArt = slot.echoArt;
+    return;
+  }
+  // Feature-028/-049: en tast med talentet bruger det med det samme og vælger intet.
+  if ('talent' in slot) {
+    useTalent(t, p);
     return;
   }
   const eq = p.ch.equipment;
@@ -1320,7 +1537,7 @@ function stairAt(t: Tithe, p: Player): StairLink | null {
 
 /** Wardens navn: The Foreman i minerne, The Smelter i byen. */
 export function wardenName(t: Tithe): string {
-  return t.reach === 'city' ? t.B.monsters.types.smelter!.name : t.B.monsters.types.foreman!.name;
+  return t.B.monsters.types[WARDEN_TYPE[t.reach] ?? 'foreman']!.name;
 }
 
 /** Feature-015 CMD-01: porten er kun åben for partiet hos den, der slog The Foreman. */
@@ -1376,22 +1593,25 @@ function aimAt(from: Vec, target: Vec | null, fallback: Vec): Vec {
 
 function playerAttack(t: Tithe, p: Player, dep: Depth): void {
   const w = p.stats.weapon;
-  const target = pickTarget(t, p, dep, w.ranged ? w.range : w.reach + 1.2);
+  const swing = meleeSwing(t, p);
+  const target = pickTarget(t, p, dep, w.ranged ? w.range : swing.reach + 1.2);
   const dir = aimAt(p, target, p.facing);
   p.facing = dir;
-  p.revealT = t.B.arena.revealSeconds; // Feature-045: et slag afslører kæmperen i en busk
-  p.attackCd = w.cooldown;
+  unhide(t, p); // Feature-045/-049: et slag afslører kæmperen i en busk og ender Hide
+  // Feature-047 Chorus of the Branded og Feature-049 Haste (kun skud).
+  const haste = w.ranged ? 1 + buffValue(p, 'haste') : 1;
+  p.attackCd = w.cooldown / (1 + buffValue(p, 'chorus')) / haste;
   p.stamina -= w.staminaCost;
   if (w.ranged) {
     const roll = rollDamage(t, w.min, w.max, w.damageMult, p.stats.critChance);
-    shoot(t, dep, p, dir, { ...roll, speed: t.B.combat.arrowSpeed, range: w.range, skill: w.skill, kind: 'arrow', faction: 'player' });
+    shoot(t, dep, p, dir, { ...roll, speed: t.B.combat.arrowSpeed * haste, range: w.range, skill: w.skill, kind: 'arrow', faction: 'player' });
     return;
   }
   p.swing = 0.15;
   p.swingDir = dir;
-  p.swingArc = w.arc;
-  p.swingReach = w.reach;
-  const hits = meleeHits(dep, p, dir, w.reach + 0.3, w.arc, targetsFor(t, p, dep));
+  p.swingArc = swing.arc;
+  p.swingReach = swing.reach;
+  const hits = meleeHits(dep, p, dir, swing.reach + 0.3, swing.arc, targetsFor(t, p, dep));
   hits.forEach((e, i) => {
     const roll = rollDamage(t, w.min, w.max, w.damageMult, p.stats.critChance);
     damage(t, dep, p, e, roll.amount, roll.crit, { skill: w.skill, train: i < t.B.skills.maxHitsPerSwing });
@@ -1404,12 +1624,474 @@ function playerBolt(t: Tithe, p: Player, dep: Depth): void {
   const target = pickTarget(t, p, dep, b.range);
   const dir = aimAt(p, target, p.facing);
   p.facing = dir;
-  p.revealT = t.B.arena.revealSeconds;
-  p.boltCd = b.cooldown;
+  unhide(t, p);
+  p.artCd['Echo Bolt'] = b.cooldown / (1 + buffValue(p, 'chorus'));
   p.focus -= b.focusCost;
   const roll = rollDamage(t, b.min, b.max, b.damageMult, p.stats.critChance);
   shoot(t, dep, p, dir, { ...roll, speed: b.speed, range: b.range, skill: 'echo', kind: 'bolt', faction: 'player' });
 }
+
+// --- Talents (Feature-049 Use a talent) -----------------------------------------------------------
+
+/** Feature-049 Berserk: nærkampens rækkevidde og bue, med Berserk når det varer. */
+function meleeSwing(t: Tithe, p: Player): { reach: number; arc: number } {
+  const w = p.stats.weapon;
+  const berserk = p.buffs.find((b) => b.kind === 'berserk');
+  if (!berserk || w.ranged) return { reach: w.reach, arc: w.arc };
+  const T = t.B.talent.berserk;
+  const s = berserk.value;
+  return {
+    reach: w.reach * (1 + Math.min(T.maxReach, T.reach + T.reachPerSkill * s)),
+    arc: Math.min(360, w.arc + T.arc + T.arcPerSkill * s),
+  };
+}
+
+const talentSeconds = (c: { seconds: number; secondsPerSkill: number; maxSeconds: number }, s: number) =>
+  Math.min(c.maxSeconds, c.seconds + c.secondsPerSkill * s);
+
+/**
+ * Feature-049 CMD-01 Use talent: baggrundens talent bruges med det samme, når der er stamina eller focus nok, og
+ * cooldown er ovre. Tallene vokser med det effektive talent-niveau, og brugen træner talentet (ikke i arenaen).
+ */
+export function useTalent(t: Tithe, p: Player): boolean {
+  const id: TalentId = talentOf(p.ch.background, t.B);
+  const def = t.B.talents[id];
+  const dep = t.depths[p.depth];
+  if (!dep || p.end || p.talentCd > 0) return false;
+  // Feature-007: en tung last gør talents, der koster stamina, dyrere.
+  const cost = def.resource === 'stamina' ? def.cost * p.stats.staminaCostMult : def.cost;
+  if ((def.resource === 'focus' ? p.focus : p.stamina) < cost) return false;
+  if (def.resource === 'focus') p.focus -= cost;
+  else p.stamina -= cost;
+  p.talentCd = def.cooldown;
+  const s = effectiveSkill(p.ch, 'talent', t.B);
+  const T = t.B.talent;
+  if (id === 'hide') {
+    addBuff(p, 'hide', talentSeconds(T.hide, s), Math.min(T.hide.max, T.hide.base + T.hide.perSkill * s));
+    p.revealT = 0;
+    blast(t, dep, p, 0.8, '#9fb4ff');
+  } else if (id === 'berserk') {
+    addBuff(p, 'berserk', talentSeconds(T.berserk, s), s);
+    blast(t, dep, p, 1.2, '#ff6b4a');
+  } else if (id === 'haste') {
+    addBuff(p, 'haste', talentSeconds(T.haste, s), Math.min(T.haste.max, T.haste.base + T.haste.perSkill * s));
+    blast(t, dep, p, 0.9, '#9fe0b0');
+  } else {
+    const H = T.healing;
+    const share = Math.min(H.maxShare, H.share + H.sharePerSkill * s);
+    dep.zones.push({
+      id: nid(t, 'z'), kind: 'heal', x: p.x, y: p.y, r: Math.min(H.maxRadius, H.radius + H.radiusPerSkill * s), draw: 0, dps: share / H.seconds,
+      t: H.seconds, owner: p,
+    });
+  }
+  float(t, dep.level, p.x, p.y - p.r - 0.9, def.name, '#cfe8ff', 11);
+  // Feature-002: brugen træner talentet; intet trænes i arenaen (Feature-045).
+  if (t.reach !== 'arena') {
+    const gained = addSkillXp(p.ch, 'talent', T.xpPerUse, t.B);
+    p.sheetVersion += 1;
+    if (gained) {
+      refreshStats(t, p);
+      float(t, p.depth, p.x, p.y - 1, `${def.name} ${p.ch.skills.talent.level}`, '#7fd1ff', 16, p.id);
+    }
+  }
+  return true;
+}
+
+// --- Echo Arts (Feature-047 Cast an Echo Art) ------------------------------------------------------
+
+/** Virkningens styrke, eller 0 uden den. */
+function buffValue(p: Player, kind: BuffKind): number {
+  return p.buffs.find((b) => b.kind === kind)?.value ?? 0;
+}
+
+/** En ny virkning af samme slags erstatter den gamle. */
+function addBuff(p: Player, kind: BuffKind, seconds: number, value = 0): void {
+  p.buffs = p.buffs.filter((b) => b.kind !== kind);
+  p.buffs.push({ kind, t: seconds, value });
+}
+
+/** Rally Toll, Echo of Courage, Crown of Echoes og Mirror Storm giver mere skade. */
+function artDamageMult(p: Player): number {
+  return 1 + buffValue(p, 'rally') + buffValue(p, 'courage') + buffValue(p, 'crown') + buffValue(p, 'storm');
+}
+
+/** Virkningerne løber ud; Hearth Echo og Crown of Echoes heler, og Cinder Echo lægger flammer efter sig. */
+function updateBuffs(t: Tithe, p: Player, dt: number): void {
+  if (!p.buffs.length) return;
+  const E = t.B.echoArts;
+  for (const b of p.buffs) {
+    b.t -= dt;
+    if (b.kind === 'hearth') p.hp = Math.min(p.stats.maxHp, p.hp + b.value * dt);
+    if (b.kind === 'crown') p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * (E['Crown of Echoes'].regen ?? 0) * dt);
+    if (b.kind === 'cinder') {
+      b.next = (b.next ?? 0) - dt;
+      const dep = t.depths[p.depth];
+      if (b.next <= 0 && dep && !p.end) {
+        b.next = t.B.echo.cinderEvery;
+        dep.zones.push({
+          id: nid(t, 'z'), kind: 'fire', x: p.x, y: p.y, r: t.B.echo.cinderRadius, draw: 0, dps: b.value, t: E['Cinder Echo'].linger ?? 2, owner: p,
+        });
+      }
+    }
+  }
+  p.buffs = p.buffs.filter((b) => b.t > 0);
+}
+
+/** Feature-047: Attack kaster den valgte Echo Art, når karakteren kender den, har fokus nok, og cooldown er ovre. */
+export function castArt(t: Tithe, p: Player, dep: Depth, art: EchoArt): boolean {
+  if ((p.artCd[art] ?? 0) > 0 || !knowsArt(p.ch, art, t.B)) return false;
+  if (art === 'Echo Bolt') {
+    if (p.focus < p.stats.bolt.focusCost) return false;
+    playerBolt(t, p, dep);
+    return true;
+  }
+  const def = t.B.echoArts[art];
+  if (p.focus < def.focus) return false;
+  p.focus -= def.focus;
+  // Echo Chain, Last Words og The Maw Remembers kastes ikke uden et mål: fokus gives tilbage.
+  if (!ART_EFFECTS[art](t, p, dep, def)) {
+    p.focus += def.focus;
+    return false;
+  }
+  p.artCd[art] = def.cooldown / (1 + p.stats.haste); // Feature-007: amulettens haste
+  unhide(t, p); // Feature-045/-049: et kast afslører kæmperen i en busk og ender Hide
+  float(t, dep.level, p.x, p.y - p.r - 0.9, art, '#cfe8ff', 11);
+  return true;
+}
+
+function artRoll(t: Tithe, p: Player, def: EchoArtDef): { amount: number; crit: boolean } {
+  return rollDamage(t, def.min ?? 0, def.max ?? 0, p.stats.bolt.damageMult, p.stats.critChance);
+}
+
+/** Et sted op til `distance` felter fra `from` i retningen `dir`, standset af vægge. */
+function ahead(dep: Depth, from: Vec, distance: number, dir: Vec): Vec {
+  let x = from.x;
+  let y = from.y;
+  for (let d = 0; d < distance; d += 0.1) {
+    const nx = x + dir.x * 0.1;
+    const ny = y + dir.y * 0.1;
+    if (isSolid(dep.map, Math.floor(nx), Math.floor(ny))) break;
+    x = nx;
+    y = ny;
+  }
+  return { x, y };
+}
+
+/** En art, der sigter på et sted, sigter på nærmeste fjende inden for rækkevidde, ellers 4 felter lige frem. */
+function artSpot(t: Tithe, p: Player, dep: Depth, range: number): Vec {
+  const target = pickTarget(t, p, dep, range);
+  if (target) {
+    p.facing = aimAt(p, target, p.facing);
+    return { x: target.x, y: target.y };
+  }
+  return ahead(dep, p, Math.min(range, t.B.echo.ahead), p.facing);
+}
+
+function blast(t: Tithe, dep: Depth, at: Vec, radius: number, color: string): void {
+  t.fx.push({ type: 'blast', depth: dep.level, x: at.x, y: at.y, amount: radius, color });
+}
+
+/** Skade på alle fjender inden for `radius` af stedet, som stedet kan se; højst 3 af dem træner Echo Arts. */
+function areaDamage(t: Tithe, p: Player, dep: Depth, at: Vec, radius: number, def: EchoArtDef): Body[] {
+  const hit = targetsFor(t, p, dep).filter((v) => !v.dead && Math.hypot(v.x - at.x, v.y - at.y) <= radius + v.r
+    && lineOfSight(dep.map, at.x, at.y, v.x, v.y));
+  hit.forEach((v, i) => {
+    const roll = artRoll(t, p, def);
+    damage(t, dep, p, v, roll.amount, roll.crit, { skill: 'echo', train: i < t.B.skills.maxHitsPerSwing });
+  });
+  return hit;
+}
+
+/** Kontrol virker kun på monstre. */
+function monstersNear(dep: Depth, at: Vec, radius: number): Monster[] {
+  return dep.monsters.filter((m) => !m.dead && Math.hypot(m.x - at.x, m.y - at.y) <= radius + m.r);
+}
+
+/** Partiets arts når den, der kaster, og partiet inden for 6 felter – i arenaen siden; alene kun den, der kaster. */
+function partyNear(t: Tithe, p: Player, radius = t.B.echo.partyRadius): Player[] {
+  const list = playersOn(t, p.depth).filter((o) => !o.end && sameParty(o, p) && dist(o, p) <= radius);
+  for (const o of list) t.fx.push({ type: 'blast', depth: p.depth, x: o.x, y: o.y, amount: 0.9, color: '#ffd84a' });
+  return list;
+}
+
+function heal(t: Tithe, p: Player, amount: number): void {
+  const gained = Math.round(Math.min(p.stats.maxHp - p.hp, amount));
+  if (gained <= 0) return;
+  p.hp += gained;
+  float(t, p.depth, p.x, p.y - p.r - 0.4, `+${gained}`, '#6f6', 13);
+}
+
+/** Feature-047 Last Words: det mærkede monster springer for 20–30 skade inden for 2,5 felter. */
+function lastWords(t: Tithe, dep: Depth, m: Monster): void {
+  const by = m.markBy!;
+  m.markT = 0;
+  m.markBy = null;
+  const def = t.B.echoArts['Last Words'];
+  const radius = def.radius ?? 2.5;
+  blast(t, dep, m, radius, '#b48ce0');
+  const hit = targetsFor(t, by, dep).filter((v) => v !== m && !v.dead && dist(v, m) <= radius + v.r && lineOfSight(dep.map, m.x, m.y, v.x, v.y));
+  hit.forEach((v, i) => {
+    const roll = artRoll(t, by, def);
+    damage(t, dep, by, v, roll.amount, roll.crit, { skill: 'echo', train: i < t.B.skills.maxHitsPerSwing });
+  });
+}
+
+/** Feature-047: Hollow Call, et spejlbillede eller et ekko, der trækker monstret til sig. */
+function drawnTo(dep: Depth, m: Monster): Vec | null {
+  if (m.lureT > 0 && m.lure) return m.lure;
+  let best: Zone | null = null;
+  for (const z of dep.zones) {
+    if (z.draw <= 0 || dist(z, m) > z.draw) continue;
+    if (!best || dist(z, m) < dist(best, m)) best = z;
+  }
+  return best;
+}
+
+/** Feature-047: zonerne løber ud; flammer og ekkoer gør skade hvert halve sekund. Flammerne fra én ejer rammer kun én gang. */
+function updateZones(t: Tithe, dep: Depth, dt: number): void {
+  if (!dep.zones.length) return;
+  for (const z of dep.zones) {
+    z.t -= dt;
+    // Feature-049: en Healing Circle flytter sig med den, der lavede den, så længe den er på samme dybde.
+    if (z.kind === 'heal' && !z.owner.end && z.owner.depth === dep.level) {
+      z.x = z.owner.x;
+      z.y = z.owner.y;
+    }
+  }
+  dep.zones = dep.zones.filter((z) => z.t > 0);
+  dep.zoneTick -= dt;
+  if (dep.zoneTick > 0) return;
+  const tick = t.B.echo.zoneTick;
+  dep.zoneTick = tick;
+  const burned = new Map<Player, Set<Body>>();
+  for (const z of dep.zones) {
+    // Feature-049 Healing Circle: følger den, der lavede den, og heler den og dens parti, mens de står i cirklen.
+    if (z.kind === 'heal') {
+      for (const o of playersOn(t, dep.level)) if (sameParty(o, z.owner) && dist(o, z) <= z.r) heal(t, o, o.stats.maxHp * z.dps * tick);
+      continue;
+    }
+    if (z.dps <= 0) continue;
+    let trained = 0;
+    for (const v of targetsFor(t, z.owner, dep)) {
+      if (v.dead || Math.hypot(v.x - z.x, v.y - z.y) > z.r + v.r) continue;
+      if (z.kind === 'fire') {
+        const seen = burned.get(z.owner) ?? new Set<Body>();
+        if (seen.has(v)) continue;
+        seen.add(v);
+        burned.set(z.owner, seen);
+      }
+      damage(t, dep, z.owner, v, z.dps * tick, false, { skill: 'echo', train: trained++ < t.B.skills.maxHitsPerSwing });
+    }
+  }
+}
+
+type ArtEffect = (t: Tithe, p: Player, dep: Depth, def: EchoArtDef) => boolean;
+
+/** Feature-047: hvad hver Echo Art gør (Echo Bolt kastes som i Feature-011). Returnerer false, når den ikke kastes. */
+const ART_EFFECTS: Record<Exclude<EchoArt, 'Echo Bolt'>, ArtEffect> = {
+  'Ringing Ward': (t, p, dep, def) => {
+    addBuff(p, 'ward', def.seconds ?? 4, def.value ?? 0.75);
+    blast(t, dep, p, 0.8, '#bfe6ff');
+    return true;
+  },
+  'Hollow Call': (t, p, dep, def) => {
+    const spot = artSpot(t, p, dep, def.range ?? 7);
+    for (const m of monstersNear(dep, spot, def.radius ?? 6)) {
+      m.lure = { ...spot };
+      m.lureT = def.seconds ?? 3;
+      m.awake = true;
+    }
+    blast(t, dep, spot, 0.8, '#9fb4ff');
+    return true;
+  },
+  'Shared Breath': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) o.stamina = Math.min(o.stats.maxStamina, o.stamina + (def.value ?? 15));
+    return true;
+  },
+  'Crystal Cage': (t, p, dep, def) => {
+    const spot = artSpot(t, p, dep, def.range ?? 7);
+    for (const m of monstersNear(dep, spot, def.radius ?? 2)) m.rootT = Math.max(m.rootT, def.seconds ?? 3);
+    blast(t, dep, spot, def.radius ?? 2, '#bfe6ff');
+    return true;
+  },
+  'Step Through the Echo': (t, p, dep, def) => {
+    const l = Math.hypot(p.input.moveX, p.input.moveY);
+    const dir = l > 0.1 ? { x: p.input.moveX / l, y: p.input.moveY / l } : { ...p.facing };
+    blast(t, dep, p, 0.6, '#cfe8ff');
+    for (let d = 0; d < (def.range ?? 4); d += 0.1) {
+      const nx = p.x + dir.x * 0.1;
+      const ny = p.y + dir.y * 0.1;
+      if (collides(dep.map, nx, ny, p.r)) break;
+      p.x = nx;
+      p.y = ny;
+    }
+    p.facing = dir;
+    blast(t, dep, p, 0.6, '#cfe8ff');
+    return true;
+  },
+  'Rally Toll': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) addBuff(o, 'rally', def.seconds ?? 10, def.value ?? 0.15);
+    return true;
+  },
+  'Shatterpulse': (t, p, dep, def) => {
+    const spot = artSpot(t, p, dep, def.range ?? 7);
+    blast(t, dep, spot, def.radius ?? 2, '#cfe8ff');
+    areaDamage(t, p, dep, spot, def.radius ?? 2, def);
+    return true;
+  },
+  'Mirror Double': (t, p, dep, def) => {
+    const spot = ahead(dep, p, def.range ?? 2, p.facing);
+    dep.zones.push({ id: nid(t, 'z'), kind: 'mirror', x: spot.x, y: spot.y, r: 0.4, draw: def.radius ?? 8, dps: 0, t: def.seconds ?? 5, owner: p });
+    blast(t, dep, spot, 0.8, '#cfe8ff');
+    return true;
+  },
+  'Hearth Echo': (t, p, _dep, def) => {
+    const seconds = def.seconds ?? 5;
+    for (const o of partyNear(t, p)) addBuff(o, 'hearth', seconds, (o.stats.maxHp * (def.value ?? 0.2)) / seconds);
+    return true;
+  },
+  'Hunger of the Maw': (t, p, dep, def) => {
+    const reach = def.range ?? 3;
+    const dir = aimAt(p, pickTarget(t, p, dep, reach), p.facing);
+    Object.assign(p, { facing: dir, swing: 0.2, swingDir: dir, swingArc: def.arc ?? 90, swingReach: reach });
+    let dealt = 0;
+    meleeHits(dep, p, dir, reach, def.arc ?? 90, targetsFor(t, p, dep)).forEach((v, i) => {
+      const roll = artRoll(t, p, def);
+      dealt += damage(t, dep, p, v, roll.amount, roll.crit, { skill: 'echo', train: i < t.B.skills.maxHitsPerSwing });
+    });
+    heal(t, p, dealt * (def.value ?? 0.3));
+    return true;
+  },
+  'Resonant Line': (t, p, dep, def) => {
+    const dir = aimAt(p, pickTarget(t, p, dep, def.range ?? 8), p.facing);
+    p.facing = dir;
+    const roll = artRoll(t, p, def);
+    shoot(t, dep, p, dir, { ...roll, speed: t.B.echo.toneSpeed, range: def.range ?? 8, skill: 'echo', kind: 'tone', faction: 'player', pierce: true });
+    return true;
+  },
+  'Chorus of the Branded': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) addBuff(o, 'chorus', def.seconds ?? 8, def.value ?? 0.2);
+    return true;
+  },
+  'Toll of Stillness': (t, p, dep, def) => {
+    for (const m of monstersNear(dep, p, def.radius ?? 3)) m.stunT = Math.max(m.stunT, m.def.warden ? def.warden ?? 0.5 : def.seconds ?? 1.5);
+    blast(t, dep, p, def.radius ?? 3, '#e8e2d6');
+    return true;
+  },
+  'Cinder Echo': (_t, p, _dep, def) => {
+    addBuff(p, 'cinder', def.seconds ?? 6, (def.value ?? 8) * p.stats.bolt.damageMult);
+    return true;
+  },
+  'Crystal Mantle': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) addBuff(o, 'mantle', def.seconds ?? 15, def.value ?? 8);
+    return true;
+  },
+  'Echo Chain': (t, p, dep, def) => {
+    const first = pickTarget(t, p, dep, def.range ?? 7);
+    if (!first) return false;
+    p.facing = aimAt(p, first, p.facing);
+    const hits: Body[] = [first];
+    const all = targetsFor(t, p, dep);
+    for (let j = 0; j < (def.jumps ?? 3); j++) {
+      const last = hits[hits.length - 1]!;
+      let next: Body | null = null;
+      for (const e of all) {
+        if (e.dead || hits.includes(e) || dist(e, last) > (def.radius ?? 4) || !lineOfSight(dep.map, last.x, last.y, e.x, e.y)) continue;
+        if (!next || dist(e, last) < dist(next, last)) next = e;
+      }
+      if (!next) break;
+      hits.push(next);
+    }
+    let from: Vec = p;
+    hits.forEach((v, i) => {
+      t.fx.push({ type: 'beam', depth: dep.level, x: from.x, y: from.y, x2: v.x, y2: v.y, color: '#9fd8ff' });
+      from = { x: v.x, y: v.y };
+      const roll = artRoll(t, p, def);
+      damage(t, dep, p, v, roll.amount, roll.crit, { skill: 'echo', train: i < t.B.skills.maxHitsPerSwing });
+    });
+    return true;
+  },
+  'Last Words': (t, p, dep, def) => {
+    let best: Monster | null = null;
+    for (const m of dep.monsters) {
+      if (m.dead || dist(m, p) - m.r > (def.range ?? 7) || !lineOfSight(dep.map, p.x, p.y, m.x, m.y)) continue;
+      if (!best || dist(m, p) < dist(best, p)) best = m;
+    }
+    if (!best) return false;
+    best.markT = def.seconds ?? 10;
+    best.markBy = p;
+    best.awake = true;
+    float(t, dep.level, best.x, best.y - best.r - 0.5, 'Marked', '#b48ce0', 12);
+    return true;
+  },
+  "Brand's Refusal": (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) addBuff(o, 'refusal', def.seconds ?? 60);
+    return true;
+  },
+  'Mirror Storm': (t, p, dep, def) => {
+    addBuff(p, 'storm', def.seconds ?? 6, def.value ?? 1.5);
+    blast(t, dep, p, 1.2, '#cfe8ff');
+    return true;
+  },
+  'The Maw Remembers': (t, p, dep, def) => {
+    const kills = p.recentKills.filter((k) => t.time - k.t <= (def.linger ?? 5)).slice(-t.B.echo.maxEchoes);
+    if (!kills.length) return false;
+    p.recentKills = [];
+    for (const k of kills) {
+      dep.zones.push({
+        id: nid(t, 'z'), kind: 'echo', x: k.x, y: k.y, r: def.hitRadius ?? 1.6, draw: def.radius ?? 4, dps: (def.value ?? 10) * p.stats.bolt.damageMult,
+        t: def.seconds ?? 8, owner: p,
+      });
+      blast(t, dep, k, 0.8, '#b48ce0');
+    }
+    return true;
+  },
+  'Echo of Courage': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) {
+      addBuff(o, 'courage', def.seconds ?? 8, def.value ?? 0.1);
+      o.slowT = 0;
+      o.stunT = 0;
+    }
+    return true;
+  },
+  'Shatter the Depth': (t, p, dep, def) => {
+    blast(t, dep, p, def.radius ?? 4, '#cfe8ff');
+    t.fx.push({ type: 'shake', depth: dep.level, amount: 4 });
+    for (const v of areaDamage(t, p, dep, p, def.radius ?? 4, def)) if (isMonster(v)) v.slowT = Math.max(v.slowT, def.seconds ?? 3);
+    return true;
+  },
+  'Unmaking Note': (t, p, dep, def) => {
+    const dir = aimAt(p, pickTarget(t, p, dep, def.range ?? 8), p.facing);
+    p.facing = dir;
+    const roll = artRoll(t, p, def);
+    shoot(t, dep, p, dir, { ...roll, speed: t.B.echo.toneSpeed, range: def.range ?? 8, skill: 'echo', kind: 'note', faction: 'player', unmake: def.value ?? 2 });
+    return true;
+  },
+  'Kindled Brands': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p)) {
+      heal(t, o, o.stats.maxHp * (def.value ?? 0.35));
+      o.focus = Math.min(o.stats.maxFocus, o.focus + o.stats.maxFocus / 2);
+    }
+    return true;
+  },
+  'The Maw Holds Its Breath': (t, p, dep, def) => {
+    for (const m of dep.monsters) if (!m.dead) m.stunT = Math.max(m.stunT, m.def.warden ? def.warden ?? 1 : def.seconds ?? 3);
+    blast(t, dep, p, 6, '#e8e2d6');
+    t.fx.push({ type: 'shake', depth: dep.level, amount: 6 });
+    return true;
+  },
+  'Requiem of the Tithed': (t, p, dep, def) => {
+    blast(t, dep, p, def.radius ?? 6, '#b48ce0');
+    t.fx.push({ type: 'shake', depth: dep.level, amount: 6 });
+    areaDamage(t, p, dep, p, def.radius ?? 6, def);
+    return true;
+  },
+  'Crown of Echoes': (t, p, _dep, def) => {
+    for (const o of partyNear(t, p, def.radius ?? 8)) addBuff(o, 'crown', def.seconds ?? 12, def.value ?? 0.25);
+    addRenown(t, p, def.renown ?? 50);
+    return true;
+  },
+};
 
 function meleeHits(dep: Depth, attacker: Body, dir: Vec, reach: number, arcDeg: number, candidates: Body[]): Body[] {
   const half = ((arcDeg / 2) * Math.PI) / 180;
@@ -1429,6 +2111,8 @@ function meleeHits(dep: Depth, attacker: Body, dir: Vec, reach: number, arcDeg: 
 
 interface Shot {
   area?: number;
+  pierce?: boolean;
+  unmake?: number;
   amount: number;
   crit: boolean;
   speed: number;
@@ -1442,7 +2126,8 @@ function shoot(t: Tithe, dep: Depth, owner: Body, dir: Vec, o: Shot): void {
   dep.projectiles.push({
     id: nid(t, 'p'), x: owner.x + dir.x * 0.4, y: owner.y + dir.y * 0.4, vx: dir.x, vy: dir.y, speed: o.speed, range: o.range,
     traveled: 0, amount: o.amount, crit: o.crit, kind: o.kind, faction: o.faction, owner, done: false,
-    ...(o.skill ? { skill: o.skill } : {}), ...(o.area ? { area: o.area } : {}),
+    ...(o.skill ? { skill: o.skill } : {}), ...(o.area ? { area: o.area } : {}), ...(o.pierce ? { pierce: new Set<Body>() } : {}),
+    ...(o.unmake ? { unmake: o.unmake } : {}),
   });
 }
 
@@ -1454,13 +2139,14 @@ const isMonster = (b: Body | null | undefined): b is Monster => (b as Monster | 
 
 const has = (m: Monster, trait: MonsterTrait) => !!m.def.traits?.includes(trait);
 
+/** Gør skade og returnerer den skade, der blev gjort (0, når slaget ikke ramte). */
 function damage(
   t: Tithe, dep: Depth, attacker: Body | null, target: Body, amount: number, crit: boolean,
-  opts: { skill?: SkillId; train?: boolean; kind?: Projectile['kind'] } = {},
-): void {
-  if (target.dead || t.closed) return;
-  if (isPlayer(target) && target.end) return;
-  if (attacker && !canStrike(t, attacker, target)) return;
+  opts: { skill?: SkillId; train?: boolean; kind?: Projectile['kind']; unmake?: number } = {},
+): number {
+  if (target.dead || t.closed) return 0;
+  if (isPlayer(target) && target.end) return 0;
+  if (attacker && !canStrike(t, attacker, target)) return 0;
   const B = t.B;
   const T = B.monsters.traits;
   if (isMonster(target)) {
@@ -1468,7 +2154,7 @@ function damage(
     if (has(target, 'dodges') && target.dodgeCd <= 0 && t.rng.chance(T.dodgeChance)) {
       target.dodgeCd = T.dodgeCooldown;
       float(t, dep.level, target.x, target.y - target.r - 0.2, 'Dodge', '#c9c3b8', 12);
-      return;
+      return 0;
     }
     if (opts.kind === 'arrow' && has(target, 'arrowResistant')) amount *= T.arrowFactor;
     if (opts.skill === 'echo') {
@@ -1476,17 +2162,35 @@ function damage(
       if (has(target, 'regenerates')) target.regenStopAt = t.time + T.regenStopSeconds;
     }
   }
+  // Feature-047: Rally Toll, Echo of Courage, Crown of Echoes og Mirror Storm giver mere skade.
+  if (isPlayer(attacker)) amount *= artDamageMult(attacker);
+  // Feature-047 Unmaking Note: dobbelt mod en med rustning.
+  const targetArmour = isPlayer(target) ? target.stats.armour : target.armour;
+  if (opts.unmake && targetArmour > 0) amount *= opts.unmake;
   if (isPlayer(target)) {
-    if (target.dodgeT > 0) return; // Feature-013: et dodge kan ikke rammes
-    // Feature-013: Rust Ooze ætser rustningen.
-    const armour = Math.max(0, target.stats.armour - (target.corrodeT > 0 ? T.corrodeArmour : 0));
+    if (target.dodgeT > 0) return 0; // Feature-013: et dodge kan ikke rammes
+    // Feature-047 Ringing Ward: det næste slag mister 75 % af sin skade.
+    const ward = target.buffs.find((b) => b.kind === 'ward');
+    if (ward) {
+      amount *= 1 - ward.value;
+      target.buffs = target.buffs.filter((b) => b !== ward);
+      float(t, dep.level, target.x, target.y - target.r - 0.6, 'Warded', '#bfe6ff', 12);
+    }
+    // Feature-013: Rust Ooze ætser rustningen; Feature-047 Crystal Mantle giver mere.
+    const armour = Math.max(0, target.stats.armour + buffValue(target, 'mantle') - (target.corrodeT > 0 ? T.corrodeArmour : 0));
     amount *= 1 - armour / (armour + B.combat.armourFactor);
     if (isMonster(attacker)) afflict(t, attacker, target);
   } else {
     amount *= 1 - target.armour / (target.armour + B.combat.armourFactor);
   }
   amount = Math.max(1, Math.round(amount));
-  target.hp -= amount;
+  // Feature-047 Brand's Refusal: det næste dræbende slag efterlader 1 liv.
+  const refused = isPlayer(target) && target.hp - amount <= 0 && target.buffs.some((b) => b.kind === 'refusal');
+  if (refused) {
+    target.buffs = target.buffs.filter((b) => b.kind !== 'refusal');
+    target.hp = 1;
+    float(t, dep.level, target.x, target.y - target.r - 0.6, 'Refused!', '#ffd84a', 16);
+  } else target.hp -= amount;
   target.flash = 0.12;
   const color = isPlayer(target) ? '#ff6b6b' : crit ? '#ffd84a' : '#ffffff';
   float(t, dep.level, target.x, target.y - target.r - 0.2, String(amount), color, crit ? 18 : 14);
@@ -1498,13 +2202,16 @@ function damage(
   if (isRival(target) && isPlayer(attacker)) target.hostileTo.add(attacker.id);
   if (isMonster(target)) target.awake = true;
   if (target.hp <= 0) kill(t, dep, attacker, target, opts);
+  return amount;
 }
 
 /** Feature-013: hvad et monsters slag gør ud over skade: langsom, lammet, ætset eller drænet. */
 function afflict(t: Tithe, m: Monster, p: Player): void {
   const T = t.B.monsters.traits;
-  if (has(m, 'slows')) p.slowT = Math.max(p.slowT, m.def.slow ?? 2);
-  if (has(m, 'stuns')) p.stunT = Math.max(p.stunT, T.stunSeconds);
+  // Feature-047 Echo of Courage: hverken langsom eller lammet.
+  const brave = p.buffs.some((b) => b.kind === 'courage');
+  if (has(m, 'slows') && !brave) p.slowT = Math.max(p.slowT, m.def.slow ?? 2);
+  if (has(m, 'stuns') && !brave) p.stunT = Math.max(p.stunT, T.stunSeconds);
   if (has(m, 'corrodes')) p.corrodeT = T.corrodeSeconds;
   if (has(m, 'drains')) {
     p.stamina = Math.max(0, p.stamina - T.drainStamina);
@@ -1522,7 +2229,7 @@ function trainSkill(t: Tithe, p: Player, skill: SkillId, target: Body, amount: n
   p.sheetVersion += 1;
   if (gained) {
     refreshStats(t, p);
-    float(t, p.depth, p.x, p.y - 1, `${SKILL_NAMES[skill]} ${p.ch.skills[skill].level}`, '#7fd1ff', 16, p.id);
+    float(t, p.depth, p.x, p.y - 1, `${skillName(skill, p.ch.background, B)} ${p.ch.skills[skill].level}`, '#7fd1ff', 16, p.id);
   }
 }
 
@@ -1562,10 +2269,13 @@ function sponsorDrop(t: Tithe, p: Player, dep: Depth): void {
   const level = monsterLevel(t, dep.level);
   const roll = rng.next();
   const spot = dropSpot(dep, p.x, p.y, rng);
-  if (roll < 0.3) dep.loot.push({ id: nid(t, 'l'), kind: 'item', item: newItem(t, level, { rarity: 'magic' }), ...spot });
-  else if (roll < 0.55) dep.loot.push({ id: nid(t, 'l'), kind: 'potion', ...spot });
-  else if (roll < 0.75) dep.loot.push({ id: nid(t, 'l'), kind: 'ration', ...spot });
-  else dep.loot.push({ id: nid(t, 'l'), kind: 'gold', amount: level * 12, ...spot });
+  const odds = t.B.loot.sponsorOdds;
+  // Feature-017: en ting, der er magisk én gang ud af tre.
+  if (roll < odds.item) dep.loot.push({ id: nid(t, 'l'), kind: 'item', item: newItem(t, level, { rarity: rng.chance(t.B.loot.sponsorMagicChance) ? 'magic' : 'common' }), ...spot });
+  else if (roll < odds.item + odds.potion) dep.loot.push({ id: nid(t, 'l'), kind: 'potion', ...spot });
+  else if (roll < odds.item + odds.potion + odds.focusPotion) dep.loot.push({ id: nid(t, 'l'), kind: 'focusPotion', ...spot });
+  else if (roll < odds.item + odds.potion + odds.focusPotion + odds.ration) dep.loot.push({ id: nid(t, 'l'), kind: 'ration', ...spot });
+  else dep.loot.push({ id: nid(t, 'l'), kind: 'gold', amount: level * t.B.loot.sponsorGoldPerLevel, ...spot });
   addRenown(t, p, t.B.renown.streak);
   say(t, 'Mirrormaster', fmt(LINES.sponsor, { house }));
   t.fx.push({ type: 'shake', depth: dep.level, amount: 3, to: p.id });
@@ -1588,6 +2298,14 @@ interface DropOptions {
   consumableChance?: number;
 }
 
+/** Feature-011: en Veteran giver guld (60 %) og en ting (50 %), oftere magisk end ellers, og en forsyning (15 %). */
+function veteranLoot(t: Tithe): DropOptions {
+  const V = t.B.loot.veteran;
+  const roll = t.rng.next();
+  const rarity: Rarity = roll < V.rare ? 'rare' : roll < V.rare + V.magic ? 'magic' : 'common';
+  return { goldChance: V.goldChance, itemChance: V.itemChance, rarities: [rarity], consumableChance: t.B.loot.veteranConsumableChance };
+}
+
 function dropLoot(t: Tithe, dep: Depth, x: number, y: number, level: number, opts: DropOptions = {}): void {
   const L = t.B.loot;
   const rng = t.rng;
@@ -1601,7 +2319,9 @@ function dropLoot(t: Tithe, dep: Depth, x: number, y: number, level: number, opt
     dep.loot.push({ id: nid(t, 'l'), kind: 'item', item: newItem(t, level, rarity ? { rarity } : {}), ...dropSpot(dep, x, y, rng) });
   }
   if (rng.chance(opts.consumableChance ?? L.consumableChance)) {
-    dep.loot.push({ id: nid(t, 'l'), kind: rng.chance(0.5) ? 'potion' : 'ration', ...dropSpot(dep, x, y, rng) });
+    // Feature-011: en potion, en focus potion eller en ration, en tredjedel hver.
+    const kind = rng.pick(['potion', 'focusPotion', 'ration'] as const);
+    dep.loot.push({ id: nid(t, 'l'), kind, ...dropSpot(dep, x, y, rng) });
   }
 }
 
@@ -1620,7 +2340,10 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
   t.fx.push({ type: 'death', depth: dep.level, x: target.x, y: target.y, kind: (target as { kind?: string }).kind ?? 'monster' });
 
   if (isMonster(target)) {
+    // Feature-047 Last Words: et mærket monster springer, når det dør.
+    if (target.markT > 0 && target.markBy) lastWords(t, dep, target);
     if (p) {
+      p.recentKills.push({ x: target.x, y: target.y, t: t.time });
       p.record.kills += 1;
       gainEcho(t, p, Math.round(target.def.echo * target.level * p.stats.echoGain));
       if (opts.skill) trainSkill(t, p, opts.skill, target, B.skills.xpPerKill);
@@ -1628,7 +2351,7 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
       // Monstre, som Mirrormaster eller The Foreman kalder frem, giver hverken loot eller drabsserie.
       if (!target.def.warden && !target.summoned) {
         dropLoot(t, dep, target.x, target.y, target.level, target.veteran
-          ? { goldChance: 1, items: 1, rarities: [t.rng.chance(0.3) ? 'rare' : 'magic'], consumableChance: 0.5 }
+          ? veteranLoot(t)
           : target.def.itemChance !== undefined ? { itemChance: target.def.itemChance } : {});
         registerKill(t, p, dep);
       }
@@ -1641,7 +2364,8 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
         for (const x of t.players) if (sameParty(x, p)) t.gateOpenFor.add(x.id);
         p.record.wardenSlain = true;
         addRenown(t, p, B.renown.warden);
-        dropLoot(t, dep, target.x, target.y, target.level + 1, { goldChance: 1, items: 3, rarities: ['rare', 'magic', 'magic'], consumableChance: 1 });
+        // Feature-011: Warden giver guld og én magisk ting – sjælden én gang ud af fire.
+        dropLoot(t, dep, target.x, target.y, target.level + 1, { goldChance: 1, items: 1, rarities: [t.rng.chance(B.loot.wardenRareChance) ? 'rare' : 'magic'], consumableChance: 1 });
         say(t, 'Mirrormaster', fmt(LINES.wardenSlain, { name: p.name, warden: wardenName(t) }));
         t.fx.push({ type: 'shake', depth: dep.level, amount: 8 });
       } else if (isRival(killer)) {
@@ -1659,7 +2383,7 @@ function kill(t: Tithe, dep: Depth, killer: Body | null, target: Body, opts: { s
       p.record.rivalsDefeated += 1;
       addRenown(t, p, B.renown.rival);
       gainEcho(t, p, Math.round(target.level * 12 * p.stats.echoGain));
-      dropLoot(t, dep, target.x, target.y, target.level, { goldChance: 1, itemChance: 0.5, consumableChance: 0.5 });
+      dropLoot(t, dep, target.x, target.y, target.level, { goldChance: 1, itemChance: B.loot.rivalItemChance, consumableChance: B.loot.rivalConsumableChance });
       registerKill(t, p, dep);
     }
     return;
@@ -1765,7 +2489,19 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     m.attackCd = Math.max(0, m.attackCd - dt);
     m.flash = Math.max(0, m.flash - dt);
     m.dodgeCd = Math.max(0, m.dodgeCd - dt);
+    m.slowT = Math.max(0, m.slowT - dt);
+    m.rootT = Math.max(0, m.rootT - dt);
+    m.lureT = Math.max(0, m.lureT - dt);
+    m.markT = Math.max(0, m.markT - dt);
     const T = t.B.monsters.traits;
+    // Feature-047: lammet kan monstret hverken gå eller slå; et angreb på vej går tabt.
+    if (m.stunT > 0) {
+      m.stunT = Math.max(0, m.stunT - dt);
+      m.windup = 0;
+      continue;
+    }
+    // Feature-047: rodfæstet står det stille, langsomt går det 40 % langsommere.
+    const speed = m.rootT > 0 ? 0 : def.speed * m.fleet * (m.slowT > 0 ? t.B.echo.slowFactor : 1);
     // Feature-013: Cave Troll heler, medmindre en Echo Bolt ramte den for nylig.
     if (has(m, 'regenerates') && t.time >= m.regenStopAt && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * T.regenPerSecond * dt);
     // Feature-013: Cultist of the Maw heler monstrene omkring sig.
@@ -1786,6 +2522,13 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
       if (m.windup <= 0) resolveMonsterAttack(t, dep, m);
       continue;
     }
+    // Feature-047: Hollow Call, et spejlbillede eller et ekko trækker monstret til sig.
+    const drawn = drawnTo(dep, m);
+    if (drawn) {
+      m.awake = true;
+      if (speed > 0) moveToward(dep, m, drawn.x, drawn.y, speed * dt);
+      continue;
+    }
     // Nærmeste kandidat inden for aggro. Et sovende monster vågner kun ved synskontakt.
     let target: Body | null = null;
     let best = Infinity;
@@ -1794,6 +2537,8 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     for (const c of victimsOf(t, dep)) {
       const d = dist(m, c);
       if (d > aggro || d >= best) continue;
+      // Feature-013: i The Woods ser monstrene ikke en kandidat i en busk.
+      if (isPlayer(c) && hiddenFrom(t, c, m)) continue;
       if (def.warden && dep.map.wardenRoom && !inRoom(dep.map.wardenRoom, c, 1)) continue;
       if (!m.awake && !lineOfSight(dep.map, m.x, m.y, c.x, c.y)) continue;
       best = d;
@@ -1801,7 +2546,7 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     }
     if (def.warden) {
       if (!target) {
-        if (dep.map.wardenRoom) moveToward(dep, m, dep.map.wardenRoom.cx + 0.5, dep.map.wardenRoom.cy + 0.5, def.speed * dt);
+        if (dep.map.wardenRoom) moveToward(dep, m, dep.map.wardenRoom.cx + 0.5, dep.map.wardenRoom.cy + 0.5, speed * dt);
         continue;
       }
       if (!t.wardenSaid && isPlayer(target)) {
@@ -1826,18 +2571,18 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
     const d = dist(m, target);
     // Feature-013: Tunnel Goblin flygter under 25 % liv.
     if (has(m, 'flees') && m.hp < m.maxHp * T.fleeBelow) {
-      moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), def.speed * dt);
+      moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), speed * dt);
       continue;
     }
     if (def.ranged) {
       const sees = lineOfSight(dep.map, m.x, m.y, target.x, target.y);
-      if (d < 2.5) moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), def.speed * dt);
+      if (d < 2.5) moveToward(dep, m, m.x - (target.x - m.x), m.y - (target.y - m.y), speed * dt);
       else if (d <= (def.range ?? 6) && sees) {
         if (m.attackCd <= 0) {
           m.windup = def.windup;
           m.aim = { x: target.x, y: target.y };
         }
-      } else chase(dep, m, target, def.speed * dt);
+      } else chase(dep, m, target, speed * dt);
       continue;
     }
     if (d <= (def.reach ?? 1) + target.r) {
@@ -1845,7 +2590,7 @@ function updateMonsters(t: Tithe, dep: Depth, dt: number): void {
         m.windup = def.windup;
         m.aim = aimAt(m, target, m.facing);
       }
-    } else chase(dep, m, target, def.speed * dt);
+    } else chase(dep, m, target, speed * dt);
   }
 }
 
@@ -1858,7 +2603,7 @@ function chase(dep: Depth, m: Monster, target: Body, step: number): void {
 
 function resolveMonsterAttack(t: Tithe, dep: Depth, m: Monster): void {
   const def = m.def;
-  m.attackCd = def.cooldown;
+  m.attackCd = def.cooldown * m.quick; // Feature-011: højere level slår hurtigere
   const victims = victimsOf(t, dep);
   if (def.ranged) {
     const dir = aimAt(m, m.aim, m.facing);
@@ -1891,7 +2636,7 @@ function resolveMonsterAttack(t: Tithe, dep: Depth, m: Monster): void {
 
 function rivalVictims(t: Tithe, dep: Depth, r: Rival): Body[] {
   const list: Body[] = dep.monsters.filter((m) => !m.dead);
-  for (const p of playersOn(t, dep.level)) if (hostile(r, p) && canStrike(t, r, p)) list.push(p);
+  for (const p of playersOn(t, dep.level)) if (hostile(r, p) && canStrike(t, r, p) && !hiddenFrom(t, p, r)) list.push(p);
   return list;
 }
 
@@ -1929,7 +2674,7 @@ function updateRivals(t: Tithe, dep: Depth, dt: number): void {
     }
     if (graceOver(t)) {
       for (const p of playersOn(t, dep.level)) {
-        if (!hostile(r, p)) continue;
+        if (!hostile(r, p) || hiddenFrom(t, p, r)) continue;
         const d = dist(r, p);
         if (d < B.tithe.rivalHuntRange && d < best + 1 && lineOfSight(dep.map, r.x, r.y, p.x, p.y)) {
           best = d;
@@ -2008,26 +2753,26 @@ function rivalFight(t: Tithe, dep: Depth, r: Rival, target: Body, dt: number): v
 }
 
 function sealAtFor(t: Tithe, r: Rival): number | null {
-  if (t.reach === 'city') return t.B.city.sealTimes[rivalDistrict(t, r) - 1] ?? null;
+  if (openReach(t)) return openCfg(t).sealTimes[rivalDistrict(t, r) - 1] ?? null;
   const d = r.depth;
   return t.depths[d] ? t.depths[d].sealAt : t.B.mirrormaster.sealTimes[d - 1] ?? null;
 }
 
 /** I byen krydser rivalerne hele byen på den tid, minernes tre dybder tager (Feature-014). */
 function rivalSeconds(t: Tithe, r: Rival): number {
-  return t.reach === 'city' ? r.secondsPerDepth * t.B.city.rivalDepths : r.secondsPerDepth;
+  return openReach(t) ? r.secondsPerDepth * openCfg(t).rivalDepths : r.secondsPerDepth;
 }
 
 /** Hvilket distrikt en rival i byen er i: hvor den står, eller hvor langt den er nået, når ingen ser den. */
 export function rivalDistrict(t: Tithe, r: Rival): number {
   if (r.real) return districtAt(t, r.depth, r.x, r.y) ?? 1;
-  const D = t.B.city.districts;
+  const D = openCfg(t).districts;
   return r.progress >= 1 ? D : Math.min(D - 1, 1 + Math.floor(r.progress * (D - 1)));
 }
 
 /** Dybden, kandidatlisten viser: dybden i minerne, distriktet i byen (Feature-010 VIEW-01). */
 export function shownDepth(t: Tithe, c: Player | Rival): number {
-  if (t.reach !== 'city') return c.depth;
+  if (!openReach(t)) return c.depth;
   if (c.kind === 'rival') return rivalDistrict(t, c);
   return districtAt(t, c.depth, c.x, c.y) ?? 1;
 }
@@ -2095,9 +2840,20 @@ function updateProjectiles(t: Tithe, dep: Depth, dt: number): void {
     for (const e of targets) {
       if (e === pr.owner || e.dead) continue;
       if (Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15) {
+        // Feature-047 Resonant Line: tonen flyver videre og rammer hver kun én gang.
+        if (pr.pierce) {
+          if (pr.pierce.has(e)) continue;
+          pr.pierce.add(e);
+          damage(t, dep, pr.owner, e, pr.amount, pr.crit, { skill: 'echo', train: pr.pierce.size <= t.B.skills.maxHitsPerSwing, kind: pr.kind });
+          continue;
+        }
         pr.done = true;
         if (pr.area) burst(t, dep, pr);
-        else damage(t, dep, pr.owner, e, pr.amount, pr.crit, pr.skill ? { skill: pr.skill, train: true, kind: pr.kind } : { kind: pr.kind });
+        else {
+          damage(t, dep, pr.owner, e, pr.amount, pr.crit, {
+            ...(pr.skill ? { skill: pr.skill, train: true } : {}), kind: pr.kind, ...(pr.unmake ? { unmake: pr.unmake } : {}),
+          });
+        }
         break;
       }
     }
@@ -2149,12 +2905,13 @@ function pickups(t: Tithe, dep: Depth): void {
         p.record.goldFound += l.amount ?? 0;
         float(t, dep.level, l.x, l.y - 0.3, `+${l.amount} gold`, '#ffd84a', 13, p.id);
         l.id = '';
-      } else if (l.kind === 'potion' || l.kind === 'ration') {
-        const key = l.kind === 'potion' ? 'potions' : 'rations';
-        if (ch[key] < max) {
-          ch[key] += 1;
+      } else if (l.kind === 'potion' || l.kind === 'focusPotion' || l.kind === 'ration') {
+        const key = CONSUMABLE_KEYS[l.kind];
+        if ((ch[key] ?? 0) < max) {
+          ch[key] = (ch[key] ?? 0) + 1;
           p.sheetVersion += 1;
-          float(t, dep.level, l.x, l.y - 0.3, l.kind === 'potion' ? '+1 Potion' : '+1 Ration', '#b7f0b7', 13, p.id);
+          const name = { potion: '+1 Potion', focusPotion: '+1 Focus potion', ration: '+1 Ration' }[l.kind];
+          float(t, dep.level, l.x, l.y - 0.3, name, '#b7f0b7', 13, p.id);
           l.id = '';
         }
       } else if (l.item) {
@@ -2166,7 +2923,7 @@ function pickups(t: Tithe, dep: Depth): void {
           }
           ch.inventory.push(l.item);
           p.sheetVersion += 1;
-          float(t, dep.level, l.x, l.y - 0.3, l.item.name, RARITY_COLORS[l.item.rarity], 14);
+          float(t, dep.level, l.x, l.y - 0.3, displayName(l.item, t.B), RARITY_COLORS[l.item.rarity], 14);
           l.id = '';
         } else if (!p.warnedLoot.has(l.id)) {
           p.warnedLoot.add(l.id);
@@ -2179,7 +2936,7 @@ function pickups(t: Tithe, dep: Depth): void {
       if (c.opened || Math.hypot(c.x - p.x, c.y - p.y) > 0.9) continue;
       c.opened = true;
       float(t, dep.level, c.x, c.y - 0.5, 'Cache!', '#ffd84a', 15);
-      dropLoot(t, dep, c.x, c.y, monsterLevel(t, dep.level) + 1, { goldChance: 1, items: t.rng.chance(0.4) ? 2 : 1, consumableChance: 0.6 });
+      dropLoot(t, dep, c.x, c.y, monsterLevel(t, dep.level) + 1, { goldChance: 1, items: 1, consumableChance: t.B.loot.cacheConsumableChance });
     }
   }
 }
@@ -2234,8 +2991,8 @@ function mirrormaster(t: Tithe, dt: number): void {
     }
   }
   // Feature-017 CMD-04: byens distrikter forsegles udefra og ind; Mirrormaster varsler 30 sekunder før.
-  if (t.reach === 'city') {
-    const C = t.B.city;
+  if (openReach(t)) {
+    const C = openCfg(t);
     C.sealTimes.forEach((at, i) => {
       const d = i + 1;
       if (!t.wardsWarned.has(d) && t.time >= at - M.sealWarning) {

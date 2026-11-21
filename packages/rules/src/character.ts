@@ -2,10 +2,10 @@
 // (Feature-001 Create character, -002 Learn by use, -003 Earn Marks, -004 Spend points, -007 Manage equipment).
 // Overført fra prototypen; tilpasses featurenes nuværende versioner i fase 1 og 2.
 
-import type { Balance } from './balance.ts';
-import { emptyEquipment, generateItem, itemBase, itemRequirements, sellValue, targetSlot, weaponSlot } from './items.ts';
+import { BALANCE, type Balance } from './balance.ts';
+import { emptyEquipment, generateItem, itemBase, itemRequirements, loadOf, sellValue, targetSlot, weaponSlot } from './items.ts';
 import type { Rng } from './rng.ts';
-import type { Attribute, Character, EquipSlot, Item, SkillId, WeaponSlot } from './types.ts';
+import type { Attribute, Character, CreationSkill, EquipSlot, Item, SkillId, TalentId, WeaponSlot } from './types.ts';
 
 export const ATTRIBUTES: Attribute[] = ['strength', 'dexterity', 'stamina', 'constitution', 'intelligence'];
 export const ATTRIBUTE_NAMES: Record<Attribute, string> = {
@@ -15,8 +15,33 @@ export const ATTRIBUTE_NAMES: Record<Attribute, string> = {
   constitution: 'Constitution',
   intelligence: 'Intelligence',
 };
-export const SKILLS: SkillId[] = ['blades', 'heavy', 'bows', 'echo'];
-export const SKILL_NAMES: Record<SkillId, string> = { blades: 'Blades', heavy: 'Heavy Weapons', bows: 'Bows', echo: 'Echo Arts' };
+/** Feature-001: de fire skills, der placeres ved oprettelsen. */
+export const CREATION_SKILLS: CreationSkill[] = ['blades', 'heavy', 'bows', 'echo'];
+/** Alle skills: de fire og baggrundens talent (Feature-049). */
+export const SKILLS: SkillId[] = [...CREATION_SKILLS, 'talent', 'reveal'];
+export const SKILL_NAMES: Record<SkillId, string> = {
+  blades: 'Blades', heavy: 'Heavy Weapons', bows: 'Bows', echo: 'Echo Arts', talent: 'Talent', reveal: 'Reveal',
+};
+
+/** Feature-049: baggrundens talent. */
+export function talentOf(background: string, B: Balance): TalentId {
+  return B.backgrounds.find((b) => b.id === background)?.talent ?? 'hide';
+}
+
+/** En skills navn; talentet hedder som baggrundens talent, fx Hide. */
+export function skillName(skill: SkillId, background: string, B: Balance): string {
+  return skill === 'talent' ? B.talents[talentOf(background, B)].name : SKILL_NAMES[skill];
+}
+
+/** En skills attributvægte; talentets står på talentet (Feature-049). */
+export function skillWeights(skill: SkillId, background: string, B: Balance): Partial<Record<Attribute, number>> {
+  return skill === 'talent' ? B.talents[talentOf(background, B)].weights : B.skills.weights[skill];
+}
+
+/** En karakter fra før talentet (Feature-049) har ingen; den får det på niveau 0. */
+export function normalizeSkills(ch: Pick<Character, 'skills'>): void {
+  for (const s of SKILLS) ch.skills[s] ??= { level: 0, xp: 0 };
+}
 
 /**
  * En ny karakter med baggrundens forslag og startudstyr, som i prototypen (bruges af tests og den kommende Tithe).
@@ -31,11 +56,14 @@ export function createCharacter(name: string, backgroundId: string, rng: Rng, B:
     level: 1,
     echo: 0,
     attributes: { ...bg.suggestion.attributes },
-    skills: Object.fromEntries(SKILLS.map((s) => [s, { level: bg.suggestion.skills[s], xp: 0 }])) as Character['skills'],
+    skills: {
+      ...Object.fromEntries(CREATION_SKILLS.map((s) => [s, { level: bg.suggestion.skills[s], xp: 0 }])), talent: { level: 0, xp: 0 }, reveal: { level: 0, xp: 0 },
+    } as Character['skills'],
     attributePoints: 0,
     skillPoints: 0,
     gold: C.startGold,
     potions: C.startPotions,
+    focusPotions: C.startFocusPotions,
     rations: C.startRations,
     equipment: (() => {
       const equipment = emptyEquipment();
@@ -140,10 +168,16 @@ export interface ItemBonuses {
   maxHp: number;
   armour: number;
   echoGain: number;
+  /** Feature-007: amuletternes kræfter – haste og speed i procent, liv og stamina i sekundet. */
+  haste: number;
+  speed: number;
+  lifeRegen: number;
+  staminaRegen: number;
 }
 
-export function itemBonuses(ch: Character): ItemBonuses {
-  const b: ItemBonuses = { attributes: {}, skills: {}, damagePct: 0, maxHp: 0, armour: 0, echoGain: 0 };
+/** Feature-007: affixes fra alt, karakteren bærer, lagt sammen uden loft. */
+export function itemBonuses(ch: Character, _B: Balance = BALANCE): ItemBonuses {
+  const b: ItemBonuses = { attributes: {}, skills: {}, damagePct: 0, maxHp: 0, armour: 0, echoGain: 0, haste: 0, speed: 0, lifeRegen: 0, staminaRegen: 0 };
   for (const item of Object.values(ch.equipment) as (Item | null)[]) {
     if (!item) continue;
     if (item.armour) b.armour += item.armour;
@@ -153,8 +187,10 @@ export function itemBonuses(ch: Character): ItemBonuses {
         b.attributes[attr] = (b.attributes[attr] ?? 0) + a.value;
       } else if (a.stat === 'skill') {
         if (item.skill) b.skills[item.skill] = (b.skills[item.skill] ?? 0) + a.value;
+      } else if (a.stat === 'skillBonus') {
+        if (a.skill) b.skills[a.skill] = (b.skills[a.skill] ?? 0) + a.value;
       } else {
-        b[a.stat as 'damagePct' | 'maxHp' | 'armour' | 'echoGain'] += a.value;
+        b[a.stat as 'damagePct' | 'maxHp' | 'armour' | 'echoGain' | 'haste' | 'speed' | 'lifeRegen' | 'staminaRegen'] += a.value;
       }
     }
   }
@@ -166,18 +202,18 @@ export function effectiveAttributes(ch: Character, bonuses: ItemBonuses = itemBo
 }
 
 /** Skill-bonus fra egenskaberne: vægt × (egenskab − 10) × attributeBonus. */
-export function attributeBonus(attributes: Record<Attribute, number>, skill: SkillId, B: Balance): number {
+export function attributeBonus(attributes: Record<Attribute, number>, skill: SkillId, B: Balance, background = ''): number {
   let sum = 0;
-  for (const [a, w] of Object.entries(B.skills.weights[skill]) as [Attribute, number][]) {
+  for (const [a, w] of Object.entries(skillWeights(skill, background, B)) as [Attribute, number][]) {
     sum += w * (attributes[a] - B.character.startAttribute) * B.skills.attributeBonus;
   }
   return sum;
 }
 
 /** Det effektive skill-niveau, som kampen bruger: niveau + udstyr + egenskaber. */
-export function effectiveSkill(ch: Character, skill: SkillId, B: Balance, bonuses: ItemBonuses = itemBonuses(ch)): number {
+export function effectiveSkill(ch: Character, skill: SkillId, B: Balance, bonuses: ItemBonuses = itemBonuses(ch, B)): number {
   const attributes = effectiveAttributes(ch, bonuses);
-  return Math.max(0, ch.skills[skill].level + (bonuses.skills[skill] ?? 0) + attributeBonus(attributes, skill, B));
+  return Math.max(0, (ch.skills[skill]?.level ?? 0) + (bonuses.skills[skill] ?? 0) + attributeBonus(attributes, skill, B, ch.background));
 }
 
 function attackSpeed(effective: number, B: Balance): number {
@@ -217,6 +253,14 @@ export interface DerivedStats {
   staminaRegen: number;
   maxFocus: number;
   focusRegen: number;
+  /** Liv tilbage i sekundet, med amulettens (Feature-007). */
+  hpRegen: number;
+  /** Feature-007: amulettens haste som andel (0,25 er 25 %) – angreb og Echo Arts kommer hurtigere. */
+  haste: number;
+  /** Feature-007: vægten, karakteren bærer, hvad den bærer uden besvær, og hvor meget dyrere stamina er. */
+  load: number;
+  carry: number;
+  staminaCostMult: number;
   armour: number;
   damageReduction: number;
   critChance: number;
@@ -233,7 +277,7 @@ export interface DerivedStats {
   bolt: BoltStats;
 }
 
-function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: ItemBonuses): WeaponStats {
+function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: ItemBonuses, staminaCostMult = 1): WeaponStats {
   const wb = item ? itemBase(B, item.baseId) : null;
   const unarmed = B.combat.unarmed;
   const skill: SkillId = item?.skill ?? 'blades';
@@ -246,8 +290,9 @@ function weaponStats(ch: Character, item: Item | null, B: Balance, bonuses: Item
     range: wb?.range ?? 0,
     ranged: !!wb?.range,
     arc: wb?.arc ?? unarmed.arc,
-    staminaCost: wb?.stamina ?? unarmed.stamina,
-    cooldown: (wb?.cooldown ?? unarmed.cooldown) * attackSpeed(effective, B),
+    // Feature-007: en tung last gør stamina dyrere, og en amulets haste gør angrebet hurtigere.
+    staminaCost: (wb?.stamina ?? unarmed.stamina) * staminaCostMult,
+    cooldown: ((wb?.cooldown ?? unarmed.cooldown) * attackSpeed(effective, B)) / (1 + bonuses.haste / 100),
     effective,
     damageMult: (1 + effective * B.skills.damagePerSkill) * (1 + bonuses.damagePct / 100),
   };
@@ -262,12 +307,13 @@ export function defaultWeapon(ch: Character): WeaponSlot {
 }
 
 export function derivedStats(ch: Character, B: Balance, chosen: WeaponSlot = defaultWeapon(ch)): DerivedStats {
-  const bonuses = itemBonuses(ch);
+  const bonuses = itemBonuses(ch, B);
   const a = effectiveAttributes(ch, bonuses);
   const C = B.character;
   const base = C.startAttribute;
-  const melee = weaponStats(ch, ch.equipment.melee, B, bonuses);
-  const ranged = ch.equipment.ranged ? weaponStats(ch, ch.equipment.ranged, B, bonuses) : null;
+  const load = loadOf(ch, a, B);
+  const melee = weaponStats(ch, ch.equipment.melee, B, bonuses, load.staminaCostMult);
+  const ranged = ch.equipment.ranged ? weaponStats(ch, ch.equipment.ranged, B, bonuses, load.staminaCostMult) : null;
   const echoEffective = effectiveSkill(ch, 'echo', B, bonuses);
   const bolt = B.combat.echoBolt;
   const armour = bonuses.armour;
@@ -275,7 +321,8 @@ export function derivedStats(ch: Character, B: Balance, chosen: WeaponSlot = def
     attributes: a,
     maxHp: Math.round(C.baseHp + (a.constitution - base) * C.hpPerConstitution + (ch.level - 1) * C.hpPerMark + bonuses.maxHp),
     maxStamina: Math.round(C.baseStamina + (a.stamina - base) * C.staminaPerStamina),
-    staminaRegen: C.staminaRegen + (a.stamina - base) * C.staminaRegenPerStamina,
+    staminaRegen: C.staminaRegen + (a.stamina - base) * C.staminaRegenPerStamina + bonuses.staminaRegen,
+    hpRegen: C.hpRegen + bonuses.lifeRegen,
     maxFocus: Math.round(C.baseFocus + (a.intelligence - base) * C.focusPerIntelligence),
     focusRegen: C.focusRegen + (a.intelligence - base) * C.focusRegenPerIntelligence,
     armour,
@@ -284,7 +331,11 @@ export function derivedStats(ch: Character, B: Balance, chosen: WeaponSlot = def
     hungerDrain: B.hunger.drainPerSecond * Math.max(0.3, 1 - (a.stamina - base) * B.hunger.drainReductionPerStamina),
     capacity: C.baseCapacity + Math.floor(Math.max(0, a.strength - base) / 2) * C.capacityPerTwoStrength,
     echoGain: 1 + bonuses.echoGain / 100,
-    moveSpeed: C.moveSpeed,
+    moveSpeed: C.moveSpeed * (1 + bonuses.speed / 100),
+    haste: bonuses.haste / 100,
+    load: load.load,
+    carry: load.carry,
+    staminaCostMult: load.staminaCostMult,
     weapon: chosen === 'ranged' && ranged ? ranged : melee,
     melee,
     ranged,
@@ -295,7 +346,7 @@ export function derivedStats(ch: Character, B: Balance, chosen: WeaponSlot = def
       range: bolt.range,
       speed: bolt.speed,
       focusCost: bolt.focusCost,
-      cooldown: bolt.cooldown * attackSpeed(echoEffective, B),
+      cooldown: (bolt.cooldown * attackSpeed(echoEffective, B)) / (1 + bonuses.haste / 100),
       effective: echoEffective,
       damageMult: (1 + echoEffective * B.skills.damagePerSkill) * (1 + bonuses.damagePct / 100),
     },

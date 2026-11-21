@@ -68,13 +68,13 @@ export function newSave(character: Character, rng: Rng, B: Balance): Save {
 export function forgeStock(rng: Rng, ch: Character, B: Balance): Item[] {
   const items: Item[] = [];
   for (let i = 0; i < B.rim.forgeItems; i++) {
-    const rarity = rng.chance(B.rim.forgeRareChance) ? 'rare' : rng.chance(0.45) ? 'magic' : 'common';
+    const rarity = rng.chance(B.rim.forgeRareChance) ? 'rare' : rng.chance(B.rim.forgeMagicChance) ? 'magic' : 'common';
     items.push(generateItem(rng, Math.max(1, ch.level), B, { rarity }));
   }
   return items;
 }
 
-/** Feature-021 CMD-01: 7 ting med karakterens Mark som item level: 10 % rare, ellers 45 % magic, ellers common. */
+/** Feature-021 CMD-01: 7 ting med karakterens Mark som item level: 2 % rare, ellers 12 % magic, ellers common. */
 export function forgeStockAt(rng: Rng, mark: number, B: Balance): Item[] {
   return forgeStock(rng, { level: mark } as Character, B);
 }
@@ -100,10 +100,14 @@ export function sellAtForge(save: Save, itemId: string, B: Balance): number {
   return sellFromInventory(save.character, itemId, B);
 }
 
-export function buyConsumable(save: Save, kind: 'potion' | 'ration', B: Balance): Result {
+/** Feature-020: hvad Apothecary sælger. */
+export type ConsumableKind = 'potion' | 'focusPotion' | 'ration';
+export const CONSUMABLE_KEYS = { potion: 'potions', focusPotion: 'focusPotions', ration: 'rations' } as const;
+
+export function buyConsumable(save: Save, kind: ConsumableKind, B: Balance): Result {
   const ch = save.character;
-  const price = kind === 'potion' ? B.rim.potionPrice : B.rim.rationPrice;
-  const key = kind === 'potion' ? 'potions' : 'rations';
+  const price = kind === 'potion' ? B.rim.potionPrice : kind === 'focusPotion' ? B.rim.focusPotionPrice : B.rim.rationPrice;
+  const key = CONSUMABLE_KEYS[kind];
   if (ch.gold < price) return { ok: false, reason: 'Not enough gold.' };
   if (ch[key] >= B.character.maxConsumables) return { ok: false, reason: 'You cannot carry more.' };
   ch.gold -= price;
@@ -194,7 +198,8 @@ export function grantGifts(rng: Rng, renown: number, mark: number, B: Balance): 
   for (let i = 0; i < giftCount(renown, B); i++) {
     const house = rng.pick(R.houses);
     if (i % 2 === 0) {
-      const rarity = i === 0 && renown >= 3 * R.giftPerRenown ? 'rare' : 'magic';
+      // Feature-023: almindelige ting; den første er magisk, når Tithen gav 600 Renown eller mere.
+      const rarity = i === 0 && renown >= R.giftMagicRenown ? 'magic' : 'common';
       gifts.push({ id: 'g' + rng.id(), house, kind: 'item', item: generateItem(rng, mark, B, { rarity }) });
     } else {
       gifts.push({ id: 'g' + rng.id(), house, kind: 'gold', gold: Math.round(R.giftGold * (1 + 0.2 * mark)) });

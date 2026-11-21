@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-004-spend-points.drawio
 semantics: event-modeling-semantik.md
-version: 3
+version: 6
 status: draft
 created: 2026-11-19
 ```
@@ -144,11 +144,11 @@ Scenario: A skill point gives two levels
 |---|---|---|---|
 | VIEW-01 | Character sheet | (starting point) | CMD-01, CMD-02 |
 
-**VIEW-01:** Opened with the Character button (mouse or touch) or C, in the Rim and during a Tithe. It lies as a see-through overlay over the game, so the player can see what happens behind it. It shows the Mark and the Echo to the next one; the five attributes with the bonus from items; the four skills with level, progress to the next level, effective level and which attributes give them a bonus; the combat values that follow; and the inventory and hotbar (Gear). A + button stands by each attribute and skill while there are points left.
+**VIEW-01:** Opened with the Character button (mouse or touch) or C, in the Rim and during a Tithe. It lies as a see-through overlay over the game, so the player can see what happens behind it. It has three tabs – Character, Equipment and Spells – and opens on the tab last used. Character shows the Mark and the Echo to the next one; the five attributes with the bonus from items; the skills – the four weapon and Echo skills, the background's talent and Reveal – with level, progress to the next level, effective level and which attributes give them a bonus; and the combat values that follow. A + button stands by each attribute and skill while there are points left. Equipment shows what the character wears and carries, with its stats (Gear, Manage equipment), and Spells the spellbook (Read the spellbook); both have the hotbar at the top (Gear, Assign hotbar keys).
 
 ## 10. Validation and open questions
 
-### Resolved in version 3
+### Resolved in version 6
 
 | # | Question | Resolution |
 |---|---|---|

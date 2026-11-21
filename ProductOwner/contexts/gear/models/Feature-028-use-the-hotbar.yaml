@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 5
+version: 8
 status: draft
 created: '2026-11-19'
 use_case:
@@ -23,7 +23,9 @@ elements:
       - Player
     description: >-
       The depth of the Maw the candidate is in, with the loot on the floor and the potion and ration buttons.
-    behavior: The hotbar is shown at the bottom of the screen with the keys 1–8; the chosen key is highlighted.
+    behavior: >-
+      The hotbar is shown at the bottom of the screen with the keys 1–8; the chosen key is highlighted, and a key
+      with an Echo Art shows the cooldown left.
   - id: CMD-01
     type: command
     name: Choose hotbar key
@@ -40,7 +42,7 @@ elements:
     col: 3
     stack: 1
     description: >-
-      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the
       items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
@@ -78,13 +80,13 @@ rules:
   - applies_to:
       - CMD-01
     text: >-
-      A key with an Echo Art chooses it without casting it, and the weapons stay equipped. A key with nothing on it
-      does nothing.
+      A key with an Echo Art chooses it without casting it, and the weapons stay equipped. A key with the talent uses
+      the talent at once and chooses nothing (Tithe, Use a talent). A key with nothing on it does nothing.
   - applies_to:
       - EVT-01
     text: >-
       Attack (Space) uses what is chosen: it strikes with the chosen weapon, and its blows train that weapon's
-      skill, or it casts the chosen Echo Art at the automatic target (Tithe, Fight in the depths).
+      skill, or it casts the chosen Echo Art (Tithe, Fight in the depths and Cast an Echo Art).
   - applies_to:
       - AGG-01
     text: >-

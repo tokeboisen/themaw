@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="BOUNDED-CONTEXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-160" y="-360" width="1200" height="1970" as="geometry" />
+          <mxGeometry x="-160" y="-360" width="1200" height="2400" as="geometry" />
         </mxCell>
         <mxCell id="BOUNDED-CONTEXT-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Bounded Context: Gear" vertex="1">
           <mxGeometry x="-160" y="-400" width="1200" height="40" as="geometry" />
@@ -14,7 +14,7 @@
           <mxGeometry x="-150" y="-360" width="400" height="80" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" value="" vertex="1">
-          <mxGeometry x="-120" y="-200" width="1120" height="1770" as="geometry" />
+          <mxGeometry x="-120" y="-200" width="1120" height="2200" as="geometry" />
         </mxCell>
         <mxCell id="USE-CASE-HEADER" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#D9D9D9;align=center;verticalAlign=middle;rounded=0;fontSize=25;fontColor=#333333;opacity=50;" value="Use Case: Stock the inventory" vertex="1">
           <mxGeometry x="-120" y="-240" width="1120" height="40" as="geometry" />
@@ -48,27 +48,27 @@
         </mxCell>
         <UserObject id="EVT-04" label="Potion bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Shop at the Apothecary">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="810" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="840" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="790" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="820" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-05" label="Ration bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Shop at the Apothecary">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="1010" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1040" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-05-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="990" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="1020" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-06" label="Item gift accepted&lt;br&gt;&lt;br&gt;(The Rim / Patronage)" tooltip="Accept sponsor gifts">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="1210" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1240" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-06-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="1190" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="1220" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="SVC-01" label="Quartermaster" tooltip="Keeps the inventory in step with what happens elsewhere: the starting kit, purchases, sales, gifts and the end of a Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#D689D6;strokeColor=#660066;" vertex="1">
@@ -91,14 +91,14 @@
           <mxGeometry x="400" y="380" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="CMD-03" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Add consumable&lt;/b&gt;&lt;br&gt;Consumable" vertex="1">
-          <mxGeometry x="400" y="810" width="120" height="120" as="geometry" />
+          <mxGeometry x="400" y="840" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="CMD-03-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
-          <mxGeometry x="400" y="790" width="120" height="20" as="geometry" />
+          <mxGeometry x="400" y="820" width="120" height="20" as="geometry" />
         </mxCell>
-        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Melee weapon&lt;br&gt;· Ranged weapon&lt;br&gt;· Armour&lt;br&gt;· Ring 1&lt;br&gt;· Ring 2&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Slot&lt;br&gt;· Rarity&lt;br&gt;· Item level&lt;br&gt;· Affixes&lt;br&gt;Potions&lt;br&gt;Rations&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
+        <UserObject id="AGG-01" label="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;b&gt;Equipment&lt;/b&gt;&lt;br&gt;· Melee weapon&lt;br&gt;· Ranged weapon&lt;br&gt;· Armour&lt;br&gt;· Ring 1&lt;br&gt;· Ring 2&lt;br&gt;· Amulet&lt;br&gt;&lt;b&gt;Items (many)&lt;/b&gt;&lt;br&gt;· Item&lt;br&gt;· Slot&lt;br&gt;· Rarity&lt;br&gt;· Item level&lt;br&gt;· Affixes&lt;br&gt;Potions&lt;br&gt;Focus potions&lt;br&gt;Rations&lt;br&gt;&lt;b&gt;Hotbar (many)&lt;/b&gt;&lt;br&gt;· Key&lt;br&gt;· Weapon&lt;br&gt;· Echo Art" tooltip="Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the items in the pack, potions and rations, the hotbar, and what was found in the current Tithe.">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFFF66;strokeColor=#CCCC00;" vertex="1">
-            <mxGeometry x="600" y="400" width="120" height="330" as="geometry" />
+            <mxGeometry x="600" y="400" width="120" height="360" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="AGG-01-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#E6E600;strokeColor=#CCCC00;" value="Aggregate" vertex="1">
@@ -117,86 +117,129 @@
           <mxGeometry x="800" y="380" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="EVT-09" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Consumable added" vertex="1">
-          <mxGeometry x="800" y="810" width="120" height="120" as="geometry" />
+          <mxGeometry x="800" y="840" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="EVT-09-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
-          <mxGeometry x="800" y="790" width="120" height="20" as="geometry" />
+          <mxGeometry x="800" y="820" width="120" height="20" as="geometry" />
         </mxCell>
         <UserObject id="EVT-10" label="Character deleted&lt;br&gt;&lt;br&gt;(Character Progression / Characters)" tooltip="Delete character">
           <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
-            <mxGeometry x="0" y="1410" width="120" height="120" as="geometry" />
+            <mxGeometry x="0" y="1440" width="120" height="120" as="geometry" />
           </mxCell>
         </UserObject>
         <mxCell id="EVT-10-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
-          <mxGeometry x="0" y="1390" width="120" height="20" as="geometry" />
+          <mxGeometry x="0" y="1420" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-12" label="Focus potion bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Shop at the Apothecary">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="1640" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-12-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="1620" width="120" height="20" as="geometry" />
+        </mxCell>
+        <UserObject id="EVT-13" label="Identification bought&lt;br&gt;&lt;br&gt;(The Rim / Market)" tooltip="Trade at the Forge">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;dashed=1;" vertex="1">
+            <mxGeometry x="0" y="1840" width="120" height="120" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="EVT-13-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;dashed=1;" value="Event" vertex="1">
+          <mxGeometry x="0" y="1820" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-05" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Identify items&lt;/b&gt;&lt;br&gt;Character" vertex="1">
+          <mxGeometry x="400" y="1240" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="CMD-05-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
+          <mxGeometry x="400" y="1220" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-14" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Items identified" vertex="1">
+          <mxGeometry x="800" y="1240" width="120" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="EVT-14-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
+          <mxGeometry x="800" y="1220" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="CMD-04" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#66B2FF;strokeColor=#6C8EBF;" value="&lt;b&gt;Empty inventory&lt;/b&gt;&lt;br&gt;Character" vertex="1">
-          <mxGeometry x="400" y="1010" width="120" height="120" as="geometry" />
+          <mxGeometry x="400" y="1040" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="CMD-04-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#007FFF;strokeColor=#6C8EBF;" value="Command" vertex="1">
-          <mxGeometry x="400" y="990" width="120" height="20" as="geometry" />
+          <mxGeometry x="400" y="1020" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="EVT-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FFB366;strokeColor=#994C00;" value="Inventory emptied" vertex="1">
-          <mxGeometry x="800" y="1010" width="120" height="120" as="geometry" />
+          <mxGeometry x="800" y="1040" width="120" height="120" as="geometry" />
         </mxCell>
         <mxCell id="EVT-11-HEADER" parent="1" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#FF8000;strokeColor=#994C00;" value="Event" vertex="1">
-          <mxGeometry x="800" y="990" width="120" height="20" as="geometry" />
+          <mxGeometry x="800" y="1020" width="120" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-01-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.125;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-01" target="SVC-01">
+        <mxCell id="FLOW-EVT-01-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.1;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-01" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-02-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-02" target="SVC-01">
+        <mxCell id="FLOW-EVT-02-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-02" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-03-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.375;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-03" target="SVC-01">
+        <mxCell id="FLOW-EVT-03-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-03" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-04-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-04" target="SVC-01">
+        <mxCell id="FLOW-EVT-04-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-04" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-05-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.625;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-05" target="SVC-01">
+        <mxCell id="FLOW-EVT-05-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-05" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-06-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-06" target="SVC-01">
+        <mxCell id="FLOW-EVT-06-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-06" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-SVC-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-01">
+        <mxCell id="FLOW-SVC-01-CMD-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.1667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-SVC-01-CMD-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-02">
+        <mxCell id="FLOW-SVC-01-CMD-02" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-02">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-SVC-01-CMD-03" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-03">
+        <mxCell id="FLOW-SVC-01-CMD-03" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-03">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
+        <mxCell id="FLOW-CMD-01-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.1667;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-01" target="AGG-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-CMD-02-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-02" target="AGG-01">
+        <mxCell id="FLOW-CMD-02-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3333;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-02" target="AGG-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-CMD-03-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-03" target="AGG-01">
+        <mxCell id="FLOW-CMD-03-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-03" target="AGG-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-AGG-01-EVT-07" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-07">
+        <mxCell id="FLOW-AGG-01-EVT-07" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.1667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-07">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-AGG-01-EVT-08" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-08">
+        <mxCell id="FLOW-AGG-01-EVT-08" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-08">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-AGG-01-EVT-09" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-09">
+        <mxCell id="FLOW-AGG-01-EVT-09" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-09">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-EVT-10-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.875;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-10" target="SVC-01">
+        <mxCell id="FLOW-EVT-10-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-10" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-SVC-01-CMD-04" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-04">
+        <mxCell id="FLOW-EVT-12-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-12" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-CMD-04-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-04" target="AGG-01">
+        <mxCell id="FLOW-EVT-13-SVC-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.9;entryDx=0;entryDy=0;" value="" edge="1" source="EVT-13" target="SVC-01">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FLOW-AGG-01-EVT-11" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-11">
+        <mxCell id="FLOW-SVC-01-CMD-05" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.8333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-05">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-05-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8333;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-05" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-14" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.8333;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-SVC-01-CMD-04" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="SVC-01" target="CMD-04">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-CMD-04-AGG-01" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6667;entryDx=0;entryDy=0;" value="" edge="1" source="CMD-04" target="AGG-01">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="FLOW-AGG-01-EVT-11" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.6667;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="" edge="1" source="AGG-01" target="EVT-11">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

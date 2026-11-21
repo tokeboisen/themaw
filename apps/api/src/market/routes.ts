@@ -1,11 +1,11 @@
 // Market: Feature-018 Keep the wallet, -019 Trade at the Forge og -020 Shop at the Apothecary.
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { EVENT, MESSAGES, type ConsumableBought, type ItemBought, type ItemSold } from '@maw/contracts';
+import { EVENT, MESSAGES, type ConsumableBought, type IdentificationBought, type ItemBought, type ItemSold } from '@maw/contracts';
 import { envelope } from '@maw/platform';
-import { BALANCE as B, sellValue, type Item } from '@maw/rules';
+import { BALANCE as B, CONSUMABLE_KEYS, identifyPrice, sellValue, type Item } from '@maw/rules';
 import { transaction, type Client, type Pool } from '../db.ts';
-import { consumables, packItem, roomLeft } from '../gear/store.ts';
+import { consumables, loadInventory, packItem, roomLeft } from '../gear/store.ts';
 import { INVALID, refuse, requireUser } from '../http.ts';
 import { enqueue } from '../outbox.ts';
 
@@ -95,23 +95,43 @@ export function marketRoutes(app: FastifyInstance, pool: Pool): void {
     return reply.send(result);
   });
 
-  // F020 CMD-01 Buy potion og CMD-02 Buy ration: højst 9 af hver, og guldet skal række.
-  app.post('/api/characters/:id/apothecary/buy', async (request: Req, reply) => {
+  // F019 CMD-03 Pay for identification: 10 + 3 × item level for hver uidentificeret ting, båret, i pakken og i kisten.
+  app.post('/api/characters/:id/forge/identify', async (request: Req, reply) => {
     const id = await owner(request, reply);
     if (!id) return reply;
-    const kind = request.body?.kind;
-    if (kind !== 'potion' && kind !== 'ration') return refuse(reply, 400, INVALID);
-    const carried = await consumables(pool, id);
-    if (!carried) return refuse(reply, 404, { message: 'Inventory not found.' });
-    if ((kind === 'potion' ? carried.potions : carried.rations) >= B.character.maxConsumables) {
-      return refuse(reply, 409, { message: MESSAGES.cannotCarryMore });
-    }
-    const price = kind === 'potion' ? B.rim.potionPrice : B.rim.rationPrice;
+    const inv = await loadInventory(pool, id);
+    if (!inv) return refuse(reply, 404, { message: 'Inventory not found.' });
+    const { count, price } = identifyPrice([...Object.values(inv.equipment).filter((i): i is Item => !!i), ...inv.pack, ...inv.chest], B);
+    if (!count) return refuse(reply, 400, INVALID);
     const result = await transaction(pool, async (client) => {
       const gold = await wallet(client, id, true);
       if (gold < price) return null;
       await client.query('update market.wallets set gold = gold - $2 where character_id = $1', [id, price]);
-      await enqueue(client, envelope<ConsumableBought>(kind === 'potion' ? EVENT.potionBought : EVENT.rationBought, { characterId: id }));
+      await enqueue(client, envelope<IdentificationBought>(EVENT.identificationBought, { characterId: id }));
+      return { gold: gold - price };
+    });
+    if (!result) return refuse(reply, 409, { message: MESSAGES.notEnoughGold });
+    return reply.send(result);
+  });
+
+  // F020 CMD-01 Buy potion, CMD-02 Buy ration og CMD-03 Buy focus potion: højst 9 af hver, og guldet skal række.
+  app.post('/api/characters/:id/apothecary/buy', async (request: Req, reply) => {
+    const id = await owner(request, reply);
+    if (!id) return reply;
+    const kind = request.body?.kind;
+    if (kind !== 'potion' && kind !== 'ration' && kind !== 'focusPotion') return refuse(reply, 400, INVALID);
+    const carried = await consumables(pool, id);
+    if (!carried) return refuse(reply, 404, { message: 'Inventory not found.' });
+    if (carried[CONSUMABLE_KEYS[kind]] >= B.character.maxConsumables) {
+      return refuse(reply, 409, { message: MESSAGES.cannotCarryMore });
+    }
+    const price = kind === 'potion' ? B.rim.potionPrice : kind === 'focusPotion' ? B.rim.focusPotionPrice : B.rim.rationPrice;
+    const event = kind === 'potion' ? EVENT.potionBought : kind === 'focusPotion' ? EVENT.focusPotionBought : EVENT.rationBought;
+    const result = await transaction(pool, async (client) => {
+      const gold = await wallet(client, id, true);
+      if (gold < price) return null;
+      await client.query('update market.wallets set gold = gold - $2 where character_id = $1', [id, price]);
+      await enqueue(client, envelope<ConsumableBought>(event, { characterId: id }));
       return { gold: gold - price };
     });
     if (!result) return refuse(reply, 409, { message: MESSAGES.notEnoughGold });

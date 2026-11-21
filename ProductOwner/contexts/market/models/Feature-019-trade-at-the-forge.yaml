@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -25,7 +25,8 @@ elements:
     behavior: >-
       "Hesta Varn, the smith: Steel for the Branded. Coin first." Two lists: For sale, each item with its price
       and Buy (disabled when the gold is not enough), and Your inventory, each item with its sell price and
-      Sell. A refusal is shown above the lists.
+      Sell. Identify all shows how many items are unidentified and what it costs, disabled without gold or
+      unidentified items. A refusal is shown above the lists.
   - id: CMD-01
     type: command
     name: Buy item
@@ -42,6 +43,12 @@ elements:
     story: As a player I want to sell an item I do not need, so that I get gold for better gear.
     fields:
       - name: Item
+  - id: CMD-03
+    type: command
+    name: Pay for identification
+    col: 2
+    stack: 3
+    story: As a player I want Hesta to identify my unidentified items, so that I know what I found.
   - id: AGG-01
     type: aggregate
     name: Forge
@@ -77,6 +84,11 @@ elements:
     name: Item sold
     col: 4
     stack: 3
+  - id: EVT-04
+    type: event
+    name: Identification bought
+    col: 4
+    stack: 4
 flows:
   - from: VIEW-01
     to: CMD-01
@@ -94,6 +106,12 @@ flows:
     to: EVT-02
   - from: AGG-02
     to: EVT-03
+  - from: VIEW-01
+    to: CMD-03
+  - from: CMD-03
+    to: AGG-02
+  - from: AGG-02
+    to: EVT-04
 rules:
   - applies_to:
       - AGG-01
@@ -109,6 +127,12 @@ rules:
   - applies_to:
       - CMD-02
     text: Only items in the pack can be sold; equipped items must be unequipped first.
+  - applies_to:
+      - CMD-03
+    text: >-
+      Identifying costs 10 + 3 × the item level for every unidentified item the character owns – worn, in the pack
+      and in the chest – and identifies them all (Gear, Stock the inventory). Without enough gold "Not enough gold."
+      is shown. An unidentified item sells as a common item.
 scenarios:
   - title: An item is bought
     applies_to:

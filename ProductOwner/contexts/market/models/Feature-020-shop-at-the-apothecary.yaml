@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -10,8 +10,8 @@ use_case:
   purpose:
     derived: false
     text: >-
-      For the player: buy healing draughts and rations from Mother Quill, so the candidate can survive longer
-      in the next Tithe.
+      For the player: buy healing draughts, focus draughts and rations from Mother Quill, so the candidate can
+      survive longer and cast more in the next Tithe.
 elements:
   - id: VIEW-01
     type: view
@@ -20,10 +20,10 @@ elements:
     stack: 1
     actors:
       - Player
-    description: 'Mother Quill''s apothecary on the Mustering Square: healing draughts and rations.'
+    description: 'Mother Quill''s apothecary on the Mustering Square: healing draughts, focus draughts and rations.'
     behavior: >-
-      "Mother Quill: Drink before you need it, child. Eat before you starve." Healing Draught and Ration with
-      what they do, the price, how many the character carries of the 9, and Buy (disabled without gold or room).
+      "Mother Quill: Drink before you need it, child. Eat before you starve." Healing Draught, Focus Draught and
+      Ration with what they do, the price, how many the character carries of the 9, and Buy (disabled without gold or room).
   - id: CMD-01
     type: command
     name: Buy potion
@@ -36,6 +36,12 @@ elements:
     col: 2
     stack: 2
     story: As a player I want to buy a ration, so that I do not starve in a long Tithe.
+  - id: CMD-03
+    type: command
+    name: Buy focus potion
+    col: 2
+    stack: 3
+    story: As a player I want to buy a focus draught, so that I can cast more Echo Arts in the next Tithe.
   - id: AGG-01
     type: aggregate
     name: Wallet
@@ -54,6 +60,11 @@ elements:
     name: Ration bought
     col: 4
     stack: 2
+  - id: EVT-03
+    type: event
+    name: Focus potion bought
+    col: 4
+    stack: 3
 flows:
   - from: VIEW-01
     to: CMD-01
@@ -67,14 +78,22 @@ flows:
     to: EVT-01
   - from: AGG-01
     to: EVT-02
+  - from: VIEW-01
+    to: CMD-03
+  - from: CMD-03
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-03
 rules:
   - applies_to:
       - CMD-01
       - CMD-02
-    text: A healing draught costs 25 gold and a ration 10 gold.
+      - CMD-03
+    text: A healing draught costs 25 gold, a focus draught 25 gold and a ration 10 gold.
   - applies_to:
       - CMD-01
       - CMD-02
+      - CMD-03
     text: >-
       Buying needs the gold, and the character may carry at most 9 of each; otherwise it is refused with "Not
       enough gold." or "You cannot carry more.".

@@ -194,3 +194,86 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border: 1px soli
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1px solid #000; vertical-align: middle; }
 .hud-effects { color: #ff9b6b; font-weight: 700; font-size: 12px; }
 .hud-effects:empty { display: none; }
+
+/* Feature-027 / -048: hotbaren øverst på karakterskærmen, markering og spellbook */
+.sheet .sheet-hotbar { position: sticky; top: -16px; z-index: 2; background: rgba(30, 24, 19, 0.97); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4); }
+.sheet-hotbar .hint { margin: 0; }
+.hotkey-cell { position: relative; }
+.hotkey-cell .hotkey { width: 100%; }
+.hotkey.target { border-color: var(--gold); }
+.hotkey-clear { position: absolute; top: 1px; right: 1px; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer; }
+.hotkey-clear:hover { color: var(--bad); background: rgba(255, 255, 255, 0.08); }
+.markable { cursor: pointer; border-radius: 6px; }
+.markable:hover { background: rgba(255, 255, 255, 0.04); }
+.items li.markable { padding-left: 6px; padding-right: 6px; }
+.marked, .markable.marked:hover { outline: 2px solid var(--gold); outline-offset: -2px; background: rgba(255, 216, 74, 0.09); }
+.art-levels, .arts { list-style: none; margin: 0; padding: 0; }
+.art-level { padding: 4px 0 6px; }
+.art { padding: 5px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.art.unknown { opacity: 0.5; }
+.art-name { font-weight: 600; }
+.art-kind { margin-left: 6px; font-weight: 400; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.k-party .art-kind { color: var(--gold); }
+.k-damage .art-kind { color: #ff9b7a; }
+.k-control .art-kind { color: #9fb4ff; }
+.k-defence .art-kind { color: #bfe6ff; }
+.k-movement .art-kind { color: #9fe0b0; }
+/* Feature-047 VIEW-01: cooldown på hotbarens taster */
+.hotkey { position: relative; }
+.hotkey .cd { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); pointer-events: none; }
+.hotkey .cd-s { position: absolute; top: 2px; right: 4px; font-size: 11px; font-style: normal; color: #fff; pointer-events: none; }
+/* Feature-004 VIEW-01: karakterskærmens faner; Feature-007: værdierne og sammenligningen; Feature-048: spells på sider */
+.sheet-tabs { margin-top: 4px; }
+.equipment-cols { align-items: start; }
+.sheet .sheet-stats { position: sticky; top: 120px; }
+.cmp { color: var(--gold); font-weight: 600; }
+.cmp-inline { color: var(--gold); }
+.spellbook-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.spellbook-head .tabs { margin-bottom: 8px; border-bottom: 0; }
+.art-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.art-columns .art-level { padding: 0; }
+.art-columns .arts { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.art-columns .art { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: rgba(255, 255, 255, 0.02); }
+.art-text { font-size: 12px; line-height: 1.3; margin-top: 2px; }
+.art-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 4px; min-height: 26px; }
+.key-badge { font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; padding: 1px 5px; }
+@media (max-width: 720px) { .art-columns { grid-template-columns: 1fr; } .sheet .sheet-stats { position: static; } }
+/* Feature-048: kompakte kort, så tre levels kan ses uden at scrolle */
+.sheet .msg:empty { display: none; }
+.art-columns .art { padding: 5px 8px; }
+.art-top { display: flex; align-items: center; gap: 6px; min-height: 26px; }
+.art-top .art-kind { margin-left: 0; }
+.art-top .art-actions { margin: 0 0 0 auto; min-height: 0; }
+.art-actions .small-btn { padding: 2px 8px; }
+.art-cost { color: var(--muted); }
+.art-columns .art-text { margin-top: 1px; color: var(--text); }
+.sheet-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.sheet-head h2 { margin: 0; font-size: 20px; }
+.sheet-head h2 .muted { font-size: 14px; font-weight: 400; margin-left: 4px; }
+.sheet-head .sheet-tabs { margin: 0 auto 0 0; border-bottom: 0; }
+.sheet-head .sheet-tabs button { padding: 6px 10px; }
+.sheet .sheet-hotbar .hotkey { min-height: 44px; }
+.sheet .sheet-hotbar { padding-top: 8px; padding-bottom: 8px; }
+.art-columns .arts { gap: 4px; }
+.spellbook-head .tabs button { padding: 4px 10px; }
+/* Feature-030 VIEW-01: Help med faner i venstre side */
+.sheet.help { width: min(900px, 100%); }
+.help-layout { display: grid; grid-template-columns: 190px 1fr; gap: 12px; align-items: start; }
+.help-tabs { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
+.help-tabs button { text-align: left; background: none; border: 0; border-left: 2px solid transparent; padding: 7px 10px; color: var(--muted); border-radius: 0 6px 6px 0; }
+.help-tabs button:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+.help-tabs button.active { color: var(--text); border-left-color: var(--accent); background: rgba(255, 255, 255, 0.06); }
+.help-body { min-height: 360px; }
+.help-body h3:first-child { margin-top: 0; }
+.help-body p { line-height: 1.55; max-width: 62ch; }
+@media (max-width: 640px) {
+  .help-layout { grid-template-columns: 1fr; }
+  .help-tabs { flex-direction: row; flex-wrap: wrap; position: static; }
+  .help-tabs button { border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; }
+  .help-tabs button.active { border-bottom-color: var(--accent); }
+}
+/* Feature-049: talentet øverst i spellbooken */
+.talent-card { border: 1px solid var(--gold); border-radius: 6px; padding: 5px 8px; margin-bottom: 6px; background: rgba(255, 216, 74, 0.05); }
+.talent-card .art-kind { color: var(--gold); }
+/* Feature-019: Identify all hos smeden */
+.identify-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }

@@ -69,6 +69,14 @@ layout:
     use_case: Fight in the arena
     x: 11880
     y: 0
+  - bounded_context: Tithe
+    use_case: Cast an Echo Art
+    x: 14200
+    y: 0
+  - bounded_context: Tithe
+    use_case: Use a talent
+    x: 15320
+    y: 0
   - bounded_context: Spectacle
     use_case: Run the show
     x: 0
@@ -105,6 +113,10 @@ layout:
     use_case: View player statistics
     x: 8640
     y: 0
+  - bounded_context: Characters
+    use_case: Read the spellbook
+    x: 9160
+    y: 0
   - bounded_context: Gear
     use_case: Stock the inventory
     x: 0
@@ -136,6 +148,10 @@ layout:
   - bounded_context: Gear
     use_case: Use the chest
     x: 8240
+    y: 0
+  - bounded_context: Gear
+    use_case: Reveal an item
+    x: 9360
     y: 0
   - bounded_context: Market
     use_case: Trade at the Forge

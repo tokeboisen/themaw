@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 6
+version: 7
 status: draft
 created: '2026-11-19'
 use_case:
@@ -119,6 +119,15 @@ rules:
       gate. The districts are its depths (Descend), and everything said about The Foreman and his hall holds for The
       Smelter and the foundry.
   - applies_to:
+      - AGG-01
+    text: >-
+      Reach 3, The Woods, is one large forest of the same size as The Broken City: trees of one tile and big trees of
+      four (2 × 2), bushes, paths, clearings – some with a campfire where a band of brigands camps – and small huts
+      with furniture and a hearth, with caches in the huts and the camps. It is divided into four districts like the
+      city: the forest edge, the old woods, the deep woods and the heart, a ring of standing stones in the middle
+      where The Antlered King guards the gate. Everything said about The Broken City's districts, The Smelter and the
+      foundry holds for the woods, The Antlered King and the heart.
+  - applies_to:
       - CMD-01
       - AGG-01
     text: >-
@@ -139,7 +148,7 @@ rules:
     text: >-
       Every candidate – player or NPC rival – starts in a room of its own, the rooms chosen about equally far
       from the stairs – in The Broken City in a house of its own in the outer ring, about equally far from the
-      foundry. Everyone starts without a party.
+      foundry, and in The Woods in a clearing of its own at the forest edge. Everyone starts without a party.
   - applies_to:
       - EVT-02
     text: >-
@@ -182,3 +191,5 @@ open_questions:
       - AGG-01
     resolution: >-
       Decided 2026-11-20: yes: Reach 2, The Broken City, one large map of ruins with houses on several floors and the Warden in the foundry in the middle; the districts are sealed from the outside in.
+      Reach 3, The Woods, was added the same day: one large forest that shrinks from the edge like the city, with
+      small huts, clearings with brigand camps and new monsters.

@@ -5,7 +5,7 @@ bounded_context: Patronage
 product: The Maw
 source: models/Feature-023-grant-sponsor-gifts.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -101,17 +101,17 @@ No user stories.
 
 ### Rules
 
-- One gift for every 100 Renown in the Tithe, at most 4. They come from House Morrow, House Vane, House Ashgrave and House Lisle. (SVC-01)
-- Every other gift is an item – the first a rare one when the Tithe earned 300 Renown or more, otherwise magic – and the others are gold: 40 × (1 + 0.2 × Mark). (CMD-01)
+- One gift for every 150 Renown in the Tithe, at most 4. They come from House Morrow, House Vane, House Ashgrave and House Lisle. (SVC-01)
+- Every other gift is an item – common, but the first a magic one when the Tithe earned 600 Renown or more – and the others are gold: 25 × (1 + 0.2 × Mark). (CMD-01)
 - Gifts wait in the Patrons' Hall until they are accepted (Accept sponsor gifts). (AGG-01)
 - When a character is deleted, the gifts waiting for it are withdrawn. (CMD-02)
 
 ```gherkin
 Scenario: Renown brings gifts
-  Given Kael is Mark 3 and earned 324 Renown in the Tithe
+  Given Kael is Mark 3 and earned 640 Renown in the Tithe
   When EVT-02 "Tithe ended" has been recorded
-  Then SVC-01 "Noble Houses" performs CMD-01 "Grant gift" three times
-  And EVT-03 "Sponsor gift granted" is recorded for a rare item, 64 gold and a magic item
+  Then SVC-01 "Noble Houses" performs CMD-01 "Grant gift" four times
+  And EVT-03 "Sponsor gift granted" is recorded for a magic item, 40 gold, a common item and 40 gold
 ```
 
 ## 8. Integrations
@@ -128,7 +128,7 @@ Scenario: Renown brings gifts
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

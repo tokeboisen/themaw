@@ -2,7 +2,7 @@
 // tegner serverens snapshots med lidt udjævning. Browseren regner intet selv; serveren afgør alt (Feature-010 SVC-01).
 
 import type { ArenaEndedMessage, ClientMessage, EndedMessage, PartyView, ServerMessage, SheetMessage, Snapshot, SnapshotEntity } from '@maw/contracts';
-import { BALANCE as B, HOTBAR_KEYS, type HotbarKey, type SheetAction } from '@maw/rules';
+import { BALANCE as B, HOTBAR_KEYS, displayName, hotbarSlotName, type HotbarKey, type SheetAction } from '@maw/rules';
 import { esc } from '../dom.ts';
 import { createRenderer, type Frame, type Renderer } from './render.ts';
 
@@ -22,8 +22,8 @@ const MOVE: Record<string, [number, number]> = {
 };
 
 /** Feature-030 VIEW-01: tasterne i en Tithe. */
-const ACTS: Record<string, 'dodge' | 'potion' | 'ration' | 'interact'> = {
-  ShiftLeft: 'dodge', ShiftRight: 'dodge', KeyQ: 'potion', KeyR: 'ration', KeyF: 'interact',
+const ACTS: Record<string, 'dodge' | 'potion' | 'focusPotion' | 'ration' | 'interact'> = {
+  ShiftLeft: 'dodge', ShiftRight: 'dodge', KeyQ: 'potion', KeyE: 'focusPotion', KeyR: 'ration', KeyF: 'interact',
 };
 
 interface Buffered {
@@ -59,6 +59,7 @@ export function hudHtml(): string {
       <div class="hud-bottom">
         <div class="hud-supplies">
           <button class="ghost small-btn" data-act="game-act" data-id="potion">Potion (Q) <b class="hud-potions"></b></button>
+          <button class="ghost small-btn" data-act="game-act" data-id="focusPotion">Focus (E) <b class="hud-focus-potions"></b></button>
           <button class="ghost small-btn" data-act="game-act" data-id="ration">Ration (R) <b class="hud-rations"></b></button>
         </div>
         <div class="hud-hotbar"></div>
@@ -202,8 +203,14 @@ export class Game {
       else if (f.type === 'shake') r.shake(f.amount ?? 3);
       else if (f.type === 'hurt') r.shake(2);
       else if (f.type === 'blast' && f.x !== undefined && f.y !== undefined) {
-        r.blast(f.x, f.y, f.amount ?? 1.3);
-        r.shake(3);
+        // Feature-047: en Echo Art har en farve; en ildkrukke (Feature-013) har ingen og ryster skærmen.
+        if (f.color) r.ring(f.x, f.y, f.amount ?? 1, f.color);
+        else {
+          r.blast(f.x, f.y, f.amount ?? 1.3);
+          r.shake(3);
+        }
+      } else if (f.type === 'beam' && f.x !== undefined && f.y !== undefined && f.x2 !== undefined && f.y2 !== undefined) {
+        r.beam(f.x, f.y, f.x2, f.y2, f.color ?? '#9fd8ff');
       }
     }
     if (s.msgs.length) {
@@ -245,10 +252,11 @@ export class Game {
       : b.snap.you;
     const s = latest.snap;
     return {
-      mapW: this.mapW, mapH: this.mapH, tiles: this.tiles, tilesVersion: this.tilesVersion, you, ents, proj: s.proj, loot: s.loot,
+      mapW: this.mapW, mapH: this.mapH, tiles: this.tiles, tilesVersion: this.tilesVersion, you, ents, proj: s.proj, zones: s.zones, loot: s.loot,
       caches: s.caches, gate: s.gate, sealed: !!s.seal?.sealed, radius: B.view.visionRadius,
       party: s.party.members.filter((m) => !m.you && m.x !== null && m.y !== null).map((m) => ({ name: m.name, x: m.x!, y: m.y! })),
       arena: s.arena ? { you: s.arena.you, ring: s.arena.ring } : null,
+      reach: s.area.reach,
     };
   }
 
@@ -297,11 +305,13 @@ export class Game {
     const floorName = s.area.floor === 3 ? ' · top floor' : s.area.floor === 2 ? ' · upper floor' : '';
     if (s.arena) this.arenaHud(root, s);
     else {
-      root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city'
+      root.querySelector('.hud-depth')!.textContent = s.area.reach === 'city' || s.area.reach === 'woods'
         ? `${s.area.reachName} · ${(s.area.ward ?? '').replace(/^./, (c) => c.toUpperCase())}${floorName}`
         : `${s.area.reachName} · Depth ${s.depth} of ${s.depths}`;
       const seal = root.querySelector<HTMLElement>('.hud-seal')!;
-      if (!s.seal) seal.textContent = s.area.reach === 'city' ? (s.area.ward === 'the foundry' ? "The Smelter's foundry" : '') : s.depth === s.depths ? "The Foreman's Hall" : '';
+      // Feature-010 VIEW-01: Warden'ens sted – The Foreman's Hall, The Smelter's foundry eller The Antlered King's heart.
+      const lair = s.area.ward === 'the foundry' ? "The Smelter's foundry" : s.area.ward === 'the heart' ? "The Antlered King's heart" : '';
+      if (!s.seal) seal.textContent = s.area.reach === 'city' || s.area.reach === 'woods' ? lair : s.depth === s.depths ? "The Foreman's Hall" : '';
       else if (s.seal.sealed) seal.textContent = 'SEALED – get out!';
       else {
         const left = Math.max(0, Math.ceil(s.seal.left));
@@ -312,17 +322,24 @@ export class Game {
     }
     root.querySelector('.hud-potions')!.textContent = String(y.potions);
     root.querySelector('.hud-rations')!.textContent = String(y.rations);
+    root.querySelector('.hud-focus-potions')!.textContent = String(y.focusPotions ?? 0);
     const prompt = s.interact === 'descend' ? 'Descend – press F' : s.interact === 'gate' ? 'Claim the Tithe – press F'
       : s.interact === 'climb' ? 'Climb – press F' : s.interact === 'down' ? 'Go down – press F' : '';
     const promptEl = root.querySelector<HTMLElement>('.hud-prompt')!;
     if (promptEl.textContent !== prompt) promptEl.innerHTML = prompt ? `<button class="primary" data-act="game-act" data-id="interact">${prompt}</button>` : '';
     // Feature-028 VIEW-01: hotbaren nederst med tasterne 1–8; den valgte tast er fremhævet.
-    const weapons = new Map([...(this.sheet ? [this.sheet.inventory.equipment.melee, this.sheet.inventory.equipment.ranged, ...this.sheet.inventory.pack] : [])].filter((i) => !!i).map((i) => [i!.id, i!.name]));
+    const weapons = new Map([...(this.sheet ? [this.sheet.inventory.equipment.melee, this.sheet.inventory.equipment.ranged, ...this.sheet.inventory.pack] : [])].filter((i) => !!i).map((i) => [i!.id, displayName(i!, B)]));
+    // Feature-047 VIEW-01: en tast med en Echo Art viser den cooldown, der er tilbage.
     const hotbar = HOTBAR_KEYS.map((k) => {
       const slot = y.hotbar[k];
-      const name = !slot ? '' : 'echoArt' in slot ? slot.echoArt : weapons.get(slot.weapon) ?? 'Weapon';
+      const name = !slot ? '' : hotbarSlotName(slot, (id) => weapons.get(id) ?? 'Weapon', B);
+      // Feature-049: talentets tast viser også sin cooldown.
+      const left = !slot ? 0 : 'echoArt' in slot ? y.cooldowns[slot.echoArt] ?? 0 : 'talent' in slot ? y.cooldowns.talent ?? 0 : 0;
+      const total = !slot ? 1 : 'echoArt' in slot ? (slot.echoArt === 'Echo Bolt' ? B.combat.echoBolt.cooldown : B.echoArts[slot.echoArt].cooldown)
+        : 'talent' in slot ? B.talents[slot.talent].cooldown : 1;
+      const cd = left >= 1 ? `<i class="cd" style="height:${Math.ceil((left / total) * 10) * 10}%"></i><em class="cd-s">${Math.ceil(left)}</em>` : '';
       return `<button class="hotkey ${k === y.chosenKey ? 'selected' : ''}" data-act="hotkey" data-id="${k}" aria-label="Key ${k}: ${esc(name || 'empty')}">
-        <b>${k}</b><span>${name ? esc(name) : '–'}</span></button>`;
+        ${cd}<b>${k}</b><span>${name ? esc(name) : '–'}</span></button>`;
     }).join('');
     if (hotbar !== this.hotbarHtml) {
       this.hotbarHtml = hotbar;
@@ -332,7 +349,7 @@ export class Game {
     const candidates = s.candidates
       .map((c) => `<li class="${c.you ? 'you' : ''} ${c.status !== 'in' ? 'out' : ''}" title="${esc(c.name)}${c.player ? '' : ' (NPC)'}">
         <span class="who">${esc(c.name)}${c.player ? '' : ' <span class="muted">(NPC)</span>'}</span>
-        <span>${c.status === 'in' ? `${s.area.reach === 'city' ? 'ward' : 'depth'} ${c.depth}` : c.status}</span></li>`)
+        <span>${c.status === 'in' ? `${s.area.reach === 'city' || s.area.reach === 'woods' ? 'ward' : 'depth'} ${c.depth}` : c.status}</span></li>`)
       .join('');
     if (candidates !== this.candidatesHtml) {
       this.candidatesHtml = candidates;
@@ -401,7 +418,7 @@ export class Game {
     if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
   }
 
-  act(act: 'dodge' | 'potion' | 'ration' | 'interact'): void {
+  act(act: 'dodge' | 'potion' | 'focusPotion' | 'ration' | 'interact'): void {
     this.send({ t: 'act', act });
   }
 

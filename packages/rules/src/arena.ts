@@ -2,7 +2,7 @@
 // og buske, der ligger ens på begge halvdele, og ringen, der lukker sig fra tribunerne ind mod midten.
 
 import type { Balance } from './balance.ts';
-import { BUSH, FLOOR, TREE, WALL, type DepthMap } from './dungeon.ts';
+import { BUSH, FLOOR, TREE, TREE_BIG, WALL, type DepthMap } from './dungeon.ts';
 
 export type ArenaFormat = '1v1' | '2v1' | '2v2';
 export type ArenaSide = 1 | 2;
@@ -21,6 +21,8 @@ export const ARENA_SPAWNS: Record<ArenaSide, { x: number; y: number }[]> = {
 // Venstre halvdel; højre halvdel er den samme spejlet om midten (x → 39 − x).
 const ROCKS: [number, number][] = [[11, 13], [11, 14], [15, 8], [16, 8], [15, 19], [16, 19], [19, 13], [19, 14]];
 const TREES: [number, number][] = [[8, 7], [7, 20], [13, 4], [13, 23], [17, 11], [17, 16]];
+/** Store træer på 2 × 2 felter: feltet øverst til venstre. */
+const BIG_TREES: [number, number][] = [[9, 4], [9, 22], [12, 9], [12, 17]];
 const BUSHES: [number, number][] = [
   [7, 9], [8, 9], [7, 10], [7, 17], [7, 18], [8, 18], [14, 13], [14, 14], [13, 14], [17, 5], [18, 5], [17, 22], [18, 22],
 ];
@@ -47,6 +49,7 @@ export function arenaMap(): DepthMap {
   };
   put(ROCKS, WALL);
   put(TREES, TREE);
+  put(BIG_TREES.flatMap(([x, y]) => [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]] as [number, number][]), TREE_BIG);
   put(BUSHES, BUSH);
   const room = { x: 2, y: 2, w: w - 4, h: h - 4, cx: ARENA_OVAL.cx, cy: ARENA_OVAL.cy };
   cached = {

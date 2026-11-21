@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 3
+version: 5
 status: draft
 created: '2026-11-19'
 use_case:
@@ -23,8 +23,8 @@ elements:
       - Player
     behavior: >-
       Opened with New character, and right away for a user without characters. The four backgrounds are shown
-      as cards; each card has the background's story, its strengths and weaknesses, its starting weapon and
-      the minimum and maximum of every attribute and skill. Choosing a background places its suggested points.
+      as cards; each card has the background's story, its strengths and weaknesses, its starting weapon, its
+      talent and the minimum and maximum of every attribute and skill. Choosing a background places its suggested points.
       A − and a + stand by every attribute and skill, disabled at the background's minimum and maximum, and
       "Points left" counts the attribute points and the skill points. A name field and "Take the Brand" create
       the character.
@@ -94,6 +94,13 @@ rules:
   - applies_to:
       - AGG-01
     text: A user can have several characters. Each belongs to one user and is kept on the Maw Server.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Every background has a talent, a fifth skill that only it has: Street Runner Hide, Miner Berserk, Poacher Haste
+      and Temple Acolyte Healing Circle (Tithe, Use a talent). It starts at 0 and is not placed at creation; it grows
+      by use and with skill points. Every character also has the skill Reveal, which reads unidentified items (Gear,
+      Reveal an item) and gets its bonus from Intelligence; it too starts at 0.
   - applies_to:
       - CMD-01
     text: >-

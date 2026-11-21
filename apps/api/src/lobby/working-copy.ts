@@ -17,7 +17,7 @@ export async function workingCopy(db: Pool | Client, characterId: string): Promi
     character: {
       name: core.name, background: core.background, level: core.mark, echo: core.echo, attributes: core.attributes, skills: core.skills,
       attributePoints: core.attributePoints, skillPoints: core.skillPoints, gold: wallet.rows[0]?.gold ?? 0,
-      potions: inv.potions, rations: inv.rations, equipment: inv.equipment, inventory: inv.pack,
+      potions: inv.potions, focusPotions: inv.focusPotions, rations: inv.rations, equipment: inv.equipment, inventory: inv.pack,
       tithes: stats.rows[0]?.tithes ?? 0, championships: stats.rows[0]?.champions ?? 0,
     },
     hotbar: inv.hotbar,

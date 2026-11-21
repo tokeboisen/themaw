@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 2
+version: 3
 status: draft
 created: '2026-11-19'
 use_case:
@@ -65,8 +65,8 @@ rules:
       - CMD-01
     text: >-
       The player descends by standing on the stairs and pressing Descend. The last depth has no stairs, only
-      the gate. In The Broken City there are no stairs down: crossing into a district closer to the middle is
-      reaching a deeper depth.
+      the gate. In The Broken City and The Woods there are no stairs down: crossing into a district closer to the
+      middle is reaching a deeper depth.
   - applies_to:
       - EVT-01
     text: >-

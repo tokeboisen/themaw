@@ -1,6 +1,6 @@
 // Feature-005 SVC-01 Quartermaster: inventaret følger med, når andre contexts melder noget.
 
-import { EVENT, type CharacterCreated, type CharacterDeleted, type ConsumableBought, type FoundGearKept, type ItemBought, type ItemGiftAccepted, type ItemSold, type TitheEnded } from '@maw/contracts';
+import { EVENT, type CharacterCreated, type CharacterDeleted, type ConsumableBought, type FoundGearKept, type IdentificationBought, type ItemBought, type ItemGiftAccepted, type ItemSold, type TitheEnded } from '@maw/contracts';
 import { envelope } from '@maw/platform';
 import {
   BALANCE as B, EQUIP_SLOTS, backgroundById, createRng, losesFound, normalizeEquipment, randomSeed, removeWeaponFromHotbar,
@@ -23,9 +23,9 @@ export async function onCharacterCreated(client: Client, data: CharacterCreated)
   if (!bg) throw new Error(`Unknown background ${data.background}`);
   const kit = startingKit(bg, createRng(randomSeed()), B);
   const inserted = await client.query(
-    `insert into gear.inventories (character_id, user_id, potions, rations, hotbar) values ($1, $2, $3, $4, $5)
+    `insert into gear.inventories (character_id, user_id, potions, focus_potions, rations, hotbar) values ($1, $2, $3, $4, $5, $6)
      on conflict (character_id) do nothing`,
-    [data.characterId, data.userId, kit.potions, kit.rations, JSON.stringify(kit.hotbar)],
+    [data.characterId, data.userId, kit.potions, kit.focusPotions, kit.rations, JSON.stringify(kit.hotbar)],
   );
   if (inserted.rowCount === 0) return;
   // Feature-005: Poacherens Short Bow er afstandsvåbnet, de andre baggrundes våben nærkampsvåbnet.
@@ -47,11 +47,19 @@ export async function onItemSold(client: Client, data: ItemSold): Promise<void> 
   await client.query('update gear.inventories set hotbar = $2 where character_id = $1', [data.characterId, JSON.stringify(hotbar)]);
 }
 
-/** EVT-04 Potion bought og EVT-05 Ration bought → CMD-03 Add consumable, højst 9 af hver. */
-export function onConsumableBought(kind: 'potions' | 'rations') {
+/** EVT-04 Potion bought, EVT-05 Ration bought og EVT-12 Focus potion bought → CMD-03 Add consumable, højst 9 af hver. */
+export function onConsumableBought(kind: 'potions' | 'focus_potions' | 'rations') {
   return async (client: Client, data: ConsumableBought): Promise<void> => {
     await client.query(`update gear.inventories set ${kind} = least($2, ${kind} + 1) where character_id = $1`, [data.characterId, B.character.maxConsumables]);
   };
+}
+
+/** EVT-13 Identification bought → CMD-05 Identify items: alt, karakteren ejer, identificeres (også i kisten). */
+export async function onIdentificationBought(client: Client, data: IdentificationBought): Promise<void> {
+  await client.query(
+    `update gear.items set data = data || '{"identified": true}'::jsonb where character_id = $1 and data->>'identified' = 'false'`,
+    [data.characterId],
+  );
 }
 
 /** EVT-10 Character deleted → CMD-04 Empty inventory. */
@@ -74,9 +82,12 @@ export async function onTitheEnded(client: Client, data: TitheEnded): Promise<vo
   const { lost, kept } = settleFoundGear(ch, data.titheId, lose);
   let hotbar = g.hotbar;
   for (const item of lost) hotbar = removeWeaponFromHotbar(hotbar, item.id);
-  await client.query('update gear.inventories set potions = $2, rations = $3, hotbar = $4 where character_id = $1', [
-    data.characterId, Math.min(B.character.maxConsumables, g.potions), Math.min(B.character.maxConsumables, g.rations), JSON.stringify(hotbar),
-  ]);
+  // En Tithe, der startede før focus potions (Feature-008 v4), sender ingen: så beholdes det, karakteren havde.
+  const focus = g.focusPotions === undefined ? null : Math.min(B.character.maxConsumables, g.focusPotions);
+  await client.query(
+    'update gear.inventories set potions = $2, rations = $3, hotbar = $4, focus_potions = coalesce($5, focus_potions) where character_id = $1',
+    [data.characterId, Math.min(B.character.maxConsumables, g.potions), Math.min(B.character.maxConsumables, g.rations), JSON.stringify(hotbar), focus],
+  );
   // Feature-043: kisten var aldrig med i Tithen og bliver stående.
   await client.query(`delete from gear.items where character_id = $1 and location <> 'chest'`, [data.characterId]);
   const placed: [Item, 'pack' | EquipSlot][] = [];

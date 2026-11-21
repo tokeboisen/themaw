@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 7
 status: draft
 created: '2026-11-19'
 use_case:
@@ -110,7 +110,9 @@ rules:
       - SVC-01
     text: >-
       A blow that lands trains the skill of the weapon that dealt it – Blades, Heavy Weapons or Bows (unarmed
-      counts as Blades) – and an Echo Bolt trains Echo Arts. A blow that misses or is dodged trains nothing.
+      counts as Blades) – an Echo Art that deals damage trains Echo Arts (Tithe, Cast an Echo Art), using the
+      talent trains the talent (Tithe, Use a talent), and every try to reveal an item trains Reveal (Gear, Reveal an
+      item). A blow that misses or is dodged trains nothing.
   - applies_to:
       - SVC-01
       - CMD-01

@@ -1,6 +1,6 @@
 dsl_version: '0.8'
 product: The Maw
-version: 4
+version: 7
 status: draft
 created: '2026-11-19'
 use_case:
@@ -103,7 +103,7 @@ elements:
     col: 4
     stack: 3
     description: >-
-      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour and two rings, the
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and an amulet, the
       items in the pack,
       potions and rations, the hotbar, and what was found in the current Tithe.
     fields:
@@ -114,6 +114,7 @@ elements:
           - name: Armour
           - name: Ring 1
           - name: Ring 2
+          - name: Amulet
       - name: Items
         attributes:
           - name: Item
@@ -123,6 +124,7 @@ elements:
           - name: Affixes
         many: true
       - name: Potions
+      - name: Focus potions
       - name: Rations
       - name: Hotbar
         attributes:
@@ -154,6 +156,36 @@ elements:
       bounded_context: Characters
       use_case: Delete character
       event: EVT-01
+  - id: EVT-12
+    type: event
+    name: Focus potion bought
+    col: 1
+    stack: 8
+    stimulus:
+      bounded_context: Market
+      use_case: Shop at the Apothecary
+      event: EVT-03
+  - id: EVT-13
+    type: event
+    name: Identification bought
+    col: 1
+    stack: 9
+    stimulus:
+      bounded_context: Market
+      use_case: Trade at the Forge
+      event: EVT-04
+  - id: CMD-05
+    type: command
+    name: Identify items
+    col: 3
+    stack: 6
+    fields:
+      - name: Character
+  - id: EVT-14
+    type: event
+    name: Items identified
+    col: 5
+    stack: 6
   - id: CMD-04
     type: command
     name: Empty inventory
@@ -199,6 +231,16 @@ flows:
     to: EVT-09
   - from: EVT-10
     to: SVC-01
+  - from: EVT-12
+    to: SVC-01
+  - from: EVT-13
+    to: SVC-01
+  - from: SVC-01
+    to: CMD-05
+  - from: CMD-05
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-14
   - from: SVC-01
     to: CMD-04
   - from: CMD-04
@@ -213,8 +255,8 @@ rules:
     text: >-
       A new character gets the background's weapon (Miner Pickaxe, Poacher Short Bow, Temple Acolyte Dagger,
       Street Runner Rusty Sword) and a Padded Coat, both common and equipped – the Short Bow as the ranged weapon,
-      the others as the melee weapon – 2 potions and 3 rations, and a hotbar with the weapon on key 1 and Echo Bolt
-      on key 2.
+      the others as the melee weapon – 2 potions, 1 focus potion and 3 rations, and a hotbar with the weapon on key 1, Echo Bolt
+      on key 2 and the background's talent on key 3.
   - applies_to:
       - CMD-01
       - AGG-01
@@ -226,10 +268,15 @@ rules:
     text: A sold item leaves the pack. Only items in the pack can be sold, never equipped ones.
   - applies_to:
       - CMD-03
-    text: A character carries at most 9 potions and 9 rations.
+    text: A character carries at most 9 potions, 9 focus potions and 9 rations.
   - applies_to:
       - CMD-04
     text: When a character is deleted, its inventory is emptied.
+  - applies_to:
+      - CMD-05
+    text: >-
+      When identification is bought at the Forge, every item the character owns – worn, in the pack and in the chest –
+      is identified.
 scenarios:
   - title: A new Miner gets the starting kit
     applies_to:
@@ -238,7 +285,7 @@ scenarios:
       Given EVT-01 "Character created" has been recorded for Kael, a Miner
       When SVC-01 "Quartermaster" reacts
       Then CMD-01 "Add item" is performed with a Pickaxe and a Padded Coat, both equipped
-      And CMD-03 "Add consumable" is performed with 2 potions and 3 rations
+      And CMD-03 "Add consumable" is performed with 2 potions, 1 focus potion and 3 rations
       And EVT-07 "Item added" and EVT-09 "Consumable added" are recorded
   - title: A bought item lands in the pack
     applies_to:

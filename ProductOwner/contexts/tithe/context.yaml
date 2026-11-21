@@ -27,6 +27,16 @@ bounded_context:
       use_cases:
         - Fight in the depths
         - Survive the depths
+    - name: Echo Arts
+      description: Arts of the mind that strike, shield, hold monsters, move the caster or strengthen the party.
+      lifecycle: planned
+      use_cases:
+        - Cast an Echo Art
+    - name: Talents
+      description: One trainable talent per background – Hide, Berserk, Haste and Healing Circle.
+      lifecycle: planned
+      use_cases:
+        - Use a talent
     - name: Arena
       description: Fights between players in an oval arena, side against side, with a closing ring.
       lifecycle: planned

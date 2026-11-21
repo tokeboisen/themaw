@@ -212,3 +212,34 @@ test('F013: a Gargoyle stands still until a candidate is within 3 tiles', () => 
   stepTithe(t, DT);
   assert.equal(g.awake, true);
 });
+
+test('F008 scenario "A focus potion is drunk": 40 % of max focus, once a second, never at full focus', () => {
+  const t = tithe();
+  const p = kael(t);
+  p.ch.focusPotions = 1;
+  p.focus = 4;
+  queueAct(t, p.id, { act: 'focusPotion' });
+  stepTithe(t, DT);
+  assert.equal(p.ch.focusPotions, 0);
+  assert.ok(p.focus >= 4 + Math.round(p.stats.maxFocus * B.combat.focusPotionRestore), String(p.focus));
+  // Feature-008: full focus keeps the potion.
+  const u = tithe();
+  const q = kael(u);
+  q.ch.focusPotions = 1;
+  q.focus = q.stats.maxFocus;
+  queueAct(u, q.id, { act: 'focusPotion' });
+  stepTithe(u, DT);
+  assert.equal(q.ch.focusPotions, 1);
+});
+
+test('F011: a higher-level monster has more armour, strikes faster and moves faster', () => {
+  const t = tithe();
+  const low = testing.makeMonster(t, 'gnawer', 1, 1, 1);
+  const high = testing.makeMonster(t, 'gnawer', 1, 1, 11);
+  assert.equal(high.armour - low.armour, 5); // 1 for every 2 levels above 1
+  assert.ok(Math.abs(high.quick - 0.8) < 1e-9); // 2 % faster per level
+  assert.ok(Math.abs(high.fleet - 1.1) < 1e-9); // 1 % faster on the feet
+  const top = testing.makeMonster(t, 'gnawer', 1, 1, 40);
+  assert.equal(top.quick, 0.7); // at most 30 %
+  assert.equal(top.fleet, 1.2); // at most 20 %
+});

@@ -2,19 +2,21 @@
 
 import type { Balance } from './balance.ts';
 import type { Rng } from './rng.ts';
-import type { AffixStat, Attribute, EquipSlot, Equipment, Item, ItemBase, Rarity, SkillId, Slot, WeaponSlot } from './types.ts';
+import type { Affix, AffixStat, Attribute, Character, EquipSlot, Equipment, Item, ItemBase, Rarity, SkillId, Slot, WeaponSlot } from './types.ts';
 
-export const SLOTS: Slot[] = ['weapon', 'armour', 'ring'];
-export const SLOT_NAMES: Record<Slot, string> = { weapon: 'Weapon', armour: 'Armour', ring: 'Ring' };
+const ATTRIBUTE_IDS: Attribute[] = ['strength', 'dexterity', 'stamina', 'constitution', 'intelligence'];
+
+export const SLOTS: Slot[] = ['weapon', 'armour', 'ring', 'amulet'];
+export const SLOT_NAMES: Record<Slot, string> = { weapon: 'Weapon', armour: 'Armour', ring: 'Ring', amulet: 'Amulet' };
 
 /** Feature-007: udstyrets pladser i den rækkefølge, karakterskærmen viser dem. */
-export const EQUIP_SLOTS: EquipSlot[] = ['melee', 'ranged', 'armour', 'ring1', 'ring2'];
+export const EQUIP_SLOTS: EquipSlot[] = ['melee', 'ranged', 'armour', 'ring1', 'ring2', 'amulet'];
 export const EQUIP_SLOT_NAMES: Record<EquipSlot, string> = {
-  melee: 'Melee weapon', ranged: 'Ranged weapon', armour: 'Armour', ring1: 'Ring 1', ring2: 'Ring 2',
+  melee: 'Melee weapon', ranged: 'Ranged weapon', armour: 'Armour', ring1: 'Ring 1', ring2: 'Ring 2', amulet: 'Amulet',
 };
 
 export function emptyEquipment(): Equipment {
-  return { melee: null, ranged: null, armour: null, ring1: null, ring2: null };
+  return { melee: null, ranged: null, armour: null, ring1: null, ring2: null, amulet: null };
 }
 
 export function isEquipSlot(value: unknown): value is EquipSlot {
@@ -48,13 +50,14 @@ export function weaponSlot(item: Item, B: Balance): WeaponSlot {
 export function targetSlot(equipment: Equipment, item: Item, B: Balance, ringSlot?: 'ring1' | 'ring2'): EquipSlot {
   if (item.slot === 'weapon') return weaponSlot(item, B);
   if (item.slot === 'armour') return 'armour';
+  if (item.slot === 'amulet') return 'amulet';
   if (ringSlot) return ringSlot;
   if (!equipment.ring1) return 'ring1';
   if (!equipment.ring2) return 'ring2';
   return 'ring1';
 }
 export const RARITY_NAMES: Record<Rarity, string> = { common: 'Common', magic: 'Magic', rare: 'Rare' };
-const SKILL_LABELS: Record<SkillId, string> = { blades: 'Blades', heavy: 'Heavy Weapons', bows: 'Bows', echo: 'Echo Arts' };
+const SKILL_LABELS: Record<SkillId, string> = { blades: 'Blades', heavy: 'Heavy Weapons', bows: 'Bows', echo: 'Echo Arts', talent: 'Talent', reveal: 'Reveal' };
 
 export function itemBase(B: Balance, baseId: string): ItemBase {
   const base = B.items.bases[baseId];
@@ -79,16 +82,20 @@ export interface ItemOptions {
 
 export function generateItem(rng: Rng, level: number, B: Balance, opts: ItemOptions = {}): Item {
   const ilvl = Math.max(1, Math.round(level));
+  let rarity = opts.rarity ?? rollRarity(rng, ilvl, B);
   let baseId = opts.baseId;
   if (!baseId) {
+    // Feature-007: en ring er aldrig almindelig, så en almindelig ting er et våben eller en rustning – ellers ville hver
+    // fjerde ting blive en magisk ring (Feature-011: magiske ting er sjældne).
     const candidates = Object.entries(B.items.bases)
-      .filter(([, b]) => (b.minLevel ?? 1) <= ilvl && (!opts.slot || b.slot === opts.slot))
+      .filter(([, b]) => (b.minLevel ?? 1) <= ilvl && (!opts.slot || b.slot === opts.slot)
+        && (opts.slot || rarity !== 'common' || (b.slot !== 'ring' && b.slot !== 'amulet')))
       .map(([id]) => id);
     baseId = rng.pick(candidates);
   }
   const base = itemBase(B, baseId);
-  let rarity = opts.rarity ?? rollRarity(rng, ilvl, B);
-  if (base.slot === 'ring' && rarity === 'common') rarity = 'magic'; // en ring uden egenskaber er intet værd
+  // En ring eller en amulet uden egenskaber er intet værd (Feature-007: aldrig almindelige).
+  if ((base.slot === 'ring' || base.slot === 'amulet') && rarity === 'common') rarity = 'magic';
 
   // ID'et skal være entydigt på hele serveren (gear.items): en UUID. Generatoren trækkes stadig to gange, så en bane
   // med samme seed stadig giver de samme ting.
@@ -104,12 +111,19 @@ export function generateItem(rng: Rng, level: number, B: Balance, opts: ItemOpti
     item.armour = Math.round((base.armour ?? 0) * (1 + B.items.armourPerItemLevel * (ilvl - 1)));
   }
 
-  const count = rarity === 'rare' ? 3 : rarity === 'magic' ? rng.int(1, 2) : 0;
-  const pool = Object.entries(B.items.affixes).filter(([, a]) => a.slots.includes(base.slot));
+  const count = B.items.affixCount[rarity]; // Feature-007: Magic 1, Rare 2
+  let pool = Object.entries(B.items.affixes).filter(([, a]) => a.slots.includes(base.slot) && (!a.rareOnly || rarity === 'rare'));
+  // Feature-007: en ring eller en amulet giver til højst én attribut og én skill; aldrig haste og speed sammen.
+  const jewel = base.slot === 'ring' || base.slot === 'amulet';
+  const isAttribute = (stat: string) => (ATTRIBUTE_IDS as string[]).includes(stat);
   for (let i = 0; i < count && pool.length; i++) {
     const [stat, a] = pool.splice(Math.floor(rng.next() * pool.length), 1)[0]!;
-    const value = Math.max(1, Math.round(rng.range(a.min, a.max) + a.perLevel * (ilvl - 1)));
-    item.affixes.push({ stat: stat as AffixStat, value });
+    const value = Math.min(a.cap ?? Infinity, Math.max(1, Math.round(rng.range(a.min, a.max) + a.perLevel * (ilvl - 1))));
+    const affix: Affix = { stat: stat as AffixStat, value };
+    if (stat === 'skillBonus') affix.skill = rng.pick(['blades', 'heavy', 'bows', 'echo'] as const);
+    item.affixes.push(affix);
+    if (jewel && isAttribute(stat)) pool = pool.filter(([s]) => !isAttribute(s));
+    if (stat === 'haste' || stat === 'speed') pool = pool.filter(([s]) => s !== 'haste' && s !== 'speed');
   }
   item.name = itemName(item, B);
   item.value = itemValue(item, B);
@@ -130,8 +144,27 @@ export function itemValue(item: Item, B: Balance): number {
   return Math.round(base.price * level * B.items.rarityPrice[item.rarity] + item.affixes.length * 8);
 }
 
+/** Feature-019: en uidentificeret ting sælges som en almindelig. */
 export function sellValue(item: Item, B: Balance): number {
-  return Math.max(1, Math.floor(item.value * B.items.sellFactor));
+  const value = item.identified === false ? itemValue({ ...item, rarity: 'common', affixes: [] }, B) : item.value;
+  return Math.max(1, Math.floor(value * B.items.sellFactor));
+}
+
+/** Feature-050: en uidentificeret ting hedder sin grundtype. */
+export function displayName(item: Item, B: Balance): string {
+  return item.identified === false ? itemBase(B, item.baseId).name : item.name;
+}
+
+/** Feature-050: chancen for at Reveal lykkes: 25 % + 4 % pr. point over 2 × item level, 5–100 %. */
+export function revealChance(reveal: number, item: Item, B: Balance): number {
+  const R = B.reveal;
+  return Math.max(R.min, Math.min(1, R.base + R.perPoint * (reveal - R.levelFactor * item.ilvl)));
+}
+
+/** Feature-019: smedens pris for at identificere tingene: 10 + 3 × item level for hver uidentificeret ting. */
+export function identifyPrice(items: Item[], B: Balance): { count: number; price: number } {
+  const unknown = items.filter((i) => i.identified === false);
+  return { count: unknown.length, price: unknown.reduce((sum, i) => sum + B.reveal.identifyBase + B.reveal.identifyPerLevel * i.ilvl, 0) };
 }
 
 /** Feature-007: hvad en ting kræver for at blive taget på; et krav på 0 er udeladt. */
@@ -146,7 +179,7 @@ export interface Requirements {
  * skill'en og 1 til attributten for hver 2 levels.
  */
 export function itemRequirements(item: Item, B: Balance): Requirements {
-  if (item.slot === 'ring') return {};
+  if (item.slot === 'ring' || item.slot === 'amulet') return {};
   const base = itemBase(B, item.baseId);
   const R = B.items.requirements;
   const above = Math.max(0, item.ilvl - 1);
@@ -155,7 +188,7 @@ export function itemRequirements(item: Item, B: Balance): Requirements {
     const level = (base.reqSkill ?? 0) + above * R.skillPerLevel;
     if (level > 0) out.skill = { id: item.skill, level };
   }
-  const kind = item.slot === 'armour' ? 'armour' : item.skill && item.skill !== 'echo' ? item.skill : null;
+  const kind = item.slot === 'armour' ? 'armour' : item.skill === 'blades' || item.skill === 'heavy' || item.skill === 'bows' ? item.skill : null;
   if (kind) {
     const value = (base.reqAttribute ?? 0) + Math.floor(above / R.levelsPerAttribute);
     if (value > 0) out.attribute = { id: R.attribute[kind], value };
@@ -190,12 +223,35 @@ export function describeItem(item: Item, B: Balance): string[] {
   // Feature-007: kravene står på tingen.
   const requires = requirementText(itemRequirements(item, B));
   if (requires) lines.push(requires);
-  for (const a of item.affixes) {
+  // Feature-050: en uidentificeret tings affixes er skjulte.
+  if (item.identified === false) lines.push('Unidentified');
+  else for (const a of item.affixes) {
     const def = B.items.affixes[a.stat];
     if (!def) continue;
     if (a.stat === 'skill' && item.skill) lines.push(`+${a.value} ${SKILL_LABELS[item.skill]}`);
+    else if (a.stat === 'skillBonus' && a.skill) lines.push(`+${a.value} ${SKILL_LABELS[a.skill]}`);
     else if (def.label.startsWith('%')) lines.push(`+${a.value}${def.label}`);
     else lines.push(`+${a.value} ${def.label}`);
   }
+  // Feature-007: hver ting viser sin vægt.
+  lines.push(`Weight ${itemWeight(item, B)}`);
   return lines;
+}
+
+/** Feature-007: tingens vægt efter dens grundtype. */
+export function itemWeight(item: Item, B: Balance): number {
+  return B.items.bases[item.baseId]?.weight ?? 0;
+}
+
+/**
+ * Feature-007: det, karakteren bærer (det, den har på, og pakken – ikke kisten), hvad den bærer uden besvær, og hvor
+ * meget dyrere stamina er: 3 % for hvert vægtpoint over.
+ */
+export function loadOf(ch: Pick<Character, 'equipment' | 'inventory'>, attributes: Record<Attribute, number>, B: Balance): { load: number; carry: number; staminaCostMult: number } {
+  const L = B.items.load;
+  const worn = (Object.values(ch.equipment) as (Item | null | undefined)[]).filter((i): i is Item => !!i);
+  const load = Math.round([...worn, ...ch.inventory].reduce((sum, i) => sum + itemWeight(i, B), 0) * 10) / 10;
+  const base = B.character.startAttribute;
+  const carry = L.base + (attributes.strength - base) * L.perStrength + (attributes.constitution - base) * L.perConstitution;
+  return { load, carry, staminaCostMult: 1 + Math.max(0, load - carry) * L.costPerPoint };
 }

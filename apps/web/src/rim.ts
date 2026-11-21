@@ -1,6 +1,6 @@
 // The Rim's faner: Forge (Feature-019), Apothecary (Feature-020) og Patrons' Hall (Feature-024).
 
-import { BALANCE as B, sellValue, type Character, type Item } from '@maw/rules';
+import { identifyPrice, BALANCE as B, sellValue, type Character, type Item } from '@maw/rules';
 import type { GiftView, InventoryView } from './api.ts';
 import { esc } from './dom.ts';
 import { itemRow } from './items.ts';
@@ -26,11 +26,17 @@ export function forgeHtml(d: RimData, message: string, ch: Character | null = nu
     ? pack.map((item) => itemRow(item, `${price(sellValue(item, B))}
         <button class="ghost small-btn" data-act="sell" data-id="${item.id}">Sell</button>`, '', '', ch)).join('')
     : '<li class="muted">Your pack is empty.</li>';
+  // Feature-019 VIEW-01: Identify all – hvor mange ting der er uidentificerede, og hvad det koster.
+  const inv = d.inventory;
+  const owned = inv ? [...Object.values(inv.equipment).filter((i): i is Item => !!i), ...inv.pack, ...inv.chest] : [];
+  const id = identifyPrice(owned, B);
+  const identify = `<div class="identify-row"><span>${id.count ? `${id.count} unidentified item${id.count > 1 ? 's' : ''} · ${price(id.price)}` : '<span class="muted">Nothing to identify.</span>'}</span>
+      <button class="ghost small-btn" data-act="forge-identify" ${!id.count || d.gold < id.price ? 'disabled' : ''}>Identify all</button></div>`;
   return `<p class="quote">Hesta Varn, the smith: "Steel for the Branded. Coin first."</p>
     <div class="msg">${esc(message)}</div>
     <div class="cols">
       <div class="box"><h3>For sale</h3><ul class="items">${stock}</ul></div>
-      <div class="box"><h3>Your inventory</h3><ul class="items">${sell}</ul></div>
+      <div class="box"><h3>Your inventory</h3><ul class="items">${sell}</ul>${identify}</div>
     </div>`;
 }
 
@@ -58,7 +64,7 @@ export function chestHtml(d: RimData, message: string, ch: Character | null = nu
 
 export function apothecaryHtml(d: RimData, message: string): string {
   const max = B.character.maxConsumables;
-  const row = (kind: 'potion' | 'ration', name: string, what: string, cost: number, have: number) =>
+  const row = (kind: 'potion' | 'focusPotion' | 'ration', name: string, what: string, cost: number, have: number) =>
     `<li class="item"><div><div class="item-name">${name}</div><div class="hint">${what} You have ${have} / ${max}.</div></div>
       <div class="actions">${price(cost)}
         <button class="ghost small-btn" data-act="buy-consumable" data-id="${kind}" ${d.gold < cost || have >= max ? 'disabled' : ''}>Buy</button></div></li>`;
@@ -66,6 +72,7 @@ export function apothecaryHtml(d: RimData, message: string): string {
     <div class="msg">${esc(message)}</div>
     <div class="box"><ul class="items">
       ${row('potion', 'Healing Draught', `Restores ${Math.round(B.combat.potionHeal * 100)} % of your life.`, B.rim.potionPrice, d.inventory?.potions ?? 0)}
+      ${row('focusPotion', 'Focus Draught', `Restores ${Math.round(B.combat.focusPotionRestore * 100)} % of your focus.`, B.rim.focusPotionPrice, d.inventory?.focusPotions ?? 0)}
       ${row('ration', 'Ration', `Restores ${B.hunger.rationRestores} hunger.`, B.rim.rationPrice, d.inventory?.rations ?? 0)}
     </ul></div>`;
 }

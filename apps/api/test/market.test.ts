@@ -122,6 +122,34 @@ describe('Market', { skip: !hasDatabase }, () => {
     assert.equal((await get(cookie, `/api/characters/${id}/inventory`)).potions, 2);
   });
 
+  test('F020 CMD-03 Buy focus potion: 25 gold, and it lands in the inventory', async () => {
+    const cookie = await signUp(app, named('m8f'));
+    const id = await createCharacter(app, pool, cookie);
+    await setGold(id, 40);
+    const response = await post(cookie, `/api/characters/${id}/apothecary/buy`, { kind: 'focusPotion' });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().gold, 15);
+    await deliverAll(pool); // EVT-03 "Focus potion bought" → Gear
+    assert.equal((await get(cookie, `/api/characters/${id}/inventory`)).focusPotions, 2);
+  });
+
+  test('F019 CMD-03 Pay for identification: 10 + 3 × item level per unidentified item, then Gear identifies them all', async () => {
+    const cookie = await signUp(app, named('m8i'));
+    const id = await createCharacter(app, pool, cookie);
+    await setGold(id, 100);
+    const [ring, axe] = [...items(1, { baseId: 'iron_ring', rarity: 'magic' }, 5), ...items(1, { baseId: 'war_axe', rarity: 'rare' }, 3)];
+    ring!.identified = false;
+    axe!.identified = false;
+    await putInPack(pool, id, [ring!, axe!]);
+    const response = await post(cookie, `/api/characters/${id}/forge/identify`, {});
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.json().gold, 100 - (10 + 3 * 5) - (10 + 3 * 3));
+    await deliverAll(pool); // EVT-04 "Identification bought" → Gear
+    const pack = (await get(cookie, `/api/characters/${id}/inventory`)).pack as Item[];
+    assert.ok(pack.every((i) => i.identified !== false));
+    assert.equal((await post(cookie, `/api/characters/${id}/forge/identify`, {})).statusCode, 400); // nothing left to identify
+  });
+
   test('F020 scenario "Nine rations are enough"', async () => {
     const cookie = await signUp(app, named('m9'));
     const id = await createCharacter(app, pool, cookie);

@@ -1,0 +1,106 @@
+dsl_version: '0.8'
+product: The Maw
+version: 1
+status: draft
+created: '2026-11-21'
+use_case:
+  name: Reveal an item
+  bounded_context: Gear
+  lifecycle: planned
+  purpose:
+    derived: false
+    text: >-
+      For the player: find out what an unidentified magic item does by reading it with the Reveal skill during a
+      Tithe, so a clever character does not have to pay the Forge, and Reveal grows with every try.
+elements:
+  - id: VIEW-01
+    type: view
+    name: Inventory
+    col: 1
+    stack: 1
+    actors:
+      - Player
+    description: >-
+      The equipped melee weapon, ranged weapon, armour, two rings and an amulet, the items in the pack and the
+      hotbar with the keys 1–8, each item with damage or armour and affixes. Part of the character sheet.
+    behavior: >-
+      During a Tithe an unidentified item in the Equipment tab has a Reveal button with the chance of success and the
+      focus it costs. A revealed item shows its name and affixes at once; a failed try shows "The item keeps its
+      secrets." over the candidate. In the Rim the button is not there, and the item reads "Unidentified – reveal it
+      in a Tithe or pay Hesta at the Forge".
+  - id: CMD-01
+    type: command
+    name: Reveal item
+    col: 2
+    stack: 1
+    story: >-
+      As a player I want to read an unidentified item with Reveal, so that I know what it does without paying for it.
+    fields:
+      - name: Item
+  - id: AGG-01
+    type: aggregate
+    name: Inventory
+    col: 3
+    stack: 1
+    description: >-
+      Everything a character owns and carries: the equipped melee weapon, ranged weapon, armour, two rings and
+      an amulet, the items in the pack, potions and rations, the hotbar, and what was found in the current
+      Tithe.
+    fields:
+      - name: Items
+        attributes:
+          - name: Item
+          - name: Identified
+        many: true
+  - id: EVT-01
+    type: event
+    name: Item revealed
+    col: 4
+    stack: 1
+flows:
+  - from: VIEW-01
+    to: CMD-01
+  - from: CMD-01
+    to: AGG-01
+  - from: AGG-01
+    to: EVT-01
+rules:
+  - applies_to:
+      - CMD-01
+    text: >-
+      Reveal can only be used during a Tithe, on an unidentified item the character wears or carries. A try costs 10
+      focus and succeeds with a chance of 25 % + 4 % for every point of effective Reveal above 2 × the item level, at
+      least 5 % and at most 100 %. Every try trains Reveal (Characters, Learn by use), except in the arena.
+  - applies_to:
+      - AGG-01
+    text: >-
+      Magic and rare items found in a Tithe are unidentified (Gear, Manage equipment): their name is the base name, and
+      their affixes are hidden but work when worn. Revealing shows the name and affixes. Items from the Forge and
+      sponsor gifts are identified.
+scenarios:
+  - title: Revealing a ring
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael is in a Tithe with 20 focus, an effective Reveal of 30 and an unidentified ring of item level 5
+      When the player performs CMD-01 "Reveal item" with the ring
+      Then EVT-01 "Item revealed" is recorded
+      And the ring shows its name and affixes
+      And Kael has 10 focus left
+  - title: Not enough focus
+    applies_to:
+      - CMD-01
+    gherkin: |-
+      Given Kael has 5 focus and an unidentified ring
+      When the player performs CMD-01 "Reveal item" with the ring
+      Then nothing is recorded
+open_questions:
+  - topic: Identifying items
+    question: How are magic items identified?
+    status: resolved
+    applies_to:
+      - CMD-01
+    resolution: >-
+      Decided 2026-11-21: magic items found in a Tithe are unidentified; every character has the trainable skill
+      Reveal (Intelligence), and in the Rim Hesta Varn identifies all items for gold. Unidentified items work when
+      worn, but their affixes are hidden (my recommendation; the user did not choose).

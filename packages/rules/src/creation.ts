@@ -2,9 +2,9 @@
 // Bruges af webappen (knapperne − og +, "Points left") og af api'et (CMD-01 Create character).
 
 import type { Balance } from './balance.ts';
-import { ATTRIBUTES, SKILLS } from './character.ts';
+import { ATTRIBUTES, CREATION_SKILLS } from './character.ts';
 import { emptyEquipment } from './items.ts';
-import type { Allocation, Attribute, Background, Character, SkillId } from './types.ts';
+import type { Allocation, Attribute, Background, Character, CreationSkill } from './types.ts';
 
 export type PointKind = 'attributes' | 'skills';
 export type CreationProblem = 'name' | 'background' | 'limits' | 'points';
@@ -31,11 +31,11 @@ export function pointsLeft(alloc: Allocation, B: Balance): Record<PointKind, num
 }
 
 function limitOf(bg: Background, kind: PointKind, key: string) {
-  return kind === 'attributes' ? bg.limits.attributes[key as Attribute] : bg.limits.skills[key as SkillId];
+  return kind === 'attributes' ? bg.limits.attributes[key as Attribute] : bg.limits.skills[key as CreationSkill];
 }
 
 function valueOf(alloc: Allocation, kind: PointKind, key: string): number {
-  return kind === 'attributes' ? alloc.attributes[key as Attribute] : alloc.skills[key as SkillId];
+  return kind === 'attributes' ? alloc.attributes[key as Attribute] : alloc.skills[key as CreationSkill];
 }
 
 /** + er slået fra ved baggrundens maksimum, og når der ikke er flere point. */
@@ -51,14 +51,14 @@ export function canLower(bg: Background, alloc: Allocation, kind: PointKind, key
 export function raise(alloc: Allocation, kind: PointKind, key: string): Allocation {
   const next = { attributes: { ...alloc.attributes }, skills: { ...alloc.skills } };
   if (kind === 'attributes') next.attributes[key as Attribute] += 1;
-  else next.skills[key as SkillId] += 1;
+  else next.skills[key as CreationSkill] += 1;
   return next;
 }
 
 export function lower(alloc: Allocation, kind: PointKind, key: string): Allocation {
   const next = { attributes: { ...alloc.attributes }, skills: { ...alloc.skills } };
   if (kind === 'attributes') next.attributes[key as Attribute] -= 1;
-  else next.skills[key as SkillId] -= 1;
+  else next.skills[key as CreationSkill] -= 1;
   return next;
 }
 
@@ -82,7 +82,7 @@ export function creationProblems(input: CreationInput, B: Balance): CreationProb
       const range = limitOf(bg, kind, k);
       return Number.isInteger(v) && (v as number) >= range.min && (v as number) <= range.max;
     }) && Object.keys(values ?? {}).every((k) => keys.includes(k));
-  if (!inRange('attributes', ATTRIBUTES, input.attributes) || !inRange('skills', SKILLS, input.skills)) {
+  if (!inRange('attributes', ATTRIBUTES, input.attributes) || !inRange('skills', CREATION_SKILLS, input.skills)) {
     return [...problems, 'limits'];
   }
   const left = pointsLeft({ attributes: input.attributes as Allocation['attributes'], skills: input.skills as Allocation['skills'] }, B);
@@ -98,11 +98,14 @@ export function newCharacter(name: string, bg: Background, alloc: Allocation): C
     level: 1,
     echo: 0,
     attributes: { ...alloc.attributes },
-    skills: Object.fromEntries(SKILLS.map((s) => [s, { level: alloc.skills[s], xp: 0 }])) as Character['skills'],
+    skills: {
+      ...Object.fromEntries(CREATION_SKILLS.map((s) => [s, { level: alloc.skills[s], xp: 0 }])), talent: { level: 0, xp: 0 }, reveal: { level: 0, xp: 0 },
+    } as Character['skills'],
     attributePoints: 0,
     skillPoints: 0,
     gold: 0,
     potions: 0,
+    focusPotions: 0,
     rations: 0,
     equipment: emptyEquipment(),
     inventory: [],

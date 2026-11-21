@@ -5,7 +5,7 @@ bounded_context: Characters
 product: The Maw
 source: models/Feature-002-learn-by-use.drawio
 semantics: event-modeling-semantik.md
-version: 4
+version: 7
 status: draft
 created: 2026-11-19
 ```
@@ -95,7 +95,7 @@ No user stories.
 
 ### Rules
 
-- A blow that lands trains the skill of the weapon that dealt it – Blades, Heavy Weapons or Bows (unarmed counts as Blades) – and an Echo Bolt trains Echo Arts. A blow that misses or is dodged trains nothing. (SVC-01)
+- A blow that lands trains the skill of the weapon that dealt it – Blades, Heavy Weapons or Bows (unarmed counts as Blades) – an Echo Art that deals damage trains Echo Arts (Tithe, Cast an Echo Art), using the talent trains the talent (Tithe, Use a talent), and every try to reveal an item trains Reveal (Gear, Reveal an item). A blow that misses or is dodged trains nothing. (SVC-01)
 - A blow gives 1 experience, and the killing blow 3 more. A swing that hits several enemies trains at most 3 of the hits. (SVC-01, CMD-01)
 - Challenge: the experience is multiplied by the enemy's level divided by the character's Mark, kept between 0.25 and 1.5, so weak enemies teach little and strong ones more. (CMD-01)
 - Intelligence speeds up learning: +2 % experience for each point of Intelligence above 10, items included. (AGG-01)
@@ -140,7 +140,7 @@ Scenario: The Mark caps the skill
 
 ## 10. Validation and open questions
 
-### Resolved in version 4
+### Resolved in version 7
 
 | # | Question | Resolution |
 |---|---|---|

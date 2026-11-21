@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  ARENA_SPAWNS, ARENA_W, BALANCE as B, BUSH, TREE, arenaMap, arenaPayout, bfs, createCharacter, createRng, createTithe, hiddenFrom, isSolid,
+  ARENA_SPAWNS, ARENA_W, BALANCE as B, BUSH, TREE, TREE_BIG, arenaMap, arenaPayout, bfs, createCharacter, createRng, createTithe, hiddenFrom, isSolid,
   setInput, sheetAction, stepTithe, testing, type ArenaFormat, type ArenaSide, type Hotbar, type Player, type Tithe,
 } from '../src/index.ts';
 
@@ -31,6 +31,8 @@ test('F045 AGG-01: an oval of sand ringed by the stands, the same on both halves
   for (let y = 0; y < map.h; y++) for (let x = 0; x < map.w; x++) assert.equal(map.tiles[y * map.w + x], map.tiles[y * map.w + (ARENA_W - 1 - x)]);
   const tiles = [...map.tiles];
   assert.ok(tiles.includes(TREE) && tiles.includes(BUSH));
+  assert.equal(tiles.filter((x) => x === TREE_BIG).length % 4, 0); // big trees fill 2 × 2 tiles
+  assert.ok(tiles.includes(TREE_BIG));
   assert.equal(isSolid(map, 0, 0), true); // the stands
   const [a, b] = [ARENA_SPAWNS[1][0]!, ARENA_SPAWNS[2][0]!];
   const reach = bfs(map, Math.floor(a.x), Math.floor(a.y));

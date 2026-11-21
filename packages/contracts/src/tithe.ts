@@ -7,7 +7,7 @@ import type {
 
 export type ClientMessage =
   | { t: 'input'; moveX: number; moveY: number; attack: boolean }
-  | { t: 'act'; act: 'dodge' | 'potion' | 'ration' | 'interact' }
+  | { t: 'act'; act: 'dodge' | 'potion' | 'focusPotion' | 'ration' | 'interact' }
   | { t: 'act'; act: 'hotkey'; key: HotbarKey }
   | { t: 'sheet'; action: SheetAction }
   | { t: 'party'; action: 'invite'; userId: string }
@@ -50,8 +50,14 @@ export interface SnapshotEntity {
   level?: number;
   veteran?: boolean;
   warden?: boolean;
-  /** Et angreb på vej: rækkevidden eller sigtet (Feature-011 VIEW-01). */
-  windup?: { reach?: number; aimX?: number; aimY?: number };
+  /** Et nærkampsangreb på vej: rækkevidden (Feature-011 VIEW-01). */
+  windup?: { reach: number };
+  /** Feature-047: et monster, der er lammet, rodfæstet eller langsomt, og om det er mærket (Last Words). */
+  held?: 'stunned' | 'rooted' | 'slowed';
+  marked?: boolean;
+  /** Feature-013/-049: en skjult kandidat ses kun svagt (1 er helt synlig) og kan ikke rammes, når hidden er sand. */
+  alpha?: number;
+  hidden?: boolean;
 }
 
 export interface YouView {
@@ -78,13 +84,19 @@ export interface YouView {
   echoNext: number;
   points: number;
   potions: number;
+  /** Feature-008 VIEW-01: focus potions tilbage. */
+  focusPotions: number;
   rations: number;
   /** Tasten med det, Attack bruger: våbnet i hånden eller den valgte Echo Art (Feature-028 VIEW-01). */
   chosenKey: HotbarKey | null;
   hotbar: Hotbar;
   starving: boolean;
-  /** Feature-013: "Slowed", "Stunned" og "Corroded", når de gælder. */
+  /** Feature-013: "Slowed", "Stunned" og "Corroded", og Feature-047's virkninger, fx "Warded", når de gælder. */
   status: string[];
+  /** Feature-047 / Feature-028 VIEW-01: sekunder tilbage af hver Echo Arts cooldown. */
+  cooldowns: Record<string, number>;
+  /** Feature-013/-049: spilleren står skjult i en busk eller med Hide. */
+  hidden: boolean;
 }
 
 export interface CandidateView {
@@ -109,6 +121,8 @@ export interface Snapshot {
   you: YouView;
   ents: SnapshotEntity[];
   proj: { x: number; y: number; vx: number; vy: number; kind: string }[];
+  /** Feature-047: flammer, ekkoer og spejlbilleder på gulvet. */
+  zones: { x: number; y: number; r: number; kind: 'fire' | 'echo' | 'mirror' | 'heal'; t: number }[];
   loot: { id: string; x: number; y: number; kind: string; rarity?: string }[];
   caches: { x: number; y: number; opened: boolean }[];
   gate: { x: number; y: number; open: boolean } | null;
@@ -122,7 +136,7 @@ export interface Snapshot {
   /** Feature-045 VIEW-01: arenakampen – siderne, uret, nedtællingen og ringen, når den lukker sig. */
   arena?: ArenaView;
   interact: 'descend' | 'gate' | 'climb' | 'down' | null;
-  fx: { type: string; x?: number; y?: number; text?: string; color?: string; size?: number; amount?: number; kind?: string }[];
+  fx: { type: string; x?: number; y?: number; x2?: number; y2?: number; text?: string; color?: string; size?: number; amount?: number; kind?: string }[];
   msgs: { who: string; text: string }[];
 }
 
@@ -140,7 +154,7 @@ export interface SheetMessage {
     attributePoints: number;
     skillPoints: number;
   };
-  inventory: { equipment: Equipment; pack: Item[]; potions: number; rations: number; hotbar: Hotbar; capacity: number };
+  inventory: { equipment: Equipment; pack: Item[]; potions: number; focusPotions: number; rations: number; hotbar: Hotbar; capacity: number };
   /** ID'erne på de ting, der er fundet i denne Tithe: "Found this Tithe – lost if you fall" (Feature-007 VIEW-01). */
   found: string[];
 }

@@ -5,7 +5,7 @@ bounded_context: Patronage
 product: The Maw
 source: models/Feature-024-accept-sponsor-gifts.drawio
 semantics: event-modeling-semantik.md
-version: 2
+version: 3
 status: draft
 created: 2026-11-19
 ```
@@ -110,11 +110,11 @@ Scenario: A full pack refuses an item gift
 |---|---|---|---|
 | VIEW-01 | Patrons' Hall | (starting point) | CMD-01 |
 
-**VIEW-01:** Explains that the Houses give one gift for every 100 Renown (at most 4) and what the crowd loves, shows the Renown of the last Tithe and lists the waiting gifts – each item with its house, an item gift with its description – with Accept.
+**VIEW-01:** Explains that the Houses give one gift for every 150 Renown (at most 4) and what the crowd loves, shows the Renown of the last Tithe and lists the waiting gifts – each item with its house, an item gift with its description – with Accept.
 
 ## 10. Validation and open questions
 
-### Resolved in version 2
+### Resolved in version 3
 
 | # | Question | Resolution |
 |---|---|---|

@@ -158,7 +158,7 @@ export function lobbyRoutes(app: FastifyInstance, pool: Pool): void {
       // Feature-037: Mark hos den, der startede Tithen, sætter dens niveau (Feature-010, -011).
       const opener = players.find((x) => x.userId === tithe.opener_user_id);
       const data: TitheLaunched = {
-        titheId: tithe.id, name: tithe.name, reach: tithe.reach === 'city' ? 'city' : 'mines', players,
+        titheId: tithe.id, name: tithe.name, reach: tithe.reach === 'city' || tithe.reach === 'woods' ? tithe.reach : 'mines', players,
         ...(opener ? { level: opener.character.level } : {}),
       };
       await enqueue(client, envelope(EVENT.titheLaunched, data));

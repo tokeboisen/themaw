@@ -3,7 +3,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MESSAGES } from '@maw/contracts';
 import {
-  BALANCE as B, assignHotbarKey, clearHotbarKey, isEchoArt, isEquipSlot, isHotbarKey, meetsRequirements, removeWeaponFromHotbar, targetSlot,
+  BALANCE as B, assignHotbarKey, clearHotbarKey, isEchoArt, isEquipSlot, isHotbarKey, knowsArt, meetsRequirements, talentOf, type TalentId, removeWeaponFromHotbar, targetSlot,
   type HotbarSlot,
 } from '@maw/rules';
 import { transaction, type Pool } from '../db.ts';
@@ -13,7 +13,7 @@ import { capacity, characterOf, loadInventory, type Inventory } from './store.ts
 
 async function view(pool: Pool, inv: Inventory) {
   return {
-    equipment: inv.equipment, pack: inv.pack, potions: inv.potions, rations: inv.rations, hotbar: inv.hotbar, capacity: await capacity(pool, inv),
+    equipment: inv.equipment, pack: inv.pack, potions: inv.potions, focusPotions: inv.focusPotions, rations: inv.rations, hotbar: inv.hotbar, capacity: await capacity(pool, inv),
     chest: inv.chest, chestSize: B.chest.size,
   };
 }
@@ -122,10 +122,10 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
     return reply.send(await view(pool, result));
   });
 
-  // Feature-027 CMD-01 Assign hotbar key: et våben, karakteren ejer, eller en Echo Art.
+  // Feature-027 CMD-01 Assign hotbar key: et våben, karakteren ejer, eller en Echo Art, den kender (Feature-048).
   app.put('/api/characters/:id/hotbar/:key', async (request: Req, reply) => {
     const key = request.params.key;
-    const { itemId, echoArt } = request.body ?? {};
+    const { itemId, echoArt, talent } = request.body ?? {};
     if (!isHotbarKey(key)) return refuse(reply, 400, INVALID);
     const result = await transaction(pool, async (client) => {
       const inv = await owned(request, reply, true, client);
@@ -136,7 +136,14 @@ export function gearRoutes(app: FastifyInstance, pool: Pool): void {
         if (!weapon) return 'invalid' as const;
         slot = { weapon: weapon.id };
       } else if (isEchoArt(echoArt)) {
+        const character = await characterOf(client, inv);
+        if (!character || !knowsArt(character, echoArt, B)) return 'invalid' as const;
         slot = { echoArt };
+      } else if (typeof talent === 'string') {
+        // Feature-027: kun karakterens eget talent (Feature-049).
+        const character = await characterOf(client, inv);
+        if (!character || talent !== talentOf(character.background, B)) return 'invalid' as const;
+        slot = { talent: talent as TalentId };
       } else {
         return 'invalid' as const;
       }
